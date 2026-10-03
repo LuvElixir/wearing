@@ -7,9 +7,9 @@
     {
       "path": ".gitignore",
       "source_path": ".gitignore",
-      "sha256": "1ef4691b0d624ae1e49bdc0d8837837b48bdea6bc17a806554cc7c85f4b3cd1a",
+      "sha256": "d6e08a9d9e1a18c496c91f6c539904497d7ab85ea1dac3459918494282d1d605",
       "source_sha256": "085ad075a9c2719b48ad964a53b289e3aeddceb6e3d20cc9d853ae5bc5f52f9f",
-      "bytes": 434
+      "bytes": 531
     },
     {
       "path": "DESIGN.md",

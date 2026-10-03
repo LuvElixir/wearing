@@ -40,3 +40,8 @@ output/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+
+# Local research and tool-session state
+.impeccable/
+hypit.runtime.json
+docs/research-evidence/
