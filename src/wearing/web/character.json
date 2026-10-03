@@ -1,0 +1,24 @@
+{
+  "version": 4,
+  "poster": "/assets/character-poster.png?v=4",
+  "states": {
+    "attention": {
+      "src": "/assets/motion/attention.mp4?v=4"
+    },
+    "listening": {
+      "src": "/assets/motion/listening.mp4?v=4"
+    },
+    "thinking": {
+      "src": "/assets/motion/thinking.mp4?v=4"
+    },
+    "waiting": {
+      "src": "/assets/motion/waiting.mp4?v=4"
+    },
+    "working": {
+      "src": "/assets/motion/working.mp4?v=4"
+    },
+    "idle": {
+      "src": "/assets/motion/idle.mp4?v=4"
+    }
+  }
+}

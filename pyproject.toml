@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wearing"
+version = "0.2.0"
+description = "A device-first personal agent workspace built around Hermes"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
+    "httpx>=0.27,<1",
+    "psutil>=7,<8",
+    "filelock>=3.20,<4",
+    "pyyaml>=6,<7",
+    "pydantic>=2.10,<3",
+    "authlib>=1.6.5,<2",
+    "itsdangerous>=2.2,<3",
+    "sqlalchemy>=2.0,<2.1",
+    "alembic>=1.16,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "pytest-asyncio>=0.24,<2"]
+cloud = [
+    "psycopg[binary]>=3.2,<4",
+]
+
+[project.scripts]
+wearing = "wearing.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wearing"]
+# Include web assets explicitly, regardless of inherited VCS ignore rules.
+exclude = ["src/wearing/web/**"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"THIRD_PARTY_NOTICES.md" = "wearing/THIRD_PARTY_NOTICES.md"
+"src/wearing/web" = "wearing/web"
+"deploy/control/postgres-roles.sql" = "wearing/cloud/postgres-roles.sql"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/wearing", "tests", "pyproject.toml", "uv.lock", "README.md", "PRODUCT.md", "DESIGN.md", "docs/getting-started.md", "docs/engine-productization.md", "docs/identity-foundation.md", "docs/personal-continuity.md", "docs/evidence/personal-continuity-2026-10-03.md", "docs/research/personal-agent-definition-2026-10-03.md", "docs/research/personal-agent-source-manifest-2026-10-03.json", "docs/saas-architecture-2026-10-03.md", "docs/contracts", "docs/research/saas-source-review-2026-10-03.md", "docs/research/saas-source-manifest-2026-10-03.json", "THIRD_PARTY_NOTICES.md"]
+
+[tool.hatch.build.targets.sdist.force-include]
+"src/wearing/web" = "src/wearing/web"
+"docs/evidence/goal-conversation-2026-10-03.md" = "docs/evidence/goal-conversation-2026-10-03.md"
+"docs/personal-memory.md" = "docs/personal-memory.md"
+"docs/evidence/personal-memory-2026-10-03.md" = "docs/evidence/personal-memory-2026-10-03.md"
+"docs/progress.md" = "docs/progress.md"
+"docs/tenant-runtime.md" = "docs/tenant-runtime.md"
+"docs/evidence/tenant-worker-2026-10-03.md" = "docs/evidence/tenant-worker-2026-10-03.md"
+"deploy/tenant/wearing-tenant.service" = "deploy/tenant/wearing-tenant.service"
+"deploy/tenant/bootstrap.py" = "deploy/tenant/bootstrap.py"
+"deploy/vm/tencent-trial.py" = "deploy/vm/tencent-trial.py"
+"docs/gateway-runtime.md" = "docs/gateway-runtime.md"
+"docs/evidence/gateway-2026-10-03.md" = "docs/evidence/gateway-2026-10-03.md"
+"docs/control-postgres.md" = "docs/control-postgres.md"
+"docs/evidence/control-postgres-2026-10-03.md" = "docs/evidence/control-postgres-2026-10-03.md"
+"deploy/control/postgres-roles.sql" = "deploy/control/postgres-roles.sql"
+"docs/cloud-vm-selection-2026-10-03.md" = "docs/cloud-vm-selection-2026-10-03.md"
+"deploy/vm/selection-example.json" = "deploy/vm/selection-example.json"
+"deploy/vm/tencent-quote-example.json" = "deploy/vm/tencent-quote-example.json"
+"docs/tencent-cloud-first-run-2026-10-03.md" = "docs/tencent-cloud-first-run-2026-10-03.md"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+testpaths = ["tests"]

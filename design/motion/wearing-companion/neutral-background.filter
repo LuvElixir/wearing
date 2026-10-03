@@ -1,0 +1,3 @@
+[0:v]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(min(min(r(X,Y),g(X,Y)),b(X,Y)),170),255,clip((max(max(r(X,Y),g(X,Y)),b(X,Y))-min(min(r(X,Y),g(X,Y)),b(X,Y))-9)*255/8,0,255))'[fg];
+color=c=0xfafafa:s=720x720:r=24:d=6.041667[bg];
+[bg][fg]overlay=shortest=1:format=auto,format=yuv420p[v]

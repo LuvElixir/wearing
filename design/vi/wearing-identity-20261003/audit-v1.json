@@ -1,0 +1,220 @@
+[
+ {
+  "file": "a-avatar-v1.svg",
+  "bytes": 1121,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#4562dc",
+   "#29334b",
+   "#fff2dc",
+   "#92acf4"
+  ],
+  "gradients": 0,
+  "anchors": 59,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   25.0,
+   24.88,
+   231.0,
+   241.88
+  ],
+  "margins": {
+   "left": 25.0,
+   "right": 25.0,
+   "top": 24.9,
+   "bottom": 14.1
+  },
+  "bbox_fill_ratio": 0.682,
+  "score": 91,
+  "findings": [
+   {
+    "level": "WARN",
+    "code": "near-miss-angle",
+    "message": "7 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 179.6° (→0°) len 140.0 at (199,165); 178.2° (→0°) len 62.0 at (164,177); 178.1° (→0°) len 60.0 at (162,169); 119.2° (→120°) len 28.7 at (119,180); 2.5° (→0°) len 23.0 at (198,195); 60.9° (→60°) len 30.9 at (118,209) …. (Expected — and fine — for type set on a curve or deliberately rotated elements.)"
+   },
+   {
+    "level": "INFO",
+    "code": "off-centre-y",
+    "message": "Vertical margins differ (top 24.9, bottom 14.1). Remember the optical centre sits slightly above the geometric centre."
+   }
+  ]
+ },
+ {
+  "file": "a-wordmark-v1.svg",
+  "bytes": 6953,
+  "viewBox": [
+   0.0,
+   0.0,
+   296.02,
+   77.8
+  ],
+  "aspect": 3.805,
+  "aspect_class": "horizontal",
+  "colors": [
+   "#29334b"
+  ],
+  "gradients": 0,
+  "anchors": 278,
+  "library_anchor_percentiles": {
+   "p10": 23.0,
+   "p25": 37.0,
+   "median": 75.0,
+   "p75": 155.0,
+   "p90": 257.8,
+   "p95": 379.45
+  },
+  "content_bbox": [
+   2.0,
+   2.0,
+   294.02,
+   75.8
+  ],
+  "margins": {
+   "left": 2.0,
+   "right": 2.0,
+   "top": 2.0,
+   "bottom": 2.0
+  },
+  "bbox_fill_ratio": 0.936,
+  "score": 90,
+  "findings": [
+   {
+    "level": "INFO",
+    "code": "fractional-viewbox",
+    "message": "viewBox has fractional values; integer canvases are easier to grid."
+   },
+   {
+    "level": "INFO",
+    "code": "complexity",
+    "message": "278 anchor points (library median 75.0, p75 155.0). Check every point earns its place."
+   },
+   {
+    "level": "WARN",
+    "code": "near-miss-angle",
+    "message": "4 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 106.4° (→105°) len 34.4 at (23,41); 73.6° (→75°) len 34.7 at (43,7); 72.8° (→75°) len 35.1 at (49,56); 107.2° (→105°) len 35.1 at (38,22). (Expected — and fine — for type set on a curve or deliberately rotated elements.)"
+   }
+  ]
+ },
+ {
+  "file": "b-avatar-v1.svg",
+  "bytes": 1421,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#4562dc",
+   "#29334b",
+   "#fff2dc",
+   "#92acf4"
+  ],
+  "gradients": 0,
+  "anchors": 69,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   22.89,
+   23.86,
+   226.79,
+   242.47
+  ],
+  "margins": {
+   "left": 22.9,
+   "right": 29.2,
+   "top": 23.9,
+   "bottom": 13.5
+  },
+  "bbox_fill_ratio": 0.68,
+  "score": 91,
+  "findings": [
+   {
+    "level": "WARN",
+    "code": "near-miss-angle",
+    "message": "4 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 88.8° (→90°) len 47.0 at (56,121); 88.7° (→90°) len 45.0 at (64,120); 12.3° (→15°) len 23.5 at (174,174); 137.0° (→135°) len 20.5 at (158,215). (Expected — and fine — for type set on a curve or deliberately rotated elements.)"
+   },
+   {
+    "level": "INFO",
+    "code": "off-centre-y",
+    "message": "Vertical margins differ (top 23.9, bottom 13.5). Remember the optical centre sits slightly above the geometric centre."
+   }
+  ]
+ },
+ {
+  "file": "c-avatar-v1.svg",
+  "bytes": 1014,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#4562dc",
+   "#fff2dc",
+   "#29334b",
+   "#92acf4"
+  ],
+  "gradients": 0,
+  "anchors": 50,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   25.42,
+   28.69,
+   231.17,
+   240.2
+  ],
+  "margins": {
+   "left": 25.4,
+   "right": 24.8,
+   "top": 28.7,
+   "bottom": 15.8
+  },
+  "bbox_fill_ratio": 0.664,
+  "score": 91,
+  "findings": [
+   {
+    "level": "WARN",
+    "code": "near-miss-angle",
+    "message": "5 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 61.4° (→60°) len 25.1 at (102,160); 15.9° (→15°) len 29.1 at (108,191); 118.9° (→120°) len 33.1 at (163,152); 118.4° (→120°) len 27.3 at (139,177); 151.7° (→150°) len 29.5 at (165,157). (Expected — and fine — for type set on a curve or deliberately rotated elements.)"
+   },
+   {
+    "level": "INFO",
+    "code": "off-centre-y",
+    "message": "Vertical margins differ (top 28.7, bottom 15.8). Remember the optical centre sits slightly above the geometric centre."
+   }
+  ]
+ }
+]

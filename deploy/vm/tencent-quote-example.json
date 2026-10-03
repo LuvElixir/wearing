@@ -1,0 +1,24 @@
+{
+  "selection": {
+    "schema_version": 1,
+    "tenant_id": "tenant_example",
+    "provider_id": "tencent",
+    "account_ref": "tencent_account_example",
+    "ownership": "customer",
+    "account_scope": "china-site",
+    "region": "ap-hongkong",
+    "vcpu": 2,
+    "memory_gib": 4,
+    "system_disk_gib": 40,
+    "data_disk_gib": 40,
+    "architecture": "x86_64",
+    "os": "ubuntu-24.04",
+    "isolation": "vm",
+    "billing": "on-demand"
+  },
+  "zone": "ap-hongkong-2",
+  "instance_type": "SA2.MEDIUM4",
+  "image_id": "img-mmytdhbn",
+  "disk_type": "CLOUD_PREMIUM",
+  "outbound_mbps": 5
+}

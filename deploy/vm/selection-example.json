@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "tenant_id": "tenant_example",
+  "provider_id": "tencent",
+  "account_ref": "tencent_account_example",
+  "ownership": "customer",
+  "account_scope": "china-site",
+  "region": "ap-hongkong"
+}

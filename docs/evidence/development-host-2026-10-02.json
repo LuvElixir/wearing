@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-10-02T07:08:09.945498+00:00",
+  "scope": "machine_running_this_command",
+  "system": "Darwin",
+  "release": "25.5.0",
+  "architecture": "arm64",
+  "python": "3.12.13",
+  "commands": {
+    "hermes": false,
+    "adb": false,
+    "scrcpy": false,
+    "node": true,
+    "npx": true,
+    "ssh": true
+  },
+  "phones": [],
+  "phone_check": "adb_missing",
+  "desktop_control": "not_tested"
+}

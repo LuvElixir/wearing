@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#fafafa">
+  <title>Wearing · 你的个人 Agent</title>
+  <link rel="icon" href="/assets/mark.svg?v=6" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/style.css?v=4">
+  <script src="/assets/presence.js?v=4" defer></script>
+  <script src="/assets/app.js?v=6" defer></script>
+</head>
+<body>
+<!-- THESIS: A continuous personal conversation with Wearing, a small living presence that acts with you.
+OWN-WORLD: Full cream and cobalt sleeve character, white space, soft blue conversation, quiet human typography.
+STORY: Arrive, speak freely, continue the same conversation; real actions and results return in context.
+FIRST VIEWPORT: Small wordmark, full character beside a greeting, an open invitation, a bottom conversation field.
+FORM: Presence beside the conversation; grounded structure 3, seed b2a311f4. Approved Wearing IP governs the world.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
+<a class="skip-link" href="#conversation-main">跳转到对话</a>
+<header class="app-header">
+  <a class="wordmark" href="#conversation-main" aria-label="回到对话">Wearing<span>.</span></a>
+  <nav aria-label="Wearing 导航">
+    <button class="quiet-button" id="open-files" aria-label="我们的文件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8V6.5a2 2 0 0 1 2-2h4l2 3H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2V8Zm0 2h17.5"/></svg><span>文件</span></button>
+    <button class="quiet-button" id="open-keeps" aria-label="一起记着的"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3.75h8A2.25 2.25 0 0 1 18.25 6v14.25L12 16.5l-6.25 3.75V6A2.25 2.25 0 0 1 8 3.75Z"/></svg><span>一起记着的</span></button>
+    <button class="connection-button" id="open-settings"><span class="connection-dot" id="connection-dot"></span><span id="connection-label">连接 Wearing</span></button>
+  </nav>
+</header>
+<main id="conversation-main" tabindex="-1">
+  <section class="welcome" id="welcome" aria-labelledby="welcome-title">
+    <div class="presence" id="presence">
+      <button type="button" class="character-stage" id="character-stage" aria-label="叫一下 Wearing">
+        
+        <video id="character-video" muted playsinline preload="metadata" aria-hidden="true" hidden></video>
+        <video id="character-video-next" muted playsinline preload="metadata" aria-hidden="true" hidden></video>
+        <img id="character-poster" src="/assets/character-poster.png?v=4" alt="穿着钴蓝外套的 Wearing">
+      </button>
+    </div>
+    <div class="welcome-copy"><h1 id="welcome-title">这件事，<br>我来。</h1><p>一个刚冒出来的念头，<br>或是一直没空做的事，我们一起往前推。</p><div class="conversation-starters" aria-label="从这里聊起"><button data-suggestion="我有个想法，想和你一起把它做出来。">我有个想法<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12h13m-5-5 5 5-5 5"/></svg></button><button data-suggestion="有件事想请你帮我办。">帮我办件事<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12h13m-5-5 5 5-5 5"/></svg></button></div></div>
+  </section>
+  <section class="conversation" id="conversation" aria-label="你和 Wearing 的对话" hidden>
+    <div class="conversation-intro"><img src="/assets/mark.svg?v=6" alt="" width="32" height="32"><span>接着聊，我在这里。</span></div>
+    <div id="messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+    <button id="newest-message" class="newest-message" hidden>回到最新消息 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6"/></svg></button>
+  </section>
+  <div class="composer-dock">
+    <div class="companion-bar" id="companion-bar" hidden>
+      <div id="companion-seat" class="companion-seat"></div>
+      <div class="companion-copy"><p id="companion-line">我在，接着说。</p><span id="companion-detail">想到哪儿，聊到哪儿。</span></div>
+      <button type="button" id="companion-stop" class="soft-button" hidden>先停一下</button>
+      <button type="button" id="computer-takeover" class="soft-button" hidden>我来接管</button>
+    </div>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <form id="conversation-form" class="composer">
+      <label class="sr-only" for="message-input">和 Wearing 说说</label>
+      <textarea id="message-input" rows="1" maxlength="12000" required placeholder="想做什么，跟我说。"></textarea>
+      <button class="send-button" type="submit" id="send-message" aria-label="发送消息"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button>
+    </form>
+    <p class="composer-footnote" id="composer-footnote">想到哪儿，聊到哪儿。<span>Enter 发送 · Shift + Enter 换行</span></p>
+  </div>
+</main>
+<dialog id="settings-panel" class="side-panel" aria-labelledby="settings-title">
+  <div class="panel-header"><h2 id="settings-title">让我们连接起来</h2><button class="icon-button" data-close="settings-panel" aria-label="关闭连接设置"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <p class="panel-lead">可以先在这台电脑开始，也可以连接另一台执行电脑。</p>
+  <section class="local-engine" aria-labelledby="local-engine-title"><h3 id="local-engine-title">在这台电脑开始</h3><p id="runtime-status" class="inline-feedback" role="status">正在检查本地引擎……</p><div class="button-row"><button class="primary" id="runtime-install">准备 Wearing</button><button class="primary" id="runtime-start" hidden>启动并连接</button><button class="secondary" id="runtime-stop" hidden>关闭本地引擎</button></div><details class="setup-guide" id="model-guide"><summary>模型与 API Key</summary>
+  <form id="model-form" class="connection-form">
+    <label for="model-provider">模型服务</label><select id="model-provider" required><option value="">正在读取……</option></select>
+    <label for="model-id">模型 ID</label><input id="model-id" required maxlength="200" autocomplete="off" placeholder="填写服务商提供的模型 ID">
+    <label for="model-key">API Key</label><input id="model-key" type="password" maxlength="4096" autocomplete="off" placeholder="仅保存在这台电脑">
+    <p class="field-help" id="model-key-help">已有密钥不会显示在页面中。</p>
+    <button class="primary" id="model-save" disabled>保存并应用</button><p id="model-feedback" class="inline-feedback" role="status"></p>
+  </form>
+  <details class="setup-guide"><summary>其他服务与登录方式</summary><p>此处先支持 API Key 接入。其他服务、自定义地址或 OAuth 登录，仍可通过本地向导配置：</p><pre id="model-command">uv run wearing engine model</pre></details>
+  </details></section>
+  <details class="setup-guide remote-connection"><summary>连接另一台执行电脑</summary>
+  <form id="connection-form" class="connection-form"><label for="hermes-url">执行服务地址</label><input id="hermes-url" type="url" value="http://127.0.0.1:8642" required autocomplete="off"><label for="hermes-key">连接密钥</label><input id="hermes-key" type="password" required autocomplete="off" placeholder="保存在这台电脑上"><p class="field-help">电脑可以在身边，也可以通过 SSH 隧道连接。</p><button class="primary" id="connect-button">连接 Wearing</button><p class="inline-feedback" id="connection-feedback" role="status"></p></form>
+  <details class="setup-guide"><summary>第一次连接，需要准备什么？</summary><p>先在兼容的 Mac 或 Windows 电脑上安装 <a href="https://hermes-agent.nousresearch.com/docs/getting-started/installation" target="_blank" rel="noreferrer">Hermes</a> 并配置模型。按官方说明设置以下环境变量，再运行 Gateway。</p><pre>API_SERVER_ENABLED=true
+API_SERVER_KEY=你的独立连接密钥
+
+hermes gateway</pre><p>工具权限与设备控制需要在执行电脑上验证。</p></details>
+  </details>
+  <section class="device-section" aria-labelledby="computer-title"><h3 id="computer-title">这台电脑</h3>
+    <p id="computer-status" role="status">正在检查电脑连接器……</p>
+    <div class="button-row"><button class="secondary" id="computer-prepare">准备电脑连接器</button><button class="secondary" id="computer-permissions" hidden>打开系统授权</button><button class="primary" id="computer-bind" hidden>接入这台电脑</button><button class="secondary" id="computer-control" hidden>我来接管</button><button class="text-button" id="computer-refresh">重新检测</button></div>
+    <p id="computer-feedback" class="inline-feedback" role="status"></p>
+    <details class="setup-guide" id="computer-permission-help" hidden><summary>录屏列表里找不到 CuaDriver</summary><p>在 macOS 的「录屏与系统录音」上方列表点击 ＋，按 ⌘ ⇧ G，粘贴下面的应用路径。选中 CuaDriver 后点「打开」，再开启它的开关。</p><pre id="computer-app-path"></pre><p>驱动保存在 Wearing 的运行目录，不一定会出现在「应用程序」中。无需开启下方「仅系统录音」。</p></details>
+    <details class="setup-guide"><summary>接管时会发生什么</summary><p>你可以随时接管。Wearing 会停止新的电脑读取和操作；已发出的点击可能仍需片刻返回。交回后会重新观察窗口再行动。</p><p>电脑操作复用 Hermes 与 Cua Driver。当前接入的是运行 Wearing 的这台电脑。Mac 需要 CuaDriver 的辅助功能和屏幕录制权限；Windows 接入沿用同一驱动，但尚未完成真机验收。</p></details>
+  </section>
+  <section class="device-section" aria-labelledby="phone-title"><h3 id="phone-title">你的手机</h3>
+  <p id="phone-status" role="status">连接 USB，解锁手机，并允许 USB 调试。</p>
+  <p class="setup-hint">每部接入的手机都可以单独使用、暂停和恢复。中文填写支持可识别的 Android 原生输入框。</p>
+  <div class="button-row"><button class="secondary" id="phone-prepare">准备手机连接器</button><button class="text-button" id="phone-refresh">重新检测</button></div>
+  <div id="phone-resources" class="phone-resources" aria-live="polite"></div>
+  <form id="phone-form" class="connection-form" hidden><label for="phone-device">选择要交给 Wearing 的手机</label><select id="phone-device" required></select><div class="button-row"><button class="primary" id="phone-bind">接入这部手机</button></div></form>
+  <p id="phone-feedback" class="inline-feedback" role="status"></p>
+  <details class="setup-guide"><summary>手机没有出现授权弹窗</summary><p>打开手机的开发者选项与 USB 调试，保持屏幕解锁后重新插拔数据线。小米设备若能看画面却不能点击，还需检查“USB 调试（安全设置）”。</p><p>Android 通过 USB 调试接入，无需插 SIM 卡或 root。不同品牌的附加授权会在实际操作时确认。暂停会拦住后续动作，已发出的操作可能仍需片刻返回。</p></details>
+  <details class="setup-guide"><summary>其他 Android 和 iPhone 呢？</summary><p>Android 使用通用调试协议，接入后逐项确认读取、点击、滑动和输入。当前真机验证为小米 6X（Android 9）。iPhone 控制连接器尚未接入，需要单独的信任、开发者模式及签名配置。</p></details>
+  </section>
+  <section class="device-section"><h3>电脑与手机</h3><p>设备接入后，再逐项确认 Wearing 能实际使用的能力。</p><div class="button-row"><a class="secondary" href="/api/device-doctor.py" download>下载检测脚本</a><button id="import-report" class="secondary">导入设备报告</button><input type="file" id="report-file" accept=".json,application/json" hidden></div><details class="setup-guide"><summary>如何运行检测</summary><pre>python3 wearing-doctor.py --android --output device-report.json</pre><p>Windows 可用 <code>py</code> 替代 <code>python3</code>。在目标电脑运行，然后导入报告。</p></details><div id="device-report"></div><button id="inspect-host" class="text-button">检测当前这台电脑</button><div id="host-report" aria-live="polite"></div></section>
+  <details class="setup-guide"><summary>技术信息与开源致谢</summary><p id="engine-profile">Wearing 使用独立的身份与能力配置。</p><p>执行引擎基于 Nous Research 的 <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noreferrer">Hermes Agent</a>（MIT 许可）。模型、会话和工具调用复用其成熟实现。</p></details>
+  <section class="device-section"><h3>文件空间</h3><p id="files-status" role="status">正在检查……</p><p class="field-help">Wearing 可以在独立目录里读写文件、建立文件夹。写入同名文件会覆盖原内容。其他目录需要后续单独接入。</p><button class="secondary" id="files-enable">启用文件空间</button><p id="files-feedback" class="inline-feedback" role="status"></p></section>
+  <section class="device-section"><h3>云端空间</h3><p>为需要独立环境的事情准备。Daytona 接入尚在开发中。</p></section>
+</dialog>
+<dialog id="keeps-panel" class="side-panel" aria-labelledby="keeps-title">
+  <div class="panel-header"><h2 id="keeps-title">一起记着的</h2><button class="icon-button" data-close="keeps-panel" aria-label="关闭记录"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <p class="panel-lead">之前留下的想法和事情，想继续时再拿出来。</p><div id="keeps-list"></div><article id="keep-detail" hidden></article>
+</dialog>
+<dialog id="files-panel" class="side-panel" aria-labelledby="files-title">
+  <div class="panel-header"><h2 id="files-title">我们的文件</h2><button class="icon-button" data-close="files-panel" aria-label="关闭文件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <p class="panel-lead">一起写下的东西，都放在这里。你可以下载带走。</p>
+  <button class="text-button" id="refresh-files">刷新文件</button><p id="files-list-status" class="inline-feedback" role="status"></p><div id="files-list"></div>
+  <details class="setup-guide"><summary>文件保存在哪里</summary><pre id="files-path"></pre><p>这里显示独立文件目录的实际内容；文件出现并不代表其中的信息已经核实。</p></details>
+</dialog>
+</body>
+</html>

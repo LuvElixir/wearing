@@ -1,0 +1,7 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="media" from="@hypit/media@1"/>
+  <import as="matte" from="@hypit/volcengine-matting@1"/>
+  <media:Video id="performance" src="../output/wearing-cuff-720.mp4"/>
+  <matte:Portrait id="cutout" source={performance} format="WEBM"/>
+</svml>

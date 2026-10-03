@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-02",
+  "task_id": "aa5c58bc08a9414fa7e58a8a9d2a8443",
+  "run_id": "run_fdf1229616c34a96b3c3ad35157cafb7",
+  "status": "completed_unverified",
+  "profile_version": 4,
+  "model": "deepseek-flash",
+  "device": {
+    "model": "MI 6X",
+    "android": "9",
+    "sdk": 28,
+    "resource_id": "phone_20b031a3c8ab7b824dd6"
+  },
+  "expected": "Wearing 帮我行动",
+  "independent_ui_readback": true,
+  "screenshot_visually_checked": true,
+  "browser_pause_mcp_rejected": true,
+  "resumed": true,
+  "tools": [
+    {
+      "event": "tool.started",
+      "tool": "mcp__wearing_phone__mobile_list_devices",
+      "seq": 0
+    },
+    {
+      "event": "tool.completed",
+      "tool": "mcp__wearing_phone__mobile_list_devices",
+      "seq": 1
+    },
+    {
+      "event": "tool.started",
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "seq": 46
+    },
+    {
+      "event": "tool.completed",
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "seq": 47
+    },
+    {
+      "event": "tool.started",
+      "tool": "mcp__wearing_phone__mobile_take_screenshot",
+      "seq": 48
+    },
+    {
+      "event": "tool.completed",
+      "tool": "mcp__wearing_phone__mobile_take_screenshot",
+      "seq": 49
+    },
+    {
+      "event": "tool.started",
+      "tool": "tool_describe",
+      "seq": 77
+    },
+    {
+      "event": "tool.completed",
+      "tool": "tool_describe",
+      "seq": 78
+    },
+    {
+      "event": "tool.started",
+      "tool": "mcp__wearing_phone__mobile_set_text",
+      "seq": 79
+    },
+    {
+      "event": "tool.completed",
+      "tool": "mcp__wearing_phone__mobile_set_text",
+      "seq": 80
+    },
+    {
+      "event": "tool.started",
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "seq": 96
+    },
+    {
+      "event": "tool.completed",
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "seq": 97
+    },
+    {
+      "event": "tool.started",
+      "tool": "mcp__wearing_phone__mobile_take_screenshot",
+      "seq": 98
+    },
+    {
+      "event": "tool.completed",
+      "tool": "mcp__wearing_phone__mobile_take_screenshot",
+      "seq": 99
+    }
+  ],
+  "tests_passed": 63,
+  "multi_device_hardware_tested": false,
+  "iphone_implemented": false,
+  "dependencies": {
+    "mobile_mcp": "1.0.7",
+    "uiautomator2": "3.7.0",
+    "requirements_sha256": "f43d78ea7e06d9376c288c7cdb92b1f998db8d4bd93b575e9fd17a6194b74fbd"
+  }
+}

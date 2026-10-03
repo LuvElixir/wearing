@@ -1,0 +1,290 @@
+[
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "LICENSE",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/LICENSE",
+    "sha256": "73571b25326281d369087f469842c02444fe39faaecebda4d82ed21ff3a1c29d",
+    "bytes": 1170
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "docs/gateway/multi-tenant-hosting.md",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/docs/gateway/multi-tenant-hosting.md",
+    "sha256": "15ca981ca262c663915599318c15d5fab2479913591e36501d95787a1348509a",
+    "bytes": 8339
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "docs/gateway/security/trust-model.md",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/docs/gateway/security/trust-model.md",
+    "sha256": "cb1c56df739ce57296ddbd9830a589d35ccb3b8ddbc474be9d2378e7822ce435",
+    "bytes": 9980
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "packages/gateway-protocol/src/schema/nodes.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/packages/gateway-protocol/src/schema/nodes.ts",
+    "sha256": "d6952e3bcd0ec5973e00cc3fbcae71856dc07fe07120c6eba510a75a25299dd1",
+    "bytes": 12206
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/agents/sandbox/config.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/agents/sandbox/config.ts",
+    "sha256": "6c0783d91468d32c4c7b7918716afad3f15a821c28ee285cf7e3f7395b0acc25",
+    "bytes": 11106
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/fleet/cell-profile.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/fleet/cell-profile.ts",
+    "sha256": "fd28bda0bfd9bd45d64dc6a85f3751920023594c24c8321cdfe4e3749fc0e89a",
+    "bytes": 11220
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/fleet/containers.runtime.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/fleet/containers.runtime.ts",
+    "sha256": "96a1dfa1fbf844a222efac3eb47d223c3ad3711ecaea91c279783bb514a86734",
+    "bytes": 24949
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/fleet/service.runtime.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/fleet/service.runtime.ts",
+    "sha256": "041e3a752e4998b1458848324772f9b38ad400d0a8e023a5bf9934e64e9167b2",
+    "bytes": 29880
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/gateway/node-command-policy.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/gateway/node-command-policy.ts",
+    "sha256": "1c7557364e2d3c51430f8e3af8834c0e34f8232fe5a8d2dea50fb790b69a0c92",
+    "bytes": 19178
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/gateway/node-pending-work.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/gateway/node-pending-work.ts",
+    "sha256": "68e9d1d1116f38c7d380f35860b3f06e0ab9c8bbe8c3cd4b41fb5891904d6d70",
+    "bytes": 9438
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/gateway/node-registry.invoke-stream.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/gateway/node-registry.invoke-stream.ts",
+    "sha256": "322530297727716916f6375fcaf2031af7dd80a9308736b5455809e21d3a95c2",
+    "bytes": 13898
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/gateway/node-registry.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/gateway/node-registry.ts",
+    "sha256": "ef01ecbdb436e6ff68c4a07a812c2ec4c5ce2bb9e17a8e53deacfef423ce2996",
+    "bytes": 51332
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/gateway/server-methods/nodes.invoke.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/gateway/server-methods/nodes.invoke.ts",
+    "sha256": "af0ba760c713abb56802332a3064e2ef61c4dcdbc8079a6940b202a8adce16da",
+    "bytes": 23863
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/infra/device-pairing-tokens.kernel.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/infra/device-pairing-tokens.kernel.ts",
+    "sha256": "38d8e87e30d43ec7f8295ca8fddcb7379373e89da36f6a8d76529572ddf4cc5b",
+    "bytes": 11726
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/infra/heartbeat-runner-run.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/infra/heartbeat-runner-run.ts",
+    "sha256": "7646f91be209d8a01d266b2387048b90cfd7db8da632df773c02d36c12375876",
+    "bytes": 8434
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/infra/heartbeat-wake.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/infra/heartbeat-wake.ts",
+    "sha256": "dd708767a3405b373696d0f55208dbe7e9aafc0dca7d7702ccaa89bffa0f013a",
+    "bytes": 1354
+  },
+  {
+    "project": "openclaw",
+    "repo": "openclaw/openclaw",
+    "revision": "87af5763bbc0bd1febc08d78eedc7fafd9eb5225",
+    "path": "src/node-host/runner.ts",
+    "url": "https://github.com/openclaw/openclaw/blob/87af5763bbc0bd1febc08d78eedc7fafd9eb5225/src/node-host/runner.ts",
+    "sha256": "1dcc00f6fcdcc2cf24ad009a904a34f9dcccc215ff264f9338d023255726d9b1",
+    "bytes": 21492
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "LICENSE",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/LICENSE",
+    "sha256": "821556e6336796450ab852d375117b48a4887e71d255794fd6318d99982a5ab6",
+    "bytes": 1070
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "agent/memory_manager.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/agent/memory_manager.py",
+    "sha256": "048842c1c3725e6fe6aef8f2b7fe3ea06baec02cebdea1e9ab0e9da06473930d",
+    "bytes": 46102
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "cron/occurrences.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/cron/occurrences.py",
+    "sha256": "f2bbc521f76a7179976e9cc411db8b632febc713774ee869075b10ef727476c2",
+    "bytes": 5075
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "cron/scheduler.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/cron/scheduler.py",
+    "sha256": "46c383996f2f7c3643f23fc55391e6906b2e1396967b9e272feb7af3890917e0",
+    "bytes": 216178
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "cron/scheduler_ownership.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/cron/scheduler_ownership.py",
+    "sha256": "5077dc78790b95fec515cf51c4b332195a56658f025ae8b306e6d197a2dacba5",
+    "bytes": 5527
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "cron/scheduler_tick.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/cron/scheduler_tick.py",
+    "sha256": "a1f908f141d6d3d14abd132d8f247ed76e87fb04b1a62059c129442099e620cd",
+    "bytes": 5545
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "gateway/hooks.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/gateway/hooks.py",
+    "sha256": "07c0fcbb5e07aa4b853adbf21982bc8a0b7e29c32707c10c6ab04b62e1746a7d",
+    "bytes": 8203
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "gateway/platforms/api_server_run_idempotency.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/gateway/platforms/api_server_run_idempotency.py",
+    "sha256": "c3f25711695a5aad97b207581e0c532d1291bb9f12ca3c1e32add19e5f0f153a",
+    "bytes": 10748
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "gateway/platforms/api_server_runs.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/gateway/platforms/api_server_runs.py",
+    "sha256": "67315fb146f3f5d124675c4dd0e2c5fbe233618c94af2799c438175592dfba97",
+    "bytes": 68353
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "gateway/session.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/gateway/session.py",
+    "sha256": "d274960c58869d456d0063358a8143562ccdbe9471d996e99841275789c4e998",
+    "bytes": 66497
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "hermes_cli/profiles.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/hermes_cli/profiles.py",
+    "sha256": "bff81ca8efc000005ccea83a90f58afc0c06ab7135cb36f3d7e4db02a595627f",
+    "bytes": 119445
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "tools/environments/daytona.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/tools/environments/daytona.py",
+    "sha256": "e9a668485eaf20cf484a2f614b774c290a248e8494e9e869c93d7723d94d5136",
+    "bytes": 10103
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "tools/memory_tool_store.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/tools/memory_tool_store.py",
+    "sha256": "2a44cc0ea35066a4320395d63997f26011525c9ffe04183e562e16575837f488",
+    "bytes": 31340
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "tools/skills_tool.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/tools/skills_tool.py",
+    "sha256": "08e17ff4565f4a44927b66962b42934ea513f0b48bc7075bdb784cb6acf75b01",
+    "bytes": 40934
+  },
+  {
+    "project": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "revision": "4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a",
+    "path": "tools/terminal_tool_backends.py",
+    "url": "https://github.com/NousResearch/hermes-agent/blob/4e3fcd5cd7e40c37cb6f9a21a76fc57a7361957a/tools/terminal_tool_backends.py",
+    "sha256": "cc7642a4ce80deb12772bc17cc8221ad07a8317cd2d899aefdb95ef712047d60",
+    "bytes": 20111
+  }
+]

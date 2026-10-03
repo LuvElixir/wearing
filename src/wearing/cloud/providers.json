@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-03",
+  "providers": [
+    {
+      "id": "aliyun",
+      "name": "阿里云",
+      "service": "ECS",
+      "phase": "core_coverage",
+      "account_scopes": [
+        "china-site",
+        "international-site"
+      ],
+      "provider_plugin": "aliyun/alicloud",
+      "create_api": "RunInstances",
+      "stop_note": "按量实例的经济停机模式有适用条件；磁盘等保留资源仍计费，重新启动需确认库存。",
+      "sources": [
+        "https://www.alibabacloud.com/help/en/ecs/developer-reference/api-ecs-2014-05-26-runinstances",
+        "https://www.alibabacloud.com/help/en/ecs/user-guide/economical-mode",
+        "https://www.alibabacloud.com/help/en/ecs/developer-reference/terraform/"
+      ]
+    },
+    {
+      "id": "aws",
+      "name": "AWS",
+      "service": "EC2",
+      "phase": "core_coverage",
+      "account_scopes": [
+        "aws",
+        "aws-cn"
+      ],
+      "provider_plugin": "hashicorp/aws",
+      "create_api": "RunInstances",
+      "stop_note": "EBS 支持的实例停止后仍可能有磁盘、公网地址、快照等费用；停止不等于删除或零费用。",
+      "sources": [
+        "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html",
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html",
+        "https://www.amazonaws.cn/en/about-aws/china/faqs/"
+      ]
+    },
+    {
+      "id": "tencent",
+      "name": "腾讯云",
+      "service": "CVM",
+      "phase": "first_validation",
+      "account_scopes": [
+        "china-site",
+        "international-site"
+      ],
+      "provider_plugin": "tencentcloudstack/tencentcloud",
+      "create_api": "RunInstances",
+      "stop_note": "默认停机可能继续计费；STOP_CHARGING 有按量与云盘等条件，保留资源需单独核算。",
+      "sources": [
+        "https://www.tencentcloud.com/document/product/213/33237",
+        "https://intl.cloud.tencent.com/pdf/document/213/12541?lang=en",
+        "https://raw.githubusercontent.com/tencentcloudstack/terraform-provider-tencentcloud/master/website/docs/r/instance.html.markdown"
+      ]
+    },
+    {
+      "id": "huawei",
+      "name": "华为云",
+      "service": "ECS",
+      "phase": "core_coverage",
+      "account_scopes": [
+        "china-site",
+        "international-site"
+      ],
+      "provider_plugin": "huaweicloud/huaweicloud",
+      "create_api": "CreateServers",
+      "stop_note": "创建返回异步任务；停机计费与 CBR/EVS 恢复需按区域、规格和磁盘产品分别核对。",
+      "sources": [
+        "https://support.huaweicloud.com/intl/zh-cn/api-ecs/ecs_02_0101.html",
+        "https://support.huaweicloud.com/eu/api-cbr/cbr_04_0026.html",
+        "https://raw.githubusercontent.com/huaweicloud/terraform-provider-huaweicloud/master/docs/resources/compute_instance.md"
+      ]
+    },
+    {
+      "id": "azure",
+      "name": "Microsoft Azure",
+      "service": "Virtual Machines",
+      "phase": "core_coverage",
+      "account_scopes": [
+        "public",
+        "china"
+      ],
+      "provider_plugin": "hashicorp/azurerm",
+      "create_api": "VirtualMachines.CreateOrUpdate",
+      "stop_note": "PowerOff 与 Deallocate 分开；释放计算资源后，磁盘等保留资源仍需核算。",
+      "sources": [
+        "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/create-or-update",
+        "https://learn.microsoft.com/en-us/rest/api/compute/virtual-machines/deallocate",
+        "https://learn.microsoft.com/en-us/azure/china/concepts-service-availability"
+      ]
+    },
+    {
+      "id": "gcp",
+      "name": "Google Cloud",
+      "service": "Compute Engine",
+      "phase": "core_coverage",
+      "account_scopes": [
+        "global"
+      ],
+      "provider_plugin": "hashicorp/google",
+      "create_api": "instances.insert",
+      "stop_note": "停止实例不收 VM 使用费，但持久磁盘和静态 IP 等资源继续收费；恢复需确认所在可用区库存。",
+      "sources": [
+        "https://docs.cloud.google.com/compute/docs/reference/rest/v1/instances/insert",
+        "https://docs.cloud.google.com/compute/docs/reference/rest/v1/instances/stop",
+        "https://docs.cloud.google.com/compute/docs/instances/stop-start-instance"
+      ]
+    },
+    {
+      "id": "volcengine",
+      "name": "火山引擎",
+      "service": "ECS",
+      "phase": "later_coverage",
+      "account_scopes": [
+        "china-site"
+      ],
+      "provider_plugin": null,
+      "create_api": "RunInstances",
+      "stop_note": "快照与从快照创建磁盘受磁盘类型限制；完整停机计费和恢复方案仍需研究。",
+      "sources": [
+        "https://docs.volcengine.com/docs/ecs/RunInstances-Createsinstances?lang=en"
+      ]
+    },
+    {
+      "id": "baidu",
+      "name": "百度智能云",
+      "service": "BCC",
+      "phase": "later_coverage",
+      "account_scopes": [
+        "china-site"
+      ],
+      "provider_plugin": null,
+      "create_api": "POST /instanceBySpec",
+      "stop_note": "创建与快照有 ClientToken 幂等入口；停机费用、区域覆盖和完整恢复链路仍需核实。",
+      "sources": [
+        "https://intl.cloud.baidu.com/zh/doc/BCC/s/2k3rau7n4-intl",
+        "https://intl.cloud.baidu.com/zh/doc/BCC/s/0jwvyo7c0-intl"
+      ]
+    },
+    {
+      "id": "oci",
+      "name": "Oracle Cloud",
+      "service": "Compute",
+      "phase": "later_coverage",
+      "account_scopes": [
+        "global"
+      ],
+      "provider_plugin": null,
+      "create_api": "LaunchInstance",
+      "stop_note": "实例、启动卷、IAM compartment、区域库存与账单仍需完整核实；不依赖免费额度作为可用性保证。",
+      "sources": [
+        "https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/launchinginstance.htm"
+      ]
+    }
+  ]
+}

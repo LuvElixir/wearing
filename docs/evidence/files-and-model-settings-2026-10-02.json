@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-02",
+  "platform": "macOS arm64",
+  "hermes_revision": "367441274c48a03d12ee9f8d3d9ccd9bc1585392",
+  "filesystem_version": "2026.8.31",
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "run_id": "run_f502c3c939bf486185c1bdff1fd80b60",
+  "status": "completed_unverified",
+  "tools": [
+    {
+      "tool": "mcp__wearing_files__list_allowed_directories",
+      "duration": 0.021,
+      "error": false,
+      "seq": 12
+    },
+    {
+      "tool": "tool_describe",
+      "duration": 0.004,
+      "error": false,
+      "seq": 14
+    },
+    {
+      "tool": "mcp__wearing_files__write_file",
+      "duration": 0.01,
+      "error": false,
+      "seq": 16
+    },
+    {
+      "tool": "mcp__wearing_files__read_text_file",
+      "duration": 0.006,
+      "error": false,
+      "seq": 18
+    }
+  ],
+  "capabilities": {
+    "profile_version": 2,
+    "identity": "Wearing",
+    "scheduler": false,
+    "messaging": false,
+    "file_tools": [
+      "mcp__wearing_files__read_text_file",
+      "mcp__wearing_files__write_file",
+      "mcp__wearing_files__create_directory",
+      "mcp__wearing_files__list_directory",
+      "mcp__wearing_files__get_file_info",
+      "mcp__wearing_files__list_allowed_directories"
+    ]
+  },
+  "file": {
+    "path": "Wearing-第一份文件.md",
+    "bytes": 89,
+    "sha256": "26a422f899c01e99be4c81a0c1cecb892f7c59a7c641bdc29d70ee69e28b48b6",
+    "content": "# Wearing 的第一份文件\n这件事，我来。\n验收标记：wearing-files-20261002\n",
+    "browser_download_matches": true
+  },
+  "model_ui_save_with_blank_key": {
+    "credential_bytes_unchanged": true
+  },
+  "main_conversation_count": 0,
+  "real_model_test_isolated": true,
+  "automated_tests": 52,
+  "not_validated": [
+    "Windows machine",
+    "other provider credentials",
+    "desktop control",
+    "phone control",
+    "cloud sandbox",
+    "business outcomes"
+  ],
+  "tool_evidence_source": "Recorded from the first authenticated SSE retrieval in this development session. Hermes expires transport buffers after 300 seconds; Wearing does not yet persist the full tool event stream.",
+  "restart": {
+    "engine_ready": true,
+    "files_active": true,
+    "file_run_http_status": 200,
+    "file_run_state": "completed"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "provider": "deepseek",
+  "source_revision": "367441274c48",
+  "isolated_qa_database": "/var/folders/32/vzdw9zp96ps4lgrqy7rz55cw0000gn/T/wearing-model-qa-tek5piym/wearing.sqlite3",
+  "turns": [
+    {
+      "status": "completed_unverified",
+      "output": "收到，测试代号“蓝鲸四十七”已记住，纯文本连接正常。",
+      "error": null,
+      "run_id": "run_8f6464cdacd44be886d3a723d7cf0fbf",
+      "session_id": "wearing-personal-0c72aa1f707549779c4f65bedffcce0b",
+      "usage": {
+        "input_tokens": 851,
+        "output_tokens": 19,
+        "total_tokens": 870,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "turn": 1,
+      "elapsed_seconds": 8.32
+    },
+    {
+      "status": "completed_unverified",
+      "output": "蓝鲸四十七",
+      "error": null,
+      "run_id": "run_3afa4502a5104bf587a7056646a081ec",
+      "session_id": "wearing-personal-0c72aa1f707549779c4f65bedffcce0b",
+      "usage": {
+        "input_tokens": 885,
+        "output_tokens": 5,
+        "total_tokens": 890,
+        "cache_read_tokens": 640,
+        "cache_write_tokens": 0
+      },
+      "turn": 2,
+      "elapsed_seconds": 1.1
+    }
+  ],
+  "session_continuity_passed": true
+}

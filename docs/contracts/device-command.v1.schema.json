@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "Scope": {
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "identity_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$",
+          "title": "Identity Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "identity_id"
+      ],
+      "title": "Scope",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "protocol_version": {
+      "const": "1",
+      "title": "Protocol Version",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/Scope"
+    },
+    "task_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "resource_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$",
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "connector_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$",
+      "title": "Connector Id",
+      "type": "string"
+    },
+    "connection_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$",
+      "title": "Connection Id",
+      "type": "string"
+    },
+    "pairing_generation": {
+      "minimum": 1,
+      "title": "Pairing Generation",
+      "type": "integer"
+    },
+    "policy_revision": {
+      "minimum": 1,
+      "title": "Policy Revision",
+      "type": "integer"
+    },
+    "lease_epoch": {
+      "minimum": 1,
+      "title": "Lease Epoch",
+      "type": "integer"
+    },
+    "method": {
+      "pattern": "^[a-z][a-z0-9_.]{0,127}$",
+      "title": "Method",
+      "type": "string"
+    },
+    "params": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Params",
+      "type": "object"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocol_version",
+    "command_id",
+    "scope",
+    "task_id",
+    "resource_id",
+    "connector_id",
+    "connection_id",
+    "pairing_generation",
+    "policy_revision",
+    "lease_epoch",
+    "method",
+    "created_at",
+    "expires_at"
+  ],
+  "title": "DeviceCommand",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Wearing device command v1. Validation only; authenticated tenant authority, atomic leases and durable deduplication are required separately."
+}

@@ -1,0 +1,147 @@
+{
+  "date": "2026-10-02",
+  "host": "macOS arm64",
+  "device": {
+    "model": "MI 6X",
+    "android": "9",
+    "sdk": 28
+  },
+  "driver": {
+    "package": "@mobilenext/mobile-mcp",
+    "version": "1.0.7",
+    "mode": "legacy ADB",
+    "platform_tools": "37.0.1",
+    "telemetry": false
+  },
+  "task_id": "0cb6fe00b3ab4b99ab9758fa86889fec",
+  "run_id": "run_6e47a58be4814903a3250338c40ce65e",
+  "wearing_status": "completed_unverified",
+  "tool_events": [
+    {
+      "event": "tool.completed",
+      "seq": 15,
+      "tool": "tool_describe",
+      "error": false,
+      "duration": 0.013
+    },
+    {
+      "event": "tool.completed",
+      "seq": 17,
+      "tool": "mcp__wearing_phone__mobile_launch_app",
+      "error": false,
+      "duration": 0.592
+    },
+    {
+      "event": "tool.completed",
+      "seq": 29,
+      "tool": "mcp__wearing_phone__mobile_get_foreground_app",
+      "error": true,
+      "duration": 0.005
+    },
+    {
+      "event": "tool.completed",
+      "seq": 31,
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "error": false,
+      "duration": 11.033
+    },
+    {
+      "event": "tool.completed",
+      "seq": 67,
+      "tool": "tool_describe",
+      "error": false,
+      "duration": 0.003
+    },
+    {
+      "event": "tool.completed",
+      "seq": 69,
+      "tool": "mcp__wearing_phone__mobile_swipe_on_screen",
+      "error": false,
+      "duration": 1.598
+    },
+    {
+      "event": "tool.completed",
+      "seq": 71,
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "error": false,
+      "duration": 3.064
+    },
+    {
+      "event": "tool.completed",
+      "seq": 110,
+      "tool": "mcp__wearing_phone__mobile_swipe_on_screen",
+      "error": false,
+      "duration": 1.611
+    },
+    {
+      "event": "tool.completed",
+      "seq": 112,
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "error": false,
+      "duration": 5.29
+    },
+    {
+      "event": "tool.completed",
+      "seq": 142,
+      "tool": "mcp__wearing_phone__mobile_click_on_screen_at_coordinates",
+      "error": false,
+      "duration": 0.423
+    },
+    {
+      "event": "tool.completed",
+      "seq": 144,
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "error": false,
+      "duration": 1.575
+    },
+    {
+      "event": "tool.completed",
+      "seq": 174,
+      "tool": "mcp__wearing_phone__mobile_type_keys",
+      "error": false,
+      "duration": 0.687
+    },
+    {
+      "event": "tool.completed",
+      "seq": 188,
+      "tool": "mcp__wearing_phone__mobile_list_elements_on_screen",
+      "error": false,
+      "duration": 1.886
+    }
+  ],
+  "independent_verification": {
+    "screen_text": "Wearing123",
+    "element_type": "ClearableEditText",
+    "element_id": "android:id/input",
+    "focused": true,
+    "screenshot": "screenshots/wearing-android-search-20261002.png"
+  },
+  "known_limits": [
+    "Chinese input not connected",
+    "foreground app query unavailable in legacy driver and removed",
+    "Windows, second Mac, iOS and disconnect recovery not yet device-tested",
+    "pause blocks subsequent calls, not guaranteed to cancel in-flight actions"
+  ],
+  "tests": {
+    "pytest_passed": 57,
+    "node_syntax": true,
+    "node_motion": true,
+    "wheel_build": true,
+    "sdist_build": true,
+    "wheel_mobile_assets": true
+  },
+  "main_conversation_messages": 0,
+  "ui_verification": {
+    "pause_blocks_real_tool": true,
+    "resume_restarts_and_connects_engine": true,
+    "screenshot": "screenshots/wearing-phone-connected-20261002.png"
+  },
+  "final_state": {
+    "main_server_running": true,
+    "phone_online": true,
+    "phone_enabled": true,
+    "file_tools": 6,
+    "phone_tools": 9,
+    "qa_server_stopped": true
+  }
+}

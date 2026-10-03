@@ -1,0 +1,7 @@
+<?svml using="@hypit/run-markup@1"?>
+<svrun version="1">
+  <author source="../authors/presence.svml"/>
+  <target output="greeting.video"/>
+  <build-record id="cuff-pose" build="bld_20261002T075939367Z_E05A298918" output="presence.image"/>
+  <satisfy output="presence.image" candidate="cuff-pose"/>
+</svrun>
