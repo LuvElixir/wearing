@@ -20,12 +20,14 @@ class HermesStub:
         self.approval = {"request_id":"approval-1", "command":"touch example.txt"}
         self.session_id = "canonical-hermes-session"
         self.phone_tools = []
+        self.remote_tools = []
+        self.turn_exit_reason = None
 
     async def __call__(self, request):
         body = json.loads(request.content) if request.content else None
         self.calls.append((request.method, request.url.path, body, dict(request.headers)))
         if request.url.path == "/v1/capabilities":
-            return httpx.Response(200, json={"features":{"run_approval":True}, "wearing":{"phone_tools": self.phone_tools}})
+            return httpx.Response(200, json={"features":{"run_approval":True}, "wearing":{"phone_tools": self.phone_tools, "remote_device_tools": self.remote_tools}})
         if request.method == "POST" and request.url.path == "/v1/runs":
             if self.fail_create:
                 raise httpx.ReadTimeout("response lost after server accepted", request=request)
@@ -37,7 +39,7 @@ class HermesStub:
         if self.fail_poll:
             raise httpx.ConnectError("temporary offline", request=request)
         return httpx.Response(200, json={"run_id":"run_1", "status":self.run_status, "output":"The file is ready.", "approval":self.approval,
-                                        "session_id":self.session_id, "usage":{"input_tokens":12, "output_tokens":4}})
+                                        "session_id":self.session_id, "usage":{"input_tokens":12, "output_tokens":4}, "turn_exit_reason":self.turn_exit_reason})
 
 
 @pytest.fixture
@@ -62,6 +64,21 @@ async def test_completed_requires_separate_verification(rig):
     verified = await service.verify(task["id"], "Opened and checked the file")
     assert verified["status"] == "verified"
     assert store.events(task["id"])[-1]["kind"] == "verified_by_user"
+
+
+async def test_iteration_limit_preserves_partial_result_without_completing_or_resubmitting(rig):
+    service, stub, store = rig
+    task = store.create("Research an App", "computer")
+    await service.start(task["id"])
+    stub.run_status = "failed"
+    stub.turn_exit_reason = "max_iterations_reached(20/20)"
+    result = await service.refresh(task["id"])
+    assert result["status"] == "failed" and result["verified_at"] is None
+    assert result["output"] == "The file is ready."
+    assert "执行上限" in result["error"] and "尚未完成" in result["error"]
+    assert store.events(task["id"])[-1]["message"] == result["error"]
+    await service.tick()
+    assert len([c for c in stub.calls if c[:2] == ("POST", "/v1/runs")]) == 1
 
 
 async def test_stop_request_does_not_report_stopped(rig):
@@ -222,3 +239,13 @@ async def test_offline_messages_cannot_skip_earlier_unsent_context(rig):
     stub.run_status = "completed"
     await service.refresh(first["id"])
     await service.start(second["id"])
+
+
+async def test_cloud_phone_task_uses_remote_capabilities(rig):
+    service,stub,store=rig
+    stub.remote_tools=["mcp__wearing_devices__wearing_computer_observe"]
+    task=store.create("Read paired phone", "phone")
+    with pytest.raises(TaskError): await service.start(task["id"])
+    stub.remote_tools=["mcp__wearing_devices__mobile_list_elements_on_screen"]
+    await service.start(task["id"])
+    assert len([c for c in stub.calls if c[:2]==("POST","/v1/runs")])==1

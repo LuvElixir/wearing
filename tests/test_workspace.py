@@ -60,11 +60,11 @@ def test_profile_restricts_mcp_to_file_connector(tmp_path):
     (home / "config.yaml").write_text("mcp_servers:\n  unrelated:\n    command: never-start\n")
     prepare_profile(home, source)
     config = yaml.safe_load((home / "config.yaml").read_text())
-    assert config["platform_toolsets"]["api_server"] == ["memory", "session_search"]
+    assert config["platform_toolsets"]["api_server"] == ["memory", "session_search", "web", "todo", "skills", "vision"]
     files = {"command": "test-node", "args": ["test-server", "workspace"], "tools": {"include": list(TOOLS)}}
     prepare_profile(home, source, files)
     config = yaml.safe_load((home / "config.yaml").read_text())
-    assert config["platform_toolsets"] == {"api_server": ["memory", "session_search", "wearing_files"], "cli": ["no_mcp"]}
+    assert config["platform_toolsets"] == {"api_server": ["memory", "session_search", "web", "todo", "skills", "vision", "wearing_files"], "cli": ["no_mcp"]}
     assert config["mcp_servers"]["unrelated"]["command"] == "never-start"
     assert config["mcp_servers"]["wearing_files"] == files
 
@@ -97,7 +97,7 @@ expected=set(json.loads(sys.argv[3]))
 try:
  names=discover_mcp_tools(['wearing_files'])
  assert set(names)=={'mcp__wearing_files__'+n for n in expected}, names
- assert _get_platform_tools(load_config(),'api_server') == {'memory','session_search','wearing_files'}
+ assert _get_platform_tools(load_config(),'api_server') == {'memory','session_search','web','todo','skills','vision','wearing_files'}
  def call(name,args): return registry.dispatch('mcp__wearing_files__'+name,args)
  allowed=call('list_allowed_directories',{}); assert str(root) in allowed
  call('write_file',{'path':str(root/'hello.txt'),'content':'wearing-canary'})

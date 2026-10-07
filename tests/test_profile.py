@@ -30,8 +30,9 @@ def test_migration_preserves_credentials_memory_and_user_config(tmp_path):
     assert config["memory"]["user_char_limit"] == 1900
     assert config["memory"]["user_profile_enabled"] is False
     assert config["memory"]["memory_enabled"] is False
-    assert config["platform_toolsets"]["api_server"] == ["memory", "session_search"]
+    assert config["platform_toolsets"]["api_server"] == ["memory", "session_search", "web", "todo", "skills", "vision"]
     assert config["custom_field"] == "keep-me"
+    assert config["web"] == {"backend": "exa", "provider_tier": {"exa": "free"}}
     assert (home / ".env").read_text() == "SECRET=keep-me"
     assert (home / "memories/USER.md").read_text() == "用户原有偏好"
     assert (home / "SOUL.md").read_text().strip() == identity_text()
@@ -77,3 +78,26 @@ def test_profile_refuses_config_symlinks(tmp_path):
     with pytest.raises(ProfileError):
         prepare_profile(home, source)
     assert target.read_text() == "{}"
+
+
+def test_remote_tools_are_opt_in_and_preserve_model_config(tmp_path):
+    source,home=upstream(tmp_path),tmp_path/'home'
+    home.mkdir();(home/'config.yaml').write_text('model:\n  provider: deepseek\n  default: chosen-model\n')
+    remote={'command':'/private/wearing/python','args':['/private/remote_proxy.py']}
+    result=prepare_profile(home,source,remote=remote)
+    assert result['toolsets']==['memory','session_search','web','todo','skills','vision','wearing_devices']
+    config=yaml.safe_load((home/'config.yaml').read_text())
+    assert config['mcp_servers']['wearing_devices']==remote
+    assert config['model']['default']=='chosen-model'
+    result=prepare_profile(home,source)
+    assert 'wearing_devices' not in result['toolsets']
+    assert 'wearing_devices' not in yaml.safe_load((home/'config.yaml').read_text())['mcp_servers']
+
+
+def test_existing_web_provider_settings_are_preserved(tmp_path):
+    source, home = upstream(tmp_path), tmp_path / 'home'
+    home.mkdir()
+    chosen = {'backend': 'tavily', 'extract_backend': 'exa', 'provider_tier': {'exa': 'paid'}, 'keyless_fallback': False}
+    (home / 'config.yaml').write_text(yaml.safe_dump({'web': chosen}))
+    prepare_profile(home, source)
+    assert yaml.safe_load((home / 'config.yaml').read_text())['web'] == chosen

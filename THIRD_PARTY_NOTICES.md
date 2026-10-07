@@ -1,5 +1,15 @@
 # Third-party notices
 
+## croniter
+
+Wearing's time-triggered intentions use unmodified **croniter 6.2.4** (MIT) for calendar recurrence calculation. It is a normal Python dependency; its license remains in the installed distribution and version/integrity hashes are recorded in `uv.lock`. Wearing supplies identity-scoped records and dispatches through its existing Hermes run adapter. Source: [pallets-eco/croniter](https://github.com/pallets-eco/croniter).
+
+## FullCalendar
+
+The built-in calendar integrates unmodified FullCalendar **7.1.0** standard browser bundles and the Monarch theme, licensed MIT. No Premium/Scheduler bundle is included. The upstream license is shipped at `wearing/web/vendor/fullcalendar/LICENSE.md`; the downloaded source URLs and SHA-256 hashes are recorded in `wearing/web/vendor/fullcalendar/manifest.json`. Assets are served locally with Wearing and require no runtime CDN requests. Sources: [FullCalendar vanilla JavaScript documentation](https://fullcalendar.io/docs/vanilla-js), [FullCalendar licensing](https://fullcalendar.io/license).
+
+Wearing applies its own scoped styles and record adapter without modifying these bundles. The normal Python `tzdata` dependency supplies IANA timezone data on systems without a system database; installed dependency notices remain in its distribution, with versions and hashes in `uv.lock`.
+
 ## Login and platform metadata dependencies
 
 The OIDC entry integrates unmodified Authlib 1.8.0 (BSD-3-Clause), itsdangerous 2.2.0 (BSD-3-Clause) and SQLAlchemy 2.0.54 (MIT). They are normal Python dependencies, not vendored source. Their notices remain in their installed distributions; reproducible package versions and integrity hashes are recorded in `uv.lock`. Authlib uses its JOSE dependencies for signature and claim verification. Sources: [Authlib](https://github.com/authlib/authlib), [itsdangerous](https://github.com/pallets/itsdangerous), [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy).
@@ -70,3 +80,26 @@ The adapter uses this pinned release's single-attempt JSON-RPC transport for `se
 The optional computer connector reuses Hermes' built-in `computer_use` tool and its on-disk human/agent control lease. Hermes PM installs its pinned, checksum-verified Cua Driver **0.21.0** package on demand; no driver binary is bundled in Wearing's wheel. Source: https://github.com/trycua/cua
 
 Cua Driver is MIT-licensed according to the upstream licensing map: https://github.com/trycua/cua/blob/main/LICENSING.md . Other Cua products have separate terms; this integration does not install Cua Spaces or imply that the entire monorepo has one license. Driver notices remain upstream-owned. Wearing preserves standard permission mode, disables driver telemetry, and uses upstream environment sanitization for driver processes.
+
+
+## Capture input adapters
+
+Image validation uses unmodified Pillow 12.3.0 (MIT-CMU); its full license remains in the installed Python distribution. Source: https://github.com/python-pillow/Pillow . Mac text recognition calls Apple Vision through a small Wearing Swift adapter; the platform framework is not bundled. Documentation: https://developer.apple.com/documentation/vision/recognizing-text-in-images .
+
+Optional speech transcription uses the Doubao Seed-ASR 2.0 hosted API under the provider's service terms. Wearing's adapter implements the documented WebSocket envelope independently; no vendor sample source is executed or bundled. Documentation: https://docs.volcengine.com/docs/DoubaoVoice/unidirectional-streaming-automatic-speech-recognition-websocket?lang=zh .
+
+Audio decoding uses unmodified PyAV 16.1.0 (BSD-3-Clause), and transport uses websockets 16.1.1 (BSD-3-Clause). Locked versions/hashes are in uv.lock, with original notices in installed distributions. PyAV wheel codecs/FFmpeg have their own bundled upstream terms; Wearing does not relabel these dependencies under MIT. Sources: https://github.com/PyAV-Org/PyAV and https://github.com/python-websockets/websockets .
+
+The former faster-whisper/Whisper Small integration and Hugging Face weight downloader were removed on 2026-10-07. Historical test evidence refers to that retired implementation; those dependencies and weights are no longer required or bundled.
+
+## Desktop client
+
+The optional desktop client reuses unmodified Tauri 2.12.1, tauri-plugin-global-shortcut 2.4.0 and tauri-plugin-single-instance 2.5.2, each MIT OR Apache-2.0. The build CLI is pinned to @tauri-apps/cli 2.12.1; npm integrity hashes and Rust source checksums are locked in clients/desktop/package-lock.json and src-tauri/Cargo.lock. Sources: https://github.com/tauri-apps/tauri and https://github.com/tauri-apps/plugins-workspace .
+
+Upstream notices from the registry dependencies resolved on the Mac build host are included in clients/desktop/src-tauri/notices/DEPENDENCIES.txt and bundled as resources. This is a local technical preview; a platform-specific license audit, signing and distribution checks precede a public installer. No Hermes, Python, Cua Driver, ADB, model weights or user secrets are included in the desktop bundle.
+
+## Mobile client
+
+The optional mobile client uses unmodified Expo 57.0.26 modules, React 19.2.3, React Native 0.86.3, React Native Paper 5.15.3, react-native-webview 13.16.1, react-native-svg 15.15.4, the community datetime picker 9.1.0, safe-area-context 5.7.0, react-native-web 0.21.2 and idb 8.0.3 (MIT), plus lucide-react-native 1.52.0 (ISC). Exact resolved versions and integrity hashes are in clients/mobile/package-lock.json. Registry-supplied direct dependency notices are retained in clients/mobile/notices/DEPENDENCIES.txt. Sources: https://github.com/expo/expo , https://github.com/facebook/react-native , https://github.com/callstack/react-native-paper , https://github.com/lucide-icons/lucide .
+
+The approved Wearing avatar and wordmark are reused unchanged. Expo Go 57.0.9 is an official development host installed separately on the test Android device; it is not a Wearing APK. Native binary distribution, signing, transitive notices and vulnerability remediation remain release gates. Model weights, Hermes, private records and credentials are not included in client exports.

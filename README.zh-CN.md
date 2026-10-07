@@ -17,6 +17,7 @@ Wearing 围绕一个人的长期使用而设计。它保留对话背景，记录
 | --- | --- |
 | 连续对话 | 保存原始消息，复用多轮会话，刷新页面后恢复记录。 |
 | 个人记忆 | 查看和纠正已保存的偏好，检索过去的对话。 |
+| 日常工具 | 内置日历、待办清单与短笔记；用户和 Agent 读写同身份的同一份记录，移除可恢复，过期编辑不覆盖新版本。 |
 | 长期目标 | 记录范围与阶段进展，在约定轮次内继续执行，支持补充讨论、暂停和人工核对。 |
 | 身份空间 | 不同身份分别保存会话与文件。 |
 | 实际操作 | 接入文件、本机 Mac 和 Android 手机，按设备记录验收范围。 |
@@ -71,6 +72,9 @@ SaaS 基础包含独立租户 Worker、OIDC 路由和 PostgreSQL 数据隔离。
 | [接入指南](docs/getting-started.md) | 引擎、模型、电脑和手机的配置。 |
 | [持续目标](docs/personal-continuity.md) | 目标推进、后续讨论与结果核对。 |
 | [个人记忆](docs/personal-memory.md) | 偏好、记忆和旧对话检索。 |
+| [生活工具](docs/life-tools.md) | 日历、清单、笔记、Agent 共享记录及原生输入边界。 |
+| [原生客户端](docs/native-clients.md) | Mac 桌面预览、共享记录与手机接入边界。 |
+| [手机客户端](docs/mobile-client.md) | React Native / Expo 随手输入、离线队列和真机验收边界。 |
 | [引擎产品化](docs/engine-productization.md) | Wearing 运行方式与上游组件的边界。 |
 | [SaaS 架构](docs/saas-architecture-2026-10-03.md) | 租户隔离与实施顺序。 |
 | [技术参考](README.reference.md) | 完整配置说明和验收资料。 |

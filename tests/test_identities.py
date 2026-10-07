@@ -143,7 +143,7 @@ def test_new_profile_reuses_install_and_model_but_not_memory_devices_or_secrets(
     assert not (other.home/'MEMORY.md').exists() and not (other.home/'.env').exists()
     assert other.connection_key()!=default.connection_key()
     profile=prepare_profile(other.home,other.source)
-    assert profile['toolsets']==['memory','session_search']
+    assert profile['toolsets']==['memory','session_search','web','todo','skills','vision']
     assert not other.status()['computer']['enrolled']
     assert other.env()['HERMES_HOME']==str(other.home)
     assert other.env()['WEARING_MODEL_ENV']==str(default.home/'.env')

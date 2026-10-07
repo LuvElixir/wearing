@@ -116,6 +116,26 @@ async def test_every_route_requires_key_and_bound_tenant_and_origin(tmp_path):
             assert (await client.get("/api/bootstrap", headers=duplicate)).status_code == 401
 
 
+async def test_cloud_device_controls_require_page_token_and_current_identity(tmp_path):
+    from wearing.cloud.relay import instance_relay, PairRequest
+    root=tmp_path/'instance';initialize(root)
+    relay=instance_relay(root)
+    bundle=relay.pair_code('daily',[{'resource_id':'phone_test','name':'Test phone','kind':'android','methods':['phone.mobile_click_on_screen']}],[])
+    relay.pair(PairRequest(code=bundle['code'],token='a'*64))
+    app=create_tenant_app(root,engine_autostart=False)
+    async with app.router.lifespan_context(app), httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url=ORIGIN,headers=headers(root)) as c:
+        boot=(await c.get('/api/bootstrap')).json();assert boot['deployment']=='cloud'
+        body={'resource_id':'phone_test','paused':True,'expected_generation':0}
+        assert (await c.post('/api/devices/control',json=body)).status_code==403
+        c.headers.update({'X-Wearing-Token':boot['token'],'Origin':ORIGIN})
+        other=(await c.post('/api/identities',json={'name':'出海','region':'international','description':''})).json()
+        assert (await c.post('/api/devices/control',json=body,headers={'X-Wearing-Identity':other['id']})).status_code==404
+        assert (await c.get('/api/devices',headers={'X-Wearing-Identity':other['id']})).json()=={'devices':[]}
+        assert (await c.post('/api/devices/control',json=body)).status_code==200
+        assert (await c.get('/api/devices')).json()['devices'][0]['paused']
+        assert (await c.post('/api/devices/control',json=body)).status_code==409
+
+
 async def test_private_records_files_and_restart_do_not_cross_tenants(tmp_path, monkeypatch):
     a, b = tmp_path / "A", tmp_path / "B"
     initialize(a); initialize(b, "tenant_B")

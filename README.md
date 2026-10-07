@@ -17,6 +17,7 @@ The current release is a **0.2 local development build**. A cloud service with a
 | --- | --- |
 | Conversation | Original messages, shared multi-turn sessions, and recovery after a page refresh. |
 | Memory | Inspectable preferences and memory entries, with correction and retrieval of past conversations. |
+| Daily tools | Built-in calendar, grouped todos and short notes; direct editing and the agent share the same identity-scoped records, with recoverable removal and revision checks. |
 | Goals | Saved scope and progress, bounded continuation, follow-up discussion, pause, and human review. |
 | Identity | Separate conversations and file spaces for each identity. |
 | Action | File access, local Mac control, and Android connections, with device-specific acceptance records. |
@@ -71,6 +72,9 @@ The SaaS foundation includes tenant workers, OIDC routing, and PostgreSQL isolat
 | [Getting started](docs/getting-started.md) | Engine, model, computer, and phone setup. |
 | [Personal continuity](docs/personal-continuity.md) | Goals, continuation, and review. |
 | [Personal memory](docs/personal-memory.md) | Preferences, memory, and conversation search. |
+| [Daily tools](docs/life-tools.md) | Calendar, todos, notes, shared agent access and current native-input boundaries. |
+| [Native clients](docs/native-clients.md) | Mac desktop preview, shared records and mobile implementation boundaries. |
+| [Mobile client](docs/mobile-client.md) | React Native / Expo capture, offline outbox and device acceptance boundaries. |
 | [Engine productization](docs/engine-productization.md) | Wearing's runtime and upstream boundaries. |
 | [SaaS architecture](docs/saas-architecture-2026-10-03.md) | Tenant isolation and implementation sequence. |
 | [Technical reference](README.reference.md) | Detailed setup and acceptance links. |

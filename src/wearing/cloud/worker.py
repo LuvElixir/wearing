@@ -93,4 +93,9 @@ def create_tenant_app(root: Path, *, hermes=None, engine_autostart=True):
         return {**instance_status(root), "engine_state": probe["state"],
                 "engine_owned": app.state.runtime.status()["running"], "data_owner_checked": True}
 
+    @app.get("/internal/devices")
+    async def device_status():
+        from .relay import instance_relay
+        return {"devices": instance_relay(root).inventory("daily"), "identity_id": "daily"}
+
     return app

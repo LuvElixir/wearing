@@ -7,7 +7,7 @@ resource write. This is first-VM tooling, not the SaaS provisioning service.
 """
 
 import argparse
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import hashlib
 import ipaddress
 import json
@@ -166,7 +166,10 @@ class Trial:
             raise TencentError("创建前必须完成最终网络配置预检。")
         price = quote(self.client, self.request)
         rates = [Decimal(r) for r in price["compute_and_disks"]["hourly_tiers"]]
-        limit = Decimal(hourly_ceiling)
+        try:
+            limit = Decimal(hourly_ceiling)
+        except InvalidOperation as error:
+            raise TencentError("每小时单价上限必须是有效金额；没有下单。") from error
         if not limit.is_finite() or limit <= 0 or max(rates) > limit:
             raise TencentError("当前每小时报价高于操作者接受的单价；没有下单。")
         write_private_json(self.root / "accepted-quote.json", price)
@@ -192,6 +195,9 @@ def main():
         if args.request.stat().st_size > 65536:
             raise TencentError("配置文件过大。")
         request = TencentQuoteRequest.model_validate_json(args.request.read_text())
+        args.root = args.root.expanduser().absolute()
+        if args.root.is_symlink():
+            raise TencentError("部署目录不能是符号链接。")
         args.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         with FileLock(args.root / "operator.lock", timeout=2):
             trial = Trial(args.root, request, args.profile)
@@ -202,9 +208,16 @@ def main():
             elif args.action == "create":
                 if not args.accept_hourly_cny: raise TencentError("创建即开始付费，需要明确接受每小时单价。")
                 trial.create(args.accept_hourly_cny)
+            live_state = None
+            if args.action == "status" and trial.state["resources"].get("instance_id"):
+                response = trial.read("cvm", "DescribeInstances", {
+                    "InstanceIds": [trial.state["resources"]["instance_id"]]})
+                instances = response.get("InstanceSet", [])
+                live_state = instances[0].get("InstanceState") if len(instances) == 1 else "NOT_FOUND"
             print(json.dumps({"phase": trial.state.get("phase", "initialized"),
                               "resource_kinds": list(trial.state["resources"]),
                               "paid_instance_created": bool(trial.state["resources"].get("instance_id")),
+                              "cloud_instance_state": live_state,
                               "hardware_isolation_verified": False}, ensure_ascii=False))
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         message = str(error) if isinstance(error, TencentError) else "操作未完成；检查私有状态与原云请求，不要盲目重试。"

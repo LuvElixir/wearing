@@ -88,6 +88,10 @@ def main():
     run("python3", "-m", "venv", "/opt/wearing/venv")
     python = "/opt/wearing/venv/bin/python"
     run(python, "-m", "pip", "install", "--disable-pip-version-check", str(args.wheel.resolve()))
+    # Bootstrap runs with umask 077. Code remains root-owned, but the service
+    # group needs to traverse/read the venv and execute its entry points.
+    run("chgrp", "-R", "wearing", "/opt/wearing/venv")
+    run("chmod", "-R", "g+rX", "/opt/wearing/venv")
     cli = "/opt/wearing/venv/bin/wearing"
     run("runuser", "-u", "wearing", "--", cli, "tenant", "init", "--root", str(home / "instance"),
         "--tenant-id", context["tenant_id"], "--origin", context["origin"])

@@ -1,5 +1,0 @@
-# Wearing — purposeful character states
-
-2026-10-03. User rejects the synthetic whole-image click wiggle and canned reaction, and asks to remove every visible play control from welcome and companion areas. They explicitly authorize all remaining Hypit credits for multiple useful character states, preserving the prior 720p limit and no waste preference.
-
-Use the existing independent cream two-eye / mouthless cobalt rolled-cuff character. One fixed 720×720 camera, silent 5-second takes, shared first and last anchor. No new identity or props. HypiHub existing account, Seedance 2 Mini. Current quote: 9.43 credits per generated second, 47.15 per take. Initial batch: attention, listening, thinking (141.45 estimate). Follow with calm idle, handoff waiting, and ready-to-work if the first batch is usable and the service accepts the remaining balance. Any failed outputs are inspected before resubmission; no automatic paid retry. Balance is browser-session-only, not available via the logged-in CLI. The public rate quote is not account settlement.

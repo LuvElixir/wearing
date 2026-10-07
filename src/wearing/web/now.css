@@ -1,0 +1,59 @@
+/* One intent entry; records are stable review destinations. */
+body{padding-left:0;padding-bottom:0}
+.app-header{max-width:1040px;width:100%;height:auto;margin:0 auto;padding:28px 32px 18px;position:relative;inset:auto;display:flex;flex-direction:row;align-items:center;justify-content:space-between;background:var(--page);border:0;min-height:100px}
+.brand-context{flex-direction:row;align-items:center;gap:20px;padding:0}
+.app-header .identity-pill{position:static;max-width:150px;background:var(--blue-light);border-radius:var(--control-radius)}
+.wordmark{display:inline-flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}
+.now-name{font-size:28px;line-height:1.3;font-weight:650;letter-spacing:-.03em}
+.now-symbol{width:28px;height:28px;fill:none;stroke:var(--blue);stroke-width:1.6}
+.now-symbol path{stroke-linecap:round;stroke-linejoin:round}
+.now-review-button{gap:8px;min-height:44px;font-size:14px;color:var(--muted)}
+.now-review-button span,.review-more .quiet-button span{display:inline}
+.review-more .connection-button #connection-label{display:inline}
+.identity-context{display:none}
+.review-more nav{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.review-more nav button{display:flex;justify-content:flex-start;gap:12px;min-height:48px;margin:0;text-align:left;font-size:14px}
+.review-more svg{width:18px;height:18px}
+.review-manual{margin-top:24px;min-height:44px}
+.now-review-heading{display:none;max-width:1000px;margin:4px auto;padding:0 30px}
+.now-review-heading button{display:inline-flex;gap:8px;min-height:44px}
+.now-review-heading svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.life-mode .now-review-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.life-main{padding-top:24px;margin-top:24px}
+.welcome{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;min-height:calc(100svh - 290px);padding:20px 24px 60px;text-align:center}
+.welcome .presence{width:220px;height:220px;flex:0 0 220px;min-height:0;margin:0}
+.welcome .character-stage{width:100%;height:100%;margin:0}
+.welcome .welcome-copy{max-width:460px;padding:0}
+.welcome h1{font-family:inherit;font-size:28px;line-height:1.45;font-weight:550;letter-spacing:-.025em;margin:0 0 12px}
+.welcome .welcome-copy>p{font-size:14px;line-height:1.8;margin:0;color:var(--muted)}
+.conversation{margin-top:20px}
+.conversation-intro{display:none}
+.composer-dock{max-width:760px;bottom:0;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.newest-message{left:50%;bottom:140px}
+.identity-running{position:static;margin:0 auto;max-width:960px}
+.native-voice-host .composer-dock:not(.native-text-open){display:none}
+.native-voice-host .companion-bar,.native-voice-host .composer-footnote{display:none!important}
+.native-voice-host .conversation{padding-bottom:32px;min-height:0}
+.native-voice-host .welcome{min-height:calc(100svh - 140px)}
+.mobile-host .app-header{display:none}
+.mobile-host .now-review-heading{display:none}
+@media(max-width:600px){
+ .app-header{padding:22px 22px 14px;min-height:92px;display:flex;flex-direction:row;align-items:center}
+ .brand-context{gap:12px;flex-wrap:wrap}.now-name{font-size:22px}.now-symbol{width:24px;height:24px}
+ .app-header .identity-pill{font-size:12px;padding:7px 9px}
+ .welcome .presence{width:200px;height:200px;flex-basis:200px}
+ .welcome h1{font-size:22px}.welcome .welcome-copy>p{font-size:13px}
+ .now-review-heading{padding:0 22px}.life-main{padding-top:16px}
+ .life-mode .now-review-heading{flex-wrap:wrap;gap:12px}
+ .review-switcher{flex:1;justify-content:center}
+ .now-header-actions{gap:0}
+ .now-header-actions .now-more-button{width:44px;height:44px}
+}
+
+.now-header-actions{display:flex;align-items:center;gap:8px}
+@media(max-width:600px){.now-header-actions{gap:0}}
+.now-more-button{color:var(--muted);width:44px;height:44px;min-width:44px}
+.review-switcher{display:flex;align-items:center;gap:4px;padding:3px;background:#f0f2f7;border-radius:var(--control-radius)}
+.review-switcher button{justify-content:center;min-width:66px;padding:7px 14px;border-radius:12px;font-size:14px;color:var(--muted)}
+.review-switcher button[aria-current=page]{background:var(--surface);color:var(--ink)}
+.review-switcher button:hover{color:var(--blue)}

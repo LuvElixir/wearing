@@ -5,6 +5,7 @@ from pathlib import Path
 import secrets
 import socket
 import subprocess
+import sys
 import time
 import yaml
 
@@ -12,14 +13,15 @@ import httpx
 import pytest
 
 from wearing.engine_runner import ALLOWED_ROUTES
-from wearing.profile import prepare_profile
+from wearing.profile import PROFILE_VERSION, prepare_profile
+from wearing.store import Store
 from wearing.runtime import HermesRuntime, stop_owned_process
 from wearing.filesystem import configuration as filesystem_configuration
 from wearing.mobile import configuration as phone_configuration
 
 
-@pytest.mark.parametrize("connectors,computer,disabled_memory", [(False, False, False), (True, False, False), (False, True, False), (False, False, True)])
-def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, computer, disabled_memory):
+@pytest.mark.parametrize("connectors,computer,disabled_memory,life", [(False, False, False, False), (True, False, False, False), (False, True, False, False), (False, False, True, False), (False, False, False, True)])
+def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, computer, disabled_memory, life):
     runtime = HermesRuntime(Path(__file__).resolve().parents[1] / ".wearing")
     if not runtime.python.is_file():
         pytest.skip("Install the pinned local engine to run its integration contract")
@@ -34,7 +36,12 @@ def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, 
     phone = phone_configuration(runtime.root, runtime.python) if connectors else None
     if connectors and (not files or not phone):
         pytest.skip("Prepare and bind connectors for the combined discovery contract")
-    prepare_profile(home, runtime.source, files, phone, computer)
+    life_connector = None
+    if life:
+        life_root = tmp_path / "life"
+        Store(life_root / "wearing.sqlite3")
+        life_connector = {"command": sys.executable, "args": [str(Path(__file__).resolve().parents[1] / "src/wearing/life_proxy.py"), str(life_root), "daily"]}
+    prepare_profile(home, runtime.source, files, phone, computer, life=life_connector)
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
@@ -62,6 +69,14 @@ def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, 
                 client.headers["Authorization"] = f"Bearer {key}"
                 caps = client.get("/v1/capabilities").json()
                 assert caps["runtime"]["mode"] == "wearing-personal"
+                assert caps["wearing"]["profile_version"] == PROFILE_VERSION
+                assert caps["wearing"]["web_tools"] == ["web_search", "web_extract"]
+                assert caps["wearing"]["planning_tools"] == ["todo_list"]
+                assert caps["wearing"]["skill_tools"] == ["skill_manage", "skill_view", "skills_list"]
+                assert set(caps["wearing"]["media_tools"]) <= {"vision_analyze"}
+                assert caps["wearing"]["research_receipts"] is True
+                assert caps["wearing"]["app_observation_receipts"] is True
+                assert set(caps["wearing"]["life_tools"]) == ({"mcp__wearing_life__" + name for name in ("request_confirmation", "life_records", "life_create", "life_change", "goal_list", "goal_create", "goal_change", "schedule_list", "schedule_create", "schedule_change", "artifact_list", "artifact_read", "artifact_publish", "artifact_design_guide")} if life else set())
                 assert caps["features"]["runs_idempotency"]["durable"]
                 assert caps["features"]["session_chat"] is False
                 assert caps["features"]["browser_extension_control"] is False

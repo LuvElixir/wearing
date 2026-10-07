@@ -528,9 +528,23 @@ class HermesRuntime:
                 raise RuntimeError("请先在模型设置向导中选择服务并完成登录，再启动 Wearing。")
             self.prepare_home()
             try:
+                remote = None
+                if not self.local_devices and (self.data_dir / "remote-devices.json").exists():
+                    from .cloud.instance import load_instance, read_private
+                    enabled = json.loads(read_private(self.data_dir / "remote-devices.json"))
+                    if enabled == {"schema_version": 1, "enabled": True}:
+                        load_instance(self.data_dir.parent)
+                        # This outbox client runs in Wearing's environment, rather than mixing
+                        # its SDK/dependencies into the separately managed Hermes interpreter.
+                        remote = {"command": sys.executable, "args": [str(Path(__file__).with_name("remote_proxy.py")),
+                                  str(self.data_dir.parent), self.identity_id], "timeout": 180,
+                                  "elicitation": {"enabled": True, "timeout": 90}}
                 self.profile = prepare_profile(self.home, self.source, filesystem_configuration(self.root, self.workspace),
                                                mobile.configuration(self.root, self.python) if self.local_devices and self.identity_id == DEFAULT_IDENTITY else None,
-                                               self.local_devices and self.identity_id == DEFAULT_IDENTITY and computer.enrolled(self.data_dir))
+                                               self.local_devices and self.identity_id == DEFAULT_IDENTITY and computer.enrolled(self.data_dir), remote,
+                                               life={"command": sys.executable,
+                                                     "args": [str(Path(__file__).with_name("life_proxy.py")), str(self.data_dir), self.identity_id],
+                                                     "timeout": 30})
             except ProfileError as error:
                 raise RuntimeError(str(error)) from error
             self.phase, self.error = "starting", None

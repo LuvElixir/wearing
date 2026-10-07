@@ -24,12 +24,12 @@ def test_computer_profile_keeps_only_selected_capabilities(tmp_path):
     source.mkdir()
     profile = prepare_profile(home, source, computer=True)
     config = yaml.safe_load((home / "config.yaml").read_text())
-    assert profile["toolsets"] == ["memory", "session_search", "computer_use"]
+    assert profile["toolsets"] == ["memory", "session_search", "web", "todo", "skills", "vision", "computer_use"]
     assert config["approvals"]["mode"] == "manual"
     assert config["computer_use"]["permission_mode"] == "standard"
     assert config["computer_use"]["cua_telemetry"] is False
     assert config["platform_toolsets"]["cli"] == ["no_mcp"]
-    assert prepare_profile(home, source)["toolsets"] == ["memory", "session_search"]
+    assert prepare_profile(home, source)["toolsets"] == ["memory", "session_search", "web", "todo", "skills", "vision"]
 
 
 async def test_enrollment_requires_real_permission_probe_and_preserves_handoff(tmp_path, monkeypatch):

@@ -19,6 +19,10 @@ dependencies = [
     "itsdangerous>=2.2,<3",
     "sqlalchemy>=2.0,<2.1",
     "alembic>=1.16,<2",
+    "mcp>=1.20,<2",
+    "tzdata>=2025.2",
+    "croniter>=6,<7",
+    "pillow>=11,<13",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +30,8 @@ dev = ["pytest>=8,<10", "pytest-asyncio>=0.24,<2"]
 cloud = [
     "psycopg[binary]>=3.2,<4",
 ]
+connector = ["mcp>=1.20,<2"]
+capture = ["av>=15,<17", "websockets>=15,<17"]
 
 [project.scripts]
 wearing = "wearing.cli:main"
@@ -63,6 +69,30 @@ include = ["src/wearing", "tests", "pyproject.toml", "uv.lock", "README.md", "PR
 "deploy/vm/selection-example.json" = "deploy/vm/selection-example.json"
 "deploy/vm/tencent-quote-example.json" = "deploy/vm/tencent-quote-example.json"
 "docs/tencent-cloud-first-run-2026-10-03.md" = "docs/tencent-cloud-first-run-2026-10-03.md"
+"docs/evidence/tencent-vm-2026-10-03.md" = "docs/evidence/tencent-vm-2026-10-03.md"
+"docs/device-connectors.md" = "docs/device-connectors.md"
+"docs/evidence/remote-device-2026-10-03.md" = "docs/evidence/remote-device-2026-10-03.md"
+"deploy/tenant/wearing-device-relay.service" = "deploy/tenant/wearing-device-relay.service"
+"docs/private-cloud-entry.md" = "docs/private-cloud-entry.md"
+"docs/evidence/private-cloud-entry-2026-10-03.md" = "docs/evidence/private-cloud-entry-2026-10-03.md"
+"docs/device-pairing.md" = "docs/device-pairing.md"
+"docs/evidence/device-pairing-2026-10-03.md" = "docs/evidence/device-pairing-2026-10-03.md"
+"docs/connector-service.md" = "docs/connector-service.md"
+"docs/evidence/connector-service-2026-10-03.md" = "docs/evidence/connector-service-2026-10-03.md"
+"docs/desktop-input.md" = "docs/desktop-input.md"
+"docs/evidence/desktop-input-2026-10-04.md" = "docs/evidence/desktop-input-2026-10-04.md"
+"docs/evidence/approval-continuation-2026-10-04.md" = "docs/evidence/approval-continuation-2026-10-04.md"
+"docs/device-permissions.md" = "docs/device-permissions.md"
+"docs/evidence/device-permissions-2026-10-04.md" = "docs/evidence/device-permissions-2026-10-04.md"
+"docs/life-tools.md" = "docs/life-tools.md"
+"docs/design-life-tools.md" = "docs/design-life-tools.md"
+"docs/evidence/life-tools-2026-10-04.md" = "docs/evidence/life-tools-2026-10-04.md"
+"docs/evidence/life-tools-design-review-2026-10-04.md" = "docs/evidence/life-tools-design-review-2026-10-04.md"
+"docs/plans/life-tools-and-native-capture-2026-10-04.md" = "docs/plans/life-tools-and-native-capture-2026-10-04.md"
+"docs/capture-input.md" = "docs/capture-input.md"
+"docs/evidence/capture-input-2026-10-04.md" = "docs/evidence/capture-input-2026-10-04.md"
+"docs/evidence/capture-input-design-review-2026-10-04.md" = "docs/evidence/capture-input-design-review-2026-10-04.md"
+"docs/design-capture-input.md" = "docs/design-capture-input.md"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

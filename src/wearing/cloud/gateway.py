@@ -149,13 +149,45 @@ def proxy_path(path):
             and (decoded == "/" or decoded.startswith(("/api/", "/assets/"))))
 
 
+async def forward_worker(wire, request, upstream, public_origin, tenant_id, key):
+    """Same fixed-origin, bounded, cookie-free forwarding for OIDC and private SSH entry."""
+    headers = {"Authorization": "Bearer " + key, "X-Wearing-Tenant": tenant_id,
+               "Host": urlparse(public_origin).netloc}
+    for name in ("content-type", "accept", "range", "if-none-match", "if-modified-since", "x-wearing-token", "x-wearing-identity", "origin"):
+        if name in request.headers:
+            headers[name] = request.headers[name]
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > 1048576:
+            return JSONResponse({"detail": "请求内容过大。"}, status_code=413)
+        body.extend(chunk)
+    upstream_url = httpx.URL(upstream).copy_with(path=request.url.path, query=request.scope.get("query_string", b""))
+    if not proxy_path(upstream_url.path):
+        return JSONResponse({"detail": "此入口不存在。"}, status_code=404)
+    outgoing = wire.build_request(request.method, upstream_url, headers=headers, content=bytes(body))
+    # HTTPX has a client cookie jar, including cookies set by prior workers.
+    # None of those, or the browser session cookie, may cross this boundary.
+    outgoing.headers.pop("cookie", None)
+    response = await wire.send(outgoing, stream=True)
+    response_headers = {name: response.headers[name] for name in ("content-type", "content-length", "content-disposition", "etag", "last-modified", "accept-ranges", "content-range", "content-encoding", "content-security-policy", "x-content-type-options") if name in response.headers}
+    response_headers["Cache-Control"] = "private, no-store"
+    return StreamingResponse(response.aiter_raw(), status_code=response.status_code, headers=response_headers,
+                             background=BackgroundTask(response.aclose))
+
+
+
 class EntryHeaders:
-    def __init__(self, app, host):
+    def __init__(self, app, host, websocket_paths=()):
         self.app, self.host = app, host.encode("ascii")
+        self.websocket_paths = frozenset(websocket_paths)
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "lifespan":
             return await self.app(scope, receive, send)
+        if scope["type"] == "websocket" and scope.get("path") in self.websocket_paths:
+            hosts = [v for k, v in scope.get("headers", []) if k.lower() == b"host"]
+            if hosts == [self.host]:
+                return await self.app(scope, receive, send)
         if scope["type"] != "http":
             return await send({"type": "websocket.close", "code": 1008})
         hosts = [v for k, v in scope.get("headers", []) if k.lower() == b"host"]
@@ -289,28 +321,7 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
                 or not isinstance(credential.get("key"), str)
                 or not re.fullmatch(r"[A-Za-z0-9_-]{64}", credential["key"])):
             raise GatewayError("实例凭据与路由不一致。")
-        headers = {"Authorization": "Bearer " + credential["key"], "X-Wearing-Tenant": current.tenant_id,
-                   "Host": urlparse(config.public_origin).netloc}
-        for name in ("content-type", "accept", "range", "if-none-match", "if-modified-since", "x-wearing-token", "x-wearing-identity", "origin"):
-            if name in request.headers:
-                headers[name] = request.headers[name]
-        body = bytearray()
-        async for chunk in request.stream():
-            if len(body) + len(chunk) > 1048576:
-                return JSONResponse({"detail": "请求内容过大。"}, status_code=413)
-            body.extend(chunk)
-        upstream_url = httpx.URL(route["upstream"]).copy_with(path=request.url.path, query=request.scope.get("query_string", b""))
-        if not proxy_path(upstream_url.path):
-            return JSONResponse({"detail": "此入口不存在。"}, status_code=404)
-        outgoing = wire.build_request(request.method, upstream_url, headers=headers, content=bytes(body))
-        # HTTPX has a client cookie jar, including cookies set by prior workers.
-        # None of those, or the browser session cookie, may cross this boundary.
-        outgoing.headers.pop("cookie", None)
-        response = await wire.send(outgoing, stream=True)
-        response_headers = {name: response.headers[name] for name in ("content-type", "content-length", "content-disposition", "etag", "last-modified", "accept-ranges", "content-range", "content-encoding") if name in response.headers}
-        response_headers["Cache-Control"] = "private, no-store"
-        return StreamingResponse(response.aiter_raw(), status_code=response.status_code, headers=response_headers,
-                                 background=BackgroundTask(response.aclose))
+        return await forward_worker(wire, request, route["upstream"], config.public_origin, current.tenant_id, credential["key"])
 
     async def safe_failure(request, error):
         return JSONResponse({"detail": "入口暂时未就绪，请稍后再试。"}, status_code=503)

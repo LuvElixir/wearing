@@ -1,6 +1,0 @@
-[0:v]split=3[body-in][tail-in][head-in];
-[body-in]trim=start_frame=18:end_frame=126,setpts=PTS-STARTPTS[body];
-[tail-in]trim=start_frame=126:end_frame=138,setpts=PTS-STARTPTS[tail];
-[head-in]trim=start_frame=6:end_frame=18,setpts=PTS-STARTPTS[head];
-[tail][head]blend=all_expr='A*(0.5+0.5*cos(PI*min(T*24/11,1)))+B*(0.5-0.5*cos(PI*min(T*24/11,1)))'[seam];
-[body][seam]concat=n=2:v=1:a=0,format=yuv420p[v]

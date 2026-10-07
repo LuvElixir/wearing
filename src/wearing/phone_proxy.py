@@ -117,6 +117,30 @@ def normalize_result(result):
     return result
 
 
+def stamp_observation(result, name, ids):
+    """Attach connector-owned provenance without adding screen text to action logs."""
+    if name not in {"mobile_list_elements_on_screen", "mobile_take_screenshot"}:
+        return result
+    meta = {"id": ids["action_id"], "resource_id": ids["resource_id"],
+            "observed_at": datetime.now(timezone.utc).isoformat()}
+    if name == "mobile_list_elements_on_screen":
+        for block in result.content:
+            if isinstance(block, types.TextContent):
+                try:
+                    data = json.loads(block.text)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(data, dict) and ("elements" in data or "ok" in data):
+                    data["_wearing_observation"] = meta
+                    block.text = json.dumps(data, ensure_ascii=False)
+                    return result
+    data = {"_wearing_observation": meta, "ok": not result.is_error}
+    if name == "mobile_take_screenshot":
+        data["ok"] = bool(data["ok"] and any(isinstance(c, types.ImageContent) for c in result.content))
+    result.content.insert(0, types.TextContent(type="text", text=json.dumps(data, ensure_ascii=False)))
+    return result
+
+
 def scoped_schema(tool):
     schema = json.loads(json.dumps(tool.input_schema))
     properties = schema.setdefault("properties", {})
@@ -250,6 +274,7 @@ async def serve(data_dir):
                     result = await read_screen(client, args, data_dir, config, env)
                 else:
                     result = normalize_result(await asyncio.wait_for(client.call_tool(name, args), timeout=40))
+                result = stamp_observation(result, name, ids)
                 receipt(data_dir, name, "tool_error" if result.is_error else "returned_unverified", time.monotonic() - started, **ids)
                 return result
             except asyncio.CancelledError:

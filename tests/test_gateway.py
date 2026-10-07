@@ -117,7 +117,7 @@ async def test_oidc_login_routes_only_own_worker_and_drops_untrusted_credentials
             assert (await alice.get("/auth/session")).json()["tenant_id"] == "tenant_A"
             assert (await bob.get("/auth/session")).json()["tenant_id"] == "tenant_B"
             bootstrap = (await alice.get("/api/bootstrap")).json()
-            for path in ("/", "/assets/avatar.png", "/api/bootstrap", "/api/memory"):
+            for path in ("/", "/assets/chat-portrait.png", "/api/bootstrap", "/api/memory"):
                 response = await alice.get(path)
                 assert response.status_code == 200
                 assert response.headers["cache-control"] == "private, no-store"

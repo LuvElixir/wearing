@@ -1,0 +1,144 @@
+/* 2026-10-07 Web/桌面 Today 迁移（对齐 App clients/mobile/DESIGN.md）。
+   每条规则都挂在 html:not(.mobile-host) 上：App WebView（?host=mobile）不加载任何新观感，
+   其宿主样式仍由只读的 mobile-host.css / now.css 接管。 */
+html:not(.mobile-host){--page:transparent;--surface:#fff;--ink:#252C30;--muted:#66747D;
+  --blue:#008CC8;--blue-deep:#08739e;--blue-light:rgba(0,140,200,.09);--line:rgba(255,255,255,.76);
+  --soft:rgba(73,88,103,.07);--selected:rgba(55,65,73,.09);
+  --today-card:rgba(255,255,255,.69);--folder-card:rgba(255,255,255,.52);--reading-card:rgba(255,255,255,.78);
+  --dock-material:rgba(255,250,242,.72);--toolbar-material:rgba(239,250,255,.64)}
+html:not(.mobile-host) body{background-color:#e3eaf1}
+/* 天空到暖杏的连续画布：固定视口层，滚动时长页保持同一场晨昏。 */
+html:not(.mobile-host) body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,#acceeb 0%,#dfe8f1 49%,#f4e7d9 79%,#ffe0bb 100%)}
+
+/* ---------- 顶栏：品牌 · 五入口 · 搜索与设置 ---------- */
+html:not(.mobile-host) .app-header{max-width:1180px;min-height:0;height:auto;padding:18px 30px 10px;gap:16px;background:transparent}
+html:not(.mobile-host) .now-name{font-size:19px;font-weight:650;letter-spacing:-.02em}
+html:not(.mobile-host) .now-symbol{width:24px;height:24px;stroke:var(--blue)}
+html:not(.mobile-host) .app-header .identity-pill{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7)}
+html:not(.mobile-host) .app-header .app-nav{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:2px;margin:0 auto;padding:4px;border-radius:999px;
+  background:rgba(255,255,255,.46);border:1px solid rgba(255,255,255,.65)}
+html:not(.mobile-host) .app-header .app-nav button{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  min-width:64px;min-height:52px;padding:6px 14px;border-radius:20px;font-size:13px;color:var(--muted)}
+html:not(.mobile-host) .app-header .app-nav button svg{width:22px;height:22px;stroke-width:1.65}
+html:not(.mobile-host) .app-header .app-nav button:hover{color:var(--ink)}
+html:not(.mobile-host) .app-header .app-nav button[aria-current="page"]{background:var(--selected);color:var(--ink)}
+html:not(.mobile-host) .app-header .app-nav .nav-day{position:absolute;top:5px;right:16px;font-size:10px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums}
+html:not(.mobile-host) .app-header .app-nav button[aria-current="page"] .nav-day{color:var(--ink)}
+html:not(.mobile-host) .app-header .app-nav .nav-badge{position:absolute;top:4px;left:calc(50% + 10px);min-width:16px;height:16px;padding:0 4px;border-radius:999px;
+  background:#b84343;color:#fff;font-size:10px;line-height:16px;text-align:center}
+html:not(.mobile-host) .now-icon-button{width:44px;height:44px;min-width:44px;border-radius:999px;color:var(--ink);
+  background:var(--toolbar-material);border:1px solid rgba(255,255,255,.7)}
+html:not(.mobile-host) .now-icon-button:hover{background:rgba(224,240,250,.85);color:var(--ink)}
+html:not(.mobile-host) .web-hidden{display:none!important}
+/* 旧回看工具条由五入口接管；保留 DOM 供共享脚本绑定。 */
+html:not(.mobile-host) .now-review-heading{display:none!important}
+
+/* ---------- 聊天：透光气泡，一处轻量进展 ---------- */
+html:not(.mobile-host) .welcome{flex-direction:column;justify-content:center;gap:8px;min-height:calc(100svh - 330px)}
+html:not(.mobile-host) .welcome .presence{display:none}
+html:not(.mobile-host) .welcome-copy{max-width:560px;text-align:center;padding:0}
+html:not(.mobile-host) .welcome h1{font-size:36px;letter-spacing:-.9px;margin:0 0 10px}
+html:not(.mobile-host) .welcome .welcome-copy>p{font-size:15px}
+html:not(.mobile-host) .message-assistant{gap:0}
+html:not(.mobile-host) .wearing-face{display:none}
+html:not(.mobile-host) .assistant-copy{background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.85);
+  border-radius:24px 24px 24px 8px;padding:15px 18px;color:var(--ink)}
+html:not(.mobile-host) .assistant-content{padding-top:0}
+html:not(.mobile-host) .user-bubble{background:rgba(131,155,175,.22);color:var(--ink);border-radius:24px 24px 8px 24px}
+html:not(.mobile-host) .message .delivery-note{margin-left:0}
+html:not(.mobile-host) .turn-tools{gap:14px;margin-top:10px}
+html:not(.mobile-host) .companion-seat{display:none}
+html:not(.mobile-host) .companion-bar{min-height:64px}
+html:not(.mobile-host) .goal-updates-summary{display:none!important}
+html:not(.mobile-host) .desktop-input-heading>img{display:none}
+html:not(.mobile-host) .life-heading img{display:none}
+
+/* ---------- 输入坞与面板材料 ---------- */
+html:not(.mobile-host) .composer-dock{background:linear-gradient(180deg,rgba(250,247,242,0),rgba(250,247,242,.88) 44%)}
+html:not(.mobile-host) .composer{background:rgba(255,255,255,.66);border-color:rgba(255,255,255,.85);border-radius:26px;
+  backdrop-filter:blur(14px) saturate(1.35);-webkit-backdrop-filter:blur(14px) saturate(1.35)}
+html:not(.mobile-host) .composer:focus-within{border-color:#fff;box-shadow:0 12px 32px rgba(67,97,122,.14)}
+html:not(.mobile-host) .side-panel{background:rgba(247,250,253,.97);border:1px solid rgba(255,255,255,.8);
+  backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-filter:blur(18px) saturate(1.25)}
+html:not(.mobile-host) .side-panel::backdrop{background:rgba(23,31,46,.24)}
+html:not(.mobile-host) .life-capture{background:rgba(255,255,255,.62);border-color:rgba(255,255,255,.8);border-radius:24px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+html:not(.mobile-host) .life-capture:focus-within{border-color:rgba(255,255,255,.95)}
+
+/* ---------- 今天 / 任务 / 笔记卡片 ---------- */
+html:not(.mobile-host) .life-main{max-width:1080px}
+html:not(.mobile-host) .life-heading h1{font-size:30px;font-weight:500;letter-spacing:-.6px}
+html:not(.mobile-host) .life-today{gap:18px}
+html:not(.mobile-host) .life-today>section{background:var(--today-card);border:1px solid var(--line);border-radius:27px;padding:22px}
+html:not(.mobile-host) .life-notes-recent{margin-top:18px;background:var(--today-card);border:1px solid var(--line);border-radius:27px;padding:22px}
+html:not(.mobile-host) .life-section-heading{border-bottom-color:rgba(73,88,103,.1)}
+html:not(.mobile-host) .life-task-group{background:var(--folder-card);border:1px solid var(--line);border-radius:24px;padding:14px 20px 6px;margin:14px 0}
+html:not(.mobile-host) .life-row{border-bottom-color:rgba(73,88,103,.09)}
+html:not(.mobile-host) .life-note-item{border-bottom-color:rgba(73,88,103,.09)}
+html:not(.mobile-host) .life-main[aria-label="生活记录"] .life-workspace .life-empty{color:var(--muted)}
+html:not(.mobile-host) body[data-view="memory"] .life-footer,
+html:not(.mobile-host) body[data-view="me"] .life-footer{display:none}
+
+/* ---------- 记忆 / 我的（views.js 渲染进 life-content） ---------- */
+html:not(.mobile-host) .memory-intro{background:rgba(172,206,235,.4);border:1px solid rgba(255,255,255,.8);border-radius:28px;padding:20px 24px;margin:0 0 18px}
+html:not(.mobile-host) .memory-intro h2{font-size:20px;font-weight:500;margin:0 0 4px}
+html:not(.mobile-host) .memory-intro p{margin:0;color:var(--muted);font-size:13px}
+html:not(.mobile-host) .memory-card{background:var(--reading-card);border:1px solid var(--line);border-radius:24px;padding:20px 22px;margin-bottom:16px}
+html:not(.mobile-host) .memory-card h2{font-size:18px;font-weight:500;margin:0 0 6px}
+html:not(.mobile-host) .memory-card .memory-read{font-size:12px;color:var(--muted);margin:0 0 12px}
+html:not(.mobile-host) .memory-entry{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:10px 0;border-top:1px solid rgba(73,88,103,.08)}
+html:not(.mobile-host) .memory-entry p{margin:0;font-size:14px;line-height:1.8;overflow-wrap:anywhere}
+html:not(.mobile-host) .memory-entry .text-button{flex-shrink:0;min-height:36px}
+html:not(.mobile-host) .memory-files{background:var(--folder-card);border:1px solid var(--line);border-radius:24px;padding:20px 22px}
+html:not(.mobile-host) .memory-files .file-row{border-bottom-color:rgba(73,88,103,.09)}
+html:not(.mobile-host) .me-card{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.75);border-radius:28px;padding:26px;margin-bottom:20px}
+html:not(.mobile-host) .me-card .me-card-backdrop{position:absolute;inset:0;background:linear-gradient(135deg,rgba(172,206,235,.95),rgba(223,232,241,.9) 46%,rgba(255,224,187,.95))}
+html:not(.mobile-host) .me-card>div{position:relative}
+html:not(.mobile-host) .me-card h2{font-size:22px;font-weight:600;margin:0 0 4px}
+html:not(.mobile-host) .me-card .me-space{font-size:13px;color:#4c5a64;margin:0 0 12px}
+html:not(.mobile-host) .me-card .me-line{display:flex;align-items:center;gap:8px;font-size:13px;color:#37474f;margin:0}
+html:not(.mobile-host) .me-card .me-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+html:not(.mobile-host) .me-card .me-actions .secondary{background:rgba(255,255,255,.72);border-color:rgba(255,255,255,.9)}
+html:not(.mobile-host) .me-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+html:not(.mobile-host) .me-cap{background:var(--folder-card);border:1px solid var(--line);border-radius:24px;padding:18px 20px;min-height:96px}
+html:not(.mobile-host) .me-cap h3{font-size:15px;font-weight:500;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+html:not(.mobile-host) .me-cap h3 svg{width:18px;height:18px;color:var(--muted)}
+html:not(.mobile-host) .me-cap p{font-size:13px;line-height:1.7;color:var(--muted);margin:0 0 8px;overflow-wrap:anywhere}
+html:not(.mobile-host) .me-cap .text-button{display:inline-flex;min-height:36px}
+html:not(.mobile-host) .me-cap .cap-state{font-size:12px;letter-spacing:.02em}
+html:not(.mobile-host) .cap-ok{color:#347862}
+html:not(.mobile-host) .cap-warn{color:#976119}
+html:not(.mobile-host) .cap-unknown{color:var(--muted)}
+
+/* ---------- 对话搜索浮层 ---------- */
+html:not(.mobile-host) .web-search{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:30;
+  width:min(560px,calc(100% - 28px));display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:22px;
+  background:rgba(240,247,250,.97);border:1px solid rgba(255,255,255,.8);box-shadow:0 10px 32px rgba(67,97,122,.16)}
+html:not(.mobile-host) .web-search[hidden]{display:none}
+html:not(.mobile-host) .web-search input{flex:1;min-width:0;border:0;border-radius:16px;padding:10px 12px;height:44px;background:rgba(255,255,255,.9)}
+html:not(.mobile-host) .web-search input:focus{outline:0;box-shadow:inset 0 0 0 1.5px rgba(8,115,158,.4)}
+html:not(.mobile-host) .web-search span{font-size:12px;color:var(--muted);min-width:72px;text-align:center}
+html:not(.mobile-host) .web-search button{min-height:40px;padding:6px 10px;font-size:13px;color:var(--blue-deep);border-radius:14px}
+html:not(.mobile-host) .web-search button:hover{background:rgba(0,140,200,.08)}
+html:not(.mobile-host) .web-search button:disabled{color:var(--muted);background:none}
+html:not(.mobile-host) .web-search-match{box-shadow:inset 0 0 0 1.5px rgba(181,137,65,.4)}
+html:not(.mobile-host) .web-search-current{box-shadow:inset 0 0 0 2px #b78c4d;background:#fff8e9}
+
+/* ---------- 窄屏：五入口落到底部 Dock，输入栏上移 ---------- */
+@media(max-width:600px){
+  html:not(.mobile-host) .app-header{padding:14px 18px 8px;flex-wrap:wrap;height:auto;min-height:0}
+  html:not(.mobile-host) .now-header-actions{margin-left:auto}
+  html:not(.mobile-host) .app-header .app-nav{position:fixed;left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:8;margin:0;
+    justify-content:space-around;background:var(--dock-material);border-radius:24px;padding:6px 6px;
+    backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+    box-shadow:0 10px 28px rgba(67,97,122,.14)}
+  html:not(.mobile-host) .app-header .app-nav button{min-width:52px;padding:4px 6px;font-size:11px;line-height:16px;border-radius:18px}
+  html:not(.mobile-host) .app-header .app-nav button svg{width:23px;height:23px}
+  html:not(.mobile-host) .app-header .app-nav .nav-day{top:3px;right:12px}
+  html:not(.mobile-host) body{padding-bottom:78px}
+  html:not(.mobile-host) .composer-dock{bottom:76px;padding-bottom:8px}
+  html:not(.mobile-host) .newest-message{bottom:150px}
+  html:not(.mobile-host) .welcome{min-height:calc(100svh - 420px)}
+  html:not(.mobile-host) .life-today{grid-template-columns:1fr}
+}

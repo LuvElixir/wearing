@@ -6,7 +6,7 @@ import logging
 import secrets
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException, Request
@@ -21,10 +21,21 @@ from .doctor import inspect_host
 from .hermes import HermesClient, HermesError
 from .runtime import HermesRuntime, RuntimeError
 from .service import ACTIVE, TaskError, TaskService
-from .store import DEFAULT_IDENTITY, IdentityError, Store, now
+from .store import DEFAULT_IDENTITY, IdentityError, MessageConflict, Store, now
+from .life import LifeBook
+from .life_api import install_life_routes
+from .capture import CaptureBook
+from .capture_worker import CaptureWorker
+from .capture_api import install_capture_routes
 from . import computer, mobile
 from .workspace import WorkspaceError, list_files, workspace_file
-from .goals import GoalBook, GoalCoordinator, GoalError, parse_report
+from .artifacts import ArtifactBook
+from .artifact_api import install_artifact_routes
+from .goals import GoalBook, GoalCoordinator, GoalError, parse_report, DEFAULT_GOAL_STEPS, MAX_GOAL_STEPS, GOAL_EXTENSION_STEPS
+from .schedules import ScheduleBook, ScheduleCoordinator
+from .schedule_api import install_schedule_routes
+from .activity import ActivityBook
+from .activity_api import install_activity_routes
 
 
 class NewTask(BaseModel):
@@ -34,16 +45,19 @@ class NewTask(BaseModel):
 
 class NewMessage(BaseModel):
     content: str = Field(min_length=1, max_length=12000)
+    request_id: str | None = Field(default=None, min_length=16, max_length=80, pattern=r"^[A-Za-z0-9_-]+$", strict=True)
     goal_id: str | None = Field(default=None, min_length=1, max_length=64)
     goal_mode: Literal["discuss", "note"] = "discuss"
     goal_revision: int | None = Field(default=None, ge=1, strict=True)
+    life_record_id: str | None = Field(default=None, min_length=1, max_length=64)
+    life_revision: int | None = Field(default=None, ge=1, strict=True)
 
 
 class NewGoal(BaseModel):
     objective: str = Field(min_length=2, max_length=2000)
     boundaries: str = Field(min_length=2, max_length=2000)
     success_criteria: str = Field(min_length=2, max_length=2000)
-    max_steps: int = Field(default=3, ge=1, le=10, strict=True)
+    max_steps: int = Field(default=DEFAULT_GOAL_STEPS, ge=1, le=MAX_GOAL_STEPS, strict=True)
     source_task_id: str | None = Field(default=None, max_length=64)
 
 
@@ -51,7 +65,11 @@ class GoalControl(BaseModel):
     revision: int = Field(ge=1, strict=True)
     action: Literal["resume", "pause", "cancel", "complete", "note"]
     note: str = Field(default="", max_length=2000)
-    add_steps: int = Field(default=0, ge=0, le=10, strict=True)
+    add_steps: int = Field(default=0, ge=0, le=MAX_GOAL_STEPS, strict=True)
+
+
+class SeenGoalUpdates(BaseModel):
+    ids: list[Annotated[int, Field(gt=0, strict=True)]] = Field(min_length=1, max_length=100)
 
 
 class IdentityProfile(BaseModel):
@@ -81,7 +99,7 @@ class PhoneResource(BaseModel):
 
 class Approval(BaseModel):
     request_id: str = Field(min_length=1, max_length=256)
-    choice: Literal["once", "deny"]
+    choice: Literal["task", "once", "deny"]
 
 
 class Verification(BaseModel):
@@ -120,8 +138,14 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
     service = TaskService(store, hermes or HermesClient(settings))
     goals = GoalBook(store)
     goal_coordinator = GoalCoordinator(goals, service)
-    service.context_provider = goals.context
-    service.start_guard = goals.guard
+    schedules = ScheduleBook(store)
+    schedule_coordinator = ScheduleCoordinator(schedules, service)
+    life = LifeBook(store)
+    artifacts = ArtifactBook(store)
+    captures = CaptureBook(life)
+    capture_worker = CaptureWorker(captures)
+    service.context_provider = lambda task: goals.context(task) + life.context(task) + schedules.context(task)
+    service.start_guard = lambda task: (goals.guard(task), schedules.guard(task))
     runtime = HermesRuntime(settings.data_dir, local_devices=local_devices)
     identity_runtimes = {}
     identity_clients = {}
@@ -157,6 +181,9 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
         return client
 
     service.client_resolver = identity_client
+    if not local_devices:
+        from .cloud.relay import instance_relay
+        service.desktop_relay=lambda:instance_relay(settings.data_dir.parent)
     token = secrets.token_urlsafe(32)
 
     async def poll():
@@ -164,7 +191,9 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
             await asyncio.sleep(settings.poll_seconds)
             try:
                 await service.tick()
+                await schedule_coordinator.tick()
                 await goal_coordinator.tick()
+                capture_worker.tick(busy=any(t['status'] in ACTIVE for t in store.list()))
             except Exception as error:
                 # Keep recovery alive; avoid logging private prompts or receipts.
                 logging.getLogger(__name__).error("Background recovery failed: %s", type(error).__name__)
@@ -177,6 +206,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
             except RuntimeError:
                 logging.getLogger(__name__).warning("Managed engine needs configuration or recovery")
         service.recover_startup()
+        capture_worker.start()
         worker = asyncio.create_task(poll())
         try:
             yield
@@ -184,6 +214,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
             worker.cancel()
             with suppress(asyncio.CancelledError):
                 await worker
+            await capture_worker.close()
             await service.hermes.close()
             for task in (app.state.files_task, app.state.phone_task, app.state.computer_task):
                 if task and not task.done():
@@ -199,6 +230,17 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
     app = FastAPI(title="Wearing", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.service = service
     app.state.store = store
+    from .speech_api import install_speech_routes
+    install_speech_routes(app, store, token, settings.data_dir, browser_origin)
+    install_artifact_routes(app, artifacts)
+    install_life_routes(app, life)
+    install_schedule_routes(app, schedules)
+    install_activity_routes(app, ActivityBook(store))
+    app.state.schedules = schedules
+    app.state.schedule_coordinator = schedule_coordinator
+    install_capture_routes(app,captures,capture_worker)
+    app.state.captures = captures
+    app.state.capture_worker = capture_worker
     app.state.goals = goals
     app.state.goal_coordinator = goal_coordinator
     app.state.runtime = runtime
@@ -238,7 +280,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+        response.headers.setdefault("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
         response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -252,6 +294,10 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
 
     @app.exception_handler(GoalError)
     async def goal_error(request, error):
+        return JSONResponse({"detail": str(error)}, status_code=409)
+
+    @app.exception_handler(MessageConflict)
+    async def message_conflict(request, error):
         return JSONResponse({"detail": str(error)}, status_code=409)
 
     @app.exception_handler(RegistryError)
@@ -268,7 +314,149 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
     @app.get("/api/bootstrap")
     async def bootstrap():
         return {"token": token, "version": "0.2.0", "default_identity_id": DEFAULT_IDENTITY, "identities": store.identities(), "hermes_url": service.hermes.http.base_url.__str__().rstrip("/"),
-                "configured": service.hermes.configured}
+                "configured": service.hermes.configured, "deployment": "local" if local_devices else "cloud",
+                "goal_policy": {"default_steps": DEFAULT_GOAL_STEPS, "max_steps": MAX_GOAL_STEPS, "extension_steps": GOAL_EXTENSION_STEPS}}
+
+    @app.get("/api/devices")
+    async def remote_devices(request: Request):
+        if local_devices:
+            raise HTTPException(409, "本机设备请从电脑与手机连接器管理。")
+        from .cloud.relay import instance_relay
+        return {"devices": instance_relay(settings.data_dir.parent).inventory(request.state.identity_id)}
+
+    from .cloud.relay import ResourceControl, RelayError
+    from .cloud.device_setup import DeviceOffer, PairDevices, create_pairing, download_pairing
+    from .cloud.device_permissions import ChangePermission, create_permission, read_permission
+    from .cloud.relay import DeviceReview
+    from .cloud.desktop_approval import InputDecision, list_proposals, decide
+
+    def cloud_relay():
+        if local_devices:
+            raise HTTPException(409, "请在云端 Wearing 的设备设置里接入。")
+        from .cloud.relay import instance_relay
+        return instance_relay(settings.data_dir.parent)
+
+    def device_error(error):
+        copy = {'resource_already_paired':'这里有已接入的设备，请取消选择后再继续。',
+                'pairing_request_changed':'接入选择有变化，请重新生成配对文件。',
+                'pairing_expired':'配对文件已过期，请重新生成。',
+                'command_not_found':'当前身份没有这条设备记录。',
+                'review_changed':'操作记录刚有变化，请重新查看后核对。',
+                'device_review_required':'请确认已查看设备，并写下具体核对结果。',
+                'device_not_ready_for_review':'先等旧动作结束、设备重新在线，再核对。'}
+        copy.update({'desktop_approval_changed':'这一步已经处理、过期或设备发生变化。请重新查看。',
+                     'desktop_approval_required':'这次动作没有有效的任务授权。',
+                     'previous_action_needs_review':'先核对旧动作的结果，再进行新操作。'})
+        copy.update({'permission_changed':'设备权限刚有变化，请重新查看后再生成。',
+            'permission_unchanged':'已经是这个权限，无需更新。',
+            'permission_device_busy':'先等设备操作完成、核对旧动作的结果，再调整权限。',
+            'permission_expired':'变更文件已过期或已完成，请重新查看设备。',
+            'permission_request_changed':'这次变更的选择有变化，请重新生成。',
+            'permission_not_found':'当前身份没有这次权限变更。'})
+        return HTTPException(error.status, copy.get(error.code, '设备接入暂未完成，请重新查看。'))
+
+    @app.post('/api/devices/offer')
+    async def inspect_device_offer(request: Request, body: DeviceOffer):
+        relay = cloud_relay()
+        paired = {r['resource_id'] for r in relay.inventory(request.state.identity_id)}
+        # Other identities' names/scopes are never disclosed. Duplicate binding is
+        # still rejected atomically at pairing time.
+        return {'resources':[{**r.model_dump(mode='json'), 'already_paired':r.resource_id in paired}
+                             for r in body.resources]}
+
+    @app.post('/api/devices/pair')
+    async def pair_devices(request: Request, body: PairDevices):
+        relay = cloud_relay()
+        try:
+            bundle = create_pairing(relay, settings.data_dir.parent, request.state.identity_id, body)
+            write_private_json(settings.data_dir / 'remote-devices.json', {'enabled':True})
+            return {'bundle':bundle, 'expires_in':600}
+        except RelayError as error:
+            raise device_error(error) from error
+        except (OSError, ValueError):
+            raise HTTPException(409, '设备入口还未配置，请先完成云端设备入口设置。')
+
+    @app.get('/api/devices/reviews')
+    async def device_reviews(request: Request):
+        return {'reviews':cloud_relay().reviews(request.state.identity_id)}
+
+    @app.post('/api/devices/permissions')
+    async def change_device_permission(request: Request, body: ChangePermission):
+        try:
+            bundle=create_permission(cloud_relay(),settings.data_dir.parent,request.state.identity_id,body)
+            return {'request_id':bundle['request_id'],'expires_in':600,'policy_revision':bundle['policy_revision']}
+        except RelayError as error:raise device_error(error) from error
+        except (OSError,ValueError):raise HTTPException(409,'设备入口还未配置，暂时无法调整权限。')
+
+    @app.get('/api/devices/permissions/{request_id}')
+    async def permission_status(request: Request, request_id: str):
+        try:return read_permission(cloud_relay(),request.state.identity_id,request_id)
+        except RelayError as error:raise device_error(error) from error
+
+    @app.get('/api/devices/permissions/{request_id}/download')
+    async def permission_download(request: Request, request_id: str):
+        try:
+            bundle=read_permission(cloud_relay(),request.state.identity_id,request_id,download=True)
+            return JSONResponse(bundle,headers={'Content-Disposition':'attachment; filename="wearing-permissions.json"'})
+        except RelayError as error:raise device_error(error) from error
+
+    @app.get('/api/devices/input-approvals')
+    async def desktop_approvals(request: Request):
+        relay=cloud_relay()
+        return {'approvals':list_proposals(relay,request.state.identity_id),
+                'computers':[r for r in relay.inventory(request.state.identity_id) if r['kind']=='computer']}
+
+    @app.post('/api/devices/input-approvals')
+    async def desktop_decision(request: Request, body: InputDecision):
+        try:
+            from .cloud.desktop_runs import pending_decision
+            relay=cloud_relay()
+            waiter=pending_decision(relay,request.state.identity_id,body)
+            if waiter:
+                await service.refresh(waiter['task'])
+                await service.approve(waiter['task'],waiter['request'],body.choice)
+                return {'approval_id':body.approval_id,'state':'decision_sent'}
+            return decide(relay,request.state.identity_id,body)
+        except RelayError as error:raise device_error(error) from error
+
+    @app.get('/api/devices/pair/{request_id}/download')
+    async def download_device_pairing(request: Request, request_id: str):
+        try:
+            bundle = download_pairing(cloud_relay(), request.state.identity_id, request_id)
+            return JSONResponse(bundle, headers={'Content-Disposition':'attachment; filename="wearing-pair.json"'})
+        except RelayError as error:
+            raise device_error(error) from error
+
+    @app.post('/api/devices/reviews')
+    async def review_device(request: Request, body: DeviceReview):
+        try:
+            return cloud_relay().review(request.state.identity_id, body)
+        except RelayError as error:
+            raise device_error(error) from error
+
+    @app.post('/api/devices/refresh-tools')
+    async def refresh_device_tools(request: Request):
+        cloud_relay()
+        async with service.lock:
+            require_idle()
+            engine = runtime_for(request.state.identity_id)
+            await engine.stop()
+            if request.state.identity_id == DEFAULT_IDENTITY:
+                await attach_local_engine()
+            else:
+                await identity_client(request.state.identity_id)
+            return {'message':'设备能力已更新，可以继续对话。'}
+
+    @app.post("/api/devices/control")
+    async def control_remote_device(request: Request, body: ResourceControl):
+        if local_devices:
+            raise HTTPException(409, "本机设备请从电脑与手机连接器管理。")
+        from .cloud.relay import instance_relay
+        try:
+            return instance_relay(settings.data_dir.parent).control(request.state.identity_id, body)
+        except RelayError as error:
+            copy = {"resource_not_paired": "当前身份没有接入这台设备。", "control_changed": "设备状态刚有变化，请刷新后重试。"}
+            raise HTTPException(error.status, copy.get(error.code, "设备设置暂未完成，请重新查看。")) from error
 
     @app.get("/api/identities")
     async def identities():
@@ -286,7 +474,12 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
     async def identity_detail(request: Request):
         identity_id = request.state.identity_id
         devices = []
-        if identity_id == DEFAULT_IDENTITY:
+        if not local_devices and (settings.data_dir / "remote-devices.json").exists():
+            from .cloud.relay import instance_relay
+            devices = [{"id": r["resource_id"], "name": r["name"], "kind": "phone" if r["kind"] == "android" else "computer",
+                        "online": r["online"], "connection": "remote"}
+                       for r in instance_relay(settings.data_dir.parent).inventory(identity_id)]
+        elif local_devices and identity_id == DEFAULT_IDENTITY:
             if computer.enrolled(settings.data_dir):
                 devices.append({"id": "computer_local", "name": "这台电脑", "kind": "computer"})
             for rid, device in mobile.registry(settings.data_dir)["devices"].items():
@@ -307,7 +500,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
                         for t in store.list() if t["status"] in ACTIVE and t["identity_id"] != identity_id]
         return {"hermes": probe, "identity_id": identity_id, "other_active": other_active, "target_order": ["computer", "phone", "sandbox"],
                 "device_report": store.setting("device_report") if identity_id == DEFAULT_IDENTITY else None,
-                "limits": {"device_control_validated": False, "cloud_enabled": False, "parallel_runs": False}}
+                "limits": {"device_control_validated": False, "cloud_enabled": not local_devices, "parallel_runs": False}}
 
     @app.get("/api/tasks")
     async def tasks(request: Request):
@@ -316,6 +509,14 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
     @app.get("/api/goals")
     async def list_goals(request: Request):
         return goals.list(request.state.identity_id)
+
+    @app.get("/api/goal-updates")
+    async def goal_updates(request: Request):
+        return goals.updates(request.state.identity_id)
+
+    @app.post("/api/goal-updates/seen")
+    async def seen_goal_updates(body: SeenGoalUpdates, request: Request):
+        return goals.acknowledge_updates(request.state.identity_id, body.ids)
 
     @app.get("/api/memory")
     async def memory(request: Request):
@@ -564,9 +765,10 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
         messages = [{**message, "turn": public_task(service.require(message["task_id"]))}
                     for message in store.conversation(request.state.identity_id)]
         for message in messages:
+            message.update(store.message_receipt(message["task_id"]))
             linked = goals.message_for(message["task_id"])
             if linked:
-                message.update(goal_id=linked["goal_id"], goal_title=linked["objective"], goal_mode=linked["mode"], queued=bool(linked["queued"]))
+                message.update(goal_id=linked["goal_id"], goal_title=linked["objective"], goal_mode=linked["mode"])
         for goal in goals.list(request.state.identity_id):
             for step in goals.detail(goal["id"])["steps"]:
                 task = public_task(service.require(step["task_id"]))
@@ -581,6 +783,14 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
                     task["output"] = ""  # Never flash partial report JSON in the conversation.
                 messages.append({"id": "goal-" + step["task_id"], "task_id": step["task_id"], "kind": "goal_step",
                                  "goal_id": goal["id"], "content": goal["objective"], "created_at": step["created_at"], "turn": task})
+        for message in schedules.conversation(request.state.identity_id):
+            message["turn"] = public_task(message["turn"])
+            messages.append(message)
+        results_by_task = artifacts.for_conversation(request.state.identity_id)
+        decisions_by_task = service.confirmations.for_identity(request.state.identity_id)
+        for message in messages:
+            message["turn"]["artifacts"] = results_by_task.get(message["task_id"], [])
+            message["turn"]["confirmations"] = decisions_by_task.get(message["task_id"], [])
         return sorted(messages, key=lambda m: (m["created_at"], str(m["id"])))
 
     @app.post("/api/conversation", status_code=201)
@@ -588,6 +798,17 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
         content = body.content.strip()
         if not content:
             raise HTTPException(422, "写点什么，再发给 Wearing。")
+        if bool(body.life_record_id) != (body.life_revision is not None) or (body.life_record_id and body.goal_id):
+            raise HTTPException(422, "请先选定一条记录，再围绕它继续聊。")
+        if body.request_id and (body.life_record_id or body.goal_id):
+            raise HTTPException(422, "关联目标或记录的消息暂不支持这项提交标识，请使用原关联入口。")
+        if not body.goal_id and not body.life_record_id:
+            if body.goal_mode != "discuss" or body.goal_revision is not None:
+                raise HTTPException(422, "请先选定要补充的目标。")
+            response = await service.submit_message(content, request.state.identity_id, body.request_id)
+            return {**response, "task": public_task(response["task"]), "goal": None}
+        if body.life_record_id:
+            life.get(request.state.identity_id, body.life_record_id)
         goal = None
         if body.goal_id:
             if body.goal_mode == "note" and (body.goal_revision is None or not 3 <= len(content) <= 2000):
@@ -596,7 +817,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
         else:
             if body.goal_mode != "discuss" or body.goal_revision is not None:
                 raise HTTPException(422, "请先选定要补充的目标。")
-            task = store.create_message(content, request.state.identity_id)
+            task = life.create_message(request.state.identity_id, content, body.life_record_id, body.life_revision) if body.life_record_id else store.create_message(content, request.state.identity_id)
         try:
             task = await service.start(task["id"])
             return {"task": public_task(task), "delivery": "submitted", "goal": goal}
@@ -625,16 +846,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
 
     @app.post("/api/tasks/{task_id}/cancel-message")
     async def cancel_message(task_id: str):
-        async with service.lock:
-            with store.connection() as db:
-                db.execute("BEGIN IMMEDIATE")
-                linked = db.execute("SELECT queued FROM goal_messages WHERE task_id=?", (task_id,)).fetchone()
-                changed = db.execute("UPDATE tasks SET status='stopped',updated_at=? WHERE id=? AND status='draft'", (now(), task_id)).rowcount if linked and linked[0] else 0
-                if not changed:
-                    raise TaskError("这条消息已经送出或没有排队，请查看原运行。")
-                db.execute("UPDATE goal_messages SET queued=0,next_retry=NULL WHERE task_id=?", (task_id,))
-            store.event(task_id, "message_cancelled", "这条排队消息暂不发送，原话仍保留。")
-            return public_task(service.require(task_id))
+        return public_task(await service.cancel_message(task_id))
 
     @app.post("/api/tasks/{task_id}/refresh")
     async def refresh_task(task_id: str):
