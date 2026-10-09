@@ -1,0 +1,30 @@
+{
+  "scope": "dedicated-redroid14-synthetic-session",
+  "transport": "authenticated-public-signal-and-relay-only-WebRTC",
+  "screenshot_saved": false,
+  "input_sent": false,
+  "duration_seconds": 30,
+  "frame_count": 643,
+  "transport_fps": 21.3,
+  "size": [
+    720,
+    1280
+  ],
+  "last_capture_fps": 1.55,
+  "last_capture_mode": "adb-static-refresh",
+  "return_state": "agent_ready",
+  "replay_offer_status": 409,
+  "other_tenant_status": {
+    "status": 404,
+    "transport": 404,
+    "request": 404
+  },
+  "first_frame_including_previous_failed_session_recovery_seconds": 12.146,
+  "native_static_probe": {
+    "seconds": 30.06,
+    "unique_frames": 43,
+    "max_frame_age_seconds": 0.71,
+    "fresh_screencap_count": 32,
+    "buffers_cleared": true
+  }
+}

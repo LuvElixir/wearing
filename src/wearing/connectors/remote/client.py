@@ -218,7 +218,7 @@ class Connector:
 
     def pause_private_sessions(self):
         if hasattr(self.adapter, 'recover_human_access'):
-            self.adapter.recover_human_access([r['resource_id'] for r in self.config['resources'] if r['kind']=='android'])
+            self.adapter.recover_human_access([r['resource_id'] for r in self.config['resources'] if r['kind'] in ('android','computer')])
 
     async def apply_human_controls(self, controls):
         """Authenticate scope from paired config before touching the host fence."""
@@ -229,7 +229,7 @@ class Connector:
             if not isinstance(control, dict) or any(control.get(k) != self.config[k] for k in ('tenant_id','identity_id','connector_id')):
                 raise ValueError('human_scope_not_paired')
             spec = next((r for r in self.config['resources'] if r['resource_id'] == control.get('resource_id')), None)
-            if not spec or spec['kind'] != 'android' or control.get('action') not in ('takeover','pause','return'):
+            if not spec or spec['kind'] not in ('android','computer') or control.get('action') not in ('takeover','pause','return'):
                 raise ValueError('human_resource_not_paired')
             if not hasattr(self.adapter, 'apply_human_control'):
                 raise ValueError('private_gateway_unavailable')
@@ -324,7 +324,9 @@ class Connector:
                             self.journal.uploaded(pending)
                         availability=await self.adapter.availability(self.config['resources'])
                         human_availability = {r['resource_id']:bool(availability.get(r['resource_id']))
-                                              for r in self.config['resources'] if r['kind']=='android'}
+                                              for r in self.config['resources'] if r['kind'] in ('android','computer')}
+                        if hasattr(self.adapter,'human_availability'):
+                            human_availability = await self.adapter.human_availability(self.config['resources'],availability)
                         availability={r:bool(ok and not self.journal.paused(r)) for r,ok in availability.items()}
                         value=await response(client,'/v1/poll',{'connection_id':self.connection,'availability':availability,
                                                              'control_acks':self.journal.control_acks(),'permission_delivery':True,

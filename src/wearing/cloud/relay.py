@@ -111,10 +111,11 @@ class ResultRequest(ClaimRequest):
 
 
 class RelayStore:
-    def __init__(self, root: Path, tenant_id: str, *, human_access_ready=False):
+    def __init__(self, root: Path, tenant_id: str, *, human_access_ready=False, media_config=None):
         self.root, self.tenant = root.absolute(), tenant_id
         # Never enabled by request data or by a connector advertisement alone.
-        self.human_access_ready = human_access_ready is True
+        self._human_access_ready = human_access_ready is True
+        self.media_config = Path(media_config) if media_config is not None else None
         if self.root.is_symlink():
             raise RelayError('unsafe_relay_directory')
         private_directory(self.root)
@@ -167,6 +168,25 @@ class RelayStore:
             db.execute('INSERT OR IGNORE INTO meta VALUES (?)', (tenant_id,))
         if os.name != 'nt':
             self.path.chmod(0o600)
+
+    @property
+    def human_access_ready(self):
+        if self.media_config is None:
+            return self._human_access_ready
+        # An operator can enroll or disable a host while this relay is running.
+        # Never let the fallback flag override a missing or unsafe private file.
+        try:
+            settings = json.loads(read_private(self.media_config))
+            return (isinstance(settings, dict)
+                    and type(settings.get('version')) is int and settings['version'] == 1
+                    and settings.get('enabled') is True
+                    and isinstance(settings.get('hosts'), dict) and bool(settings['hosts']))
+        except (OSError, ValueError, TypeError):
+            return False
+
+    @human_access_ready.setter
+    def human_access_ready(self, value):
+        self._human_access_ready = value is True
 
     @contextmanager
     def tx(self):
@@ -336,6 +356,8 @@ class RelayStore:
             from .device_access import active as human_active
             if not request.paused and human_active(db, request.resource_id):
                 raise RelayError('human_session_requires_explicit_return')
+            from .device_maintenance import guard as maintenance_guard
+            maintenance_guard(db, request.resource_id)
             old = db.execute('SELECT * FROM controls WHERE resource=?', (request.resource_id,)).fetchone()
             generation = old['generation'] if old else 0
             if request.expected_generation != generation:
@@ -378,6 +400,8 @@ class RelayStore:
 
     def _enqueue(self, db, identity, resource, method, params, approval_id=None):
         self.expire(db)
+        from .device_maintenance import guard as maintenance_guard
+        maintenance_guard(db, resource)
         from .device_access import active as human_active
         if human_active(db, resource):
             raise RelayError('device_private_or_paused')
@@ -592,7 +616,8 @@ class RelayStore:
 
 def instance_relay(root):
     instance = load_instance(root)
-    return RelayStore(root / 'data/device-relay', instance.tenant_id)
+    return RelayStore(root / 'data/device-relay', instance.tenant_id,
+                      media_config=root / 'private-media-access.json')
 
 
 def create_relay_app(root: Path):

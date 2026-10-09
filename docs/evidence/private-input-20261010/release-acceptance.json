@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-10",
+  "scope": "Dedicated Android cloud phone; synthetic system-level read-only acceptance",
+  "agent": {
+    "task_id": "aa023d1db89d41208cdf10b11505779e",
+    "run_id": "run_adfb3cf4b6164f2cb431af4de1fee32d",
+    "session_id": "wearing-personal-ae5ca5ab86274109aaab7dc175cc6563",
+    "product_status": "completed_unverified",
+    "model": "deepseek-flash",
+    "provider": "deepseek",
+    "observed_tool_names": [
+      "tool_describe",
+      "mcp__wearing_devices__wearing_list_devices",
+      "mcp__wearing_devices__mobile_list_apps"
+    ],
+    "relay": {
+      "command_id": "command_a79df51290f942b0a92767dcd3e401f6",
+      "method": "phone.mobile_list_apps",
+      "state": "completed",
+      "is_error": false,
+      "settings_package_present": true
+    },
+    "write_tools_observed": false,
+    "usage": {
+      "input_tokens": 63244,
+      "output_tokens": 562,
+      "total_tokens": 63806,
+      "cache_read_tokens": 61952,
+      "cache_write_tokens": 0
+    }
+  },
+  "restart": {
+    "role": "android",
+    "started": 1791570729.9270651,
+    "before": {
+      "boot_id": "9082dbd9-523c-4887-bef3-0bf64a572838"
+    },
+    "paused_before": true,
+    "reboot_seconds": 22.04,
+    "new_boot_id": "2444ff60-fe92-4b0c-81ed-01387ebaf2a3",
+    "paused_after": true,
+    "checks": {
+      "persistent_marker": true,
+      "agent_blocked": true,
+      "gateway_state": "paused",
+      "services": {
+        "pajio-private-media.service": "active",
+        "pajio-phone-adb.service": "active",
+        "docker.service": "active"
+      }
+    },
+    "return_confirmed": true,
+    "finished": 1791570758.019428
+  },
+  "autostart": {
+    "vm_id": 1112,
+    "name": "pajio-android-a",
+    "onboot": 1,
+    "startup": "order=5,up=20,down=60",
+    "read_back_verified": true
+  },
+  "state_backup": {
+    "ciphertext_sha256": "1eb0f10e2af849e6018614b238b1b26832c18a6456bcbf0254c5a867404d2501",
+    "plaintext_sha256": "06d7a29c6a9a1c760373a2c5cfc1ac92ed1809a845a201e81ec3f272dd0275c9",
+    "bytes": 11692293,
+    "archive_members": 2227,
+    "decryption_verified": true,
+    "offsite_hash_verified": true,
+    "temporary_plaintext_removed": true,
+    "restored_services": {
+      "media": true,
+      "connector": true,
+      "adb": true,
+      "docker": true
+    },
+    "android_booted": true,
+    "source_apparent_bytes": 193816249,
+    "preflight_free_bytes": 24728375296,
+    "full_vm_restore_exercised": false,
+    "offsite_destination": "Independent Tencent Cloud host in Guangzhou (SSH alias lucky)"
+  },
+  "post_restart_backup_media": {
+    "b_GET": 404,
+    "b_GET/transport": 404,
+    "b_POST/request": 404,
+    "offer_status": 200,
+    "first_frame_seconds": 4.515,
+    "last_capture_mode": "adb-static-refresh",
+    "last_capture_fps": 1.01,
+    "frame_count": 516,
+    "fps": 17.19,
+    "size": [
+      720,
+      1280
+    ],
+    "source": "scrcpy-h264",
+    "return_state": "agent_ready",
+    "replay_offer_status": 409
+  }
+}

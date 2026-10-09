@@ -4,13 +4,15 @@ import {File} from 'expo-file-system';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import {Monitor, Smartphone} from 'lucide-react-native';
+import {router} from 'expo-router';
+import {RemoteDeviceApi, remoteStatusCopy, type RemoteAccess} from './remote-device-model';
 import {Connection, scopeOf} from './core';
 import {useAppTheme, useThemedStyles, type AppColors} from './app-theme';
 import {PrimaryButton, TactilePressable} from './experience/primitives';
 import {serviceFetch} from './transport';
 import {storage} from './storage';
 import {shareOriginalBytes} from './workspace-share';
-import {DeviceManagementApi, approvalDescription, canDecide, deviceStatus, parseDeviceOffer, selectedDeviceOffer,
+import {DeviceManagementApi, approvalDescription, canDecide, deviceCapabilityLabels, deviceStatus, parseDeviceOffer, selectedDeviceOffer,
   type CloudDevice, type DeviceApproval, type DeviceReview, type InspectedResource, type LocalComputer,
   type LocalPhone, type PairingIntent, type PermissionIntent, type PermissionState} from './device-management';
 
@@ -176,7 +178,9 @@ function DevicePanel({connection}: Props) {
       {devices.map(d => <View key={d.resource_id} style={styles.card}>
         <View style={styles.row}>{d.kind === 'computer' ? <Monitor color={colors.ink} size={24}/> : <Smartphone color={colors.ink} size={24}/>}<Text style={styles.title}>{d.name}</Text></View>
         <Text style={styles.body}>{deviceStatus(d)}</Text>
+        {!!deviceCapabilityLabels(d).length && <Text style={styles.description}>已授权能力 · {deviceCapabilityLabels(d).join('、')}</Text>}
         {!!d.last_seen_at && <Text style={styles.description}>最近连接 {new Date(d.last_seen_at).toLocaleString('zh-CN', {hour12: false})}</Text>}
+        <RemoteDeviceEntry connection={connection} device={d}/>
         {<DeviceAction busy={busy} run={run} label={d.paused ? `恢复 ${d.name}` : `暂停 ${d.name}`} work={async () => {
           await api.control(d, !d.paused);
           if (alive.current) setNotice(d.paused ? '恢复请求已保存，等待设备确认。' : '已阻止新的云端操作，等待设备确认暂停。');
@@ -220,6 +224,32 @@ function DevicePanel({connection}: Props) {
       </View>
       {!!devices.length && <DeviceAction busy={busy} run={run} label={'更新对话中的设备能力'} work={async () => {const message = await api.refreshTools(); if (alive.current) setNotice(message);}} disabled={!ready}/>}
     </>}
+  </View>;
+}
+
+/** Capability comes from this resource's authenticated access state, not deployment labels. */
+function RemoteDeviceEntry({connection, device}: {connection: Connection; device: CloudDevice}) {
+  const styles = useThemedStyles(makeStyles);
+  const api = useMemo(() => new RemoteDeviceApi(connection, serviceFetch), [connection]);
+  const [access, setAccess] = useState<RemoteAccess | null>(null), [failed, setFailed] = useState(false);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    let active = true, pending = false;
+    const load = async () => {
+      if (pending || AppState.currentState !== 'active') return;
+      pending = true;
+      try {const next = await api.status(device.resource_id); if (active) {setAccess(next); setFailed(false);}}
+      catch {if (active) {setAccess(null); setFailed(true);}}
+      finally {pending = false;}
+    };
+    void load(); const timer = setInterval(() => {void load();}, 10000);
+    return () => {active = false; clearInterval(timer);};
+  }, [api, device.resource_id, revision]);
+  return <View style={{gap: 8}}>
+    <Text style={styles.description}>{failed ? '暂时无法确认远程接管状态。' : remoteStatusCopy(access)}</Text>
+    {access?.supported && <Text style={styles.description}>需要登录或验证时，可由你接管。设备确认后才连接画面，交还后 Pajio 才能继续操作。</Text>}
+    {access?.supported && <PrimaryButton label="查看画面与接管" onPress={() => router.setParams({view: 'remote-device', resource: device.resource_id, deviceKind: device.kind, deviceName: device.name})}/>}
+    {failed && <PrimaryButton label="重新检查远程连接" tone="quiet" onPress={() => setRevision(v => v + 1)}/>}
   </View>;
 }
 

@@ -15,21 +15,41 @@ from wearing.computer import enrolled
 from wearing.mcp_server import create_server
 from wearing.desktop_input import DesktopFrames, DesktopAction, DesktopApproval
 from wearing.desktop_capture import capture_with_text
+from wearing.device_gateway import DeviceGateway
+
+
+def fenced_dispatch(dispatch, gateway, resource):
+    def run(args):
+        permit = gateway.permit_agent(resource)
+        with gateway.native_lock(resource):
+            gateway.validate_agent(permit)
+            result = dispatch(args)
+            gateway.validate_agent(permit)
+            return result
+    return run
 
 
 async def serve(data):
-    installed=json.loads((data/"runtime/installed.json").read_text())
-    revision=installed["revision"]
-    import re
-    if not re.fullmatch(r"[a-f0-9]{40}",revision): raise ValueError("invalid_driver_revision")
-    sys.path.insert(0,str(data/"runtime"/("hermes-agent-"+revision)))
-    from tools.computer_use.tool import handle_computer_use, release_computer_use_session, set_approval_callback
-    from tools.computer_use.permissions import computer_use_status
+    from wearing.runtime import HermesRuntime
+    from wearing.native_runtime import driver_runtime
+    _, source = driver_runtime(HermesRuntime(data))
+    sys.path.insert(0,str(source))
     from tools.bot_desktop import lease
     session='wearing-remote-desktop'
-    from tools.computer_use.tool import _backend_for_call
-    from tools.computer_use.cua_backend_capture import _tree_and_title
-    frames=DesktopFrames(lambda args:capture_with_text(args,handle_computer_use,_backend_for_call,_tree_and_title,session),lease,set_approval_callback)
+    if sys.platform.startswith('linux'):
+        from wearing.linux_computer import LinuxComputerBackend
+        backend = LinuxComputerBackend()
+        dispatch, computer_use_status, set_approval_callback = backend.dispatch, backend.status, backend.set_approval_callback
+        release_computer_use_session = lambda _: None
+    else:
+        from tools.computer_use.tool import handle_computer_use, release_computer_use_session, set_approval_callback, _backend_for_call
+        from tools.computer_use.permissions import computer_use_status
+        from tools.computer_use.cua_backend_capture import _tree_and_title
+        dispatch = lambda args:capture_with_text(args,handle_computer_use,_backend_for_call,_tree_and_title,session)
+    resource_path = data / 'runtime/computer/connector-id.json'
+    resource = json.loads(resource_path.read_text())['resource_id'] if resource_path.exists() else 'computer_local'
+    gateway = DeviceGateway()
+    frames=DesktopFrames(fenced_dispatch(dispatch, gateway, resource),lease,set_approval_callback)
 
     async def list_tools(context,params):
         native={'name':'wearing_computer_input','description':'Internal connector transport of one user-approved action.',
@@ -51,6 +71,7 @@ async def serve(data):
             return types.CallToolResult(isError=True,content=[types.TextContent(type='text',text='computer_action_not_allowed')])
         try:
             lease.assert_agent_may_act()
+            gateway.permit_agent(resource)
             meta=None
             if params.name=='wearing_computer_input':
                 if set(args)!={'action','approval'}:raise ValueError('desktop_input_shape')
@@ -68,6 +89,12 @@ async def serve(data):
             metadata=[types.TextContent(type='text',text=json.dumps(meta,ensure_ascii=False))] if meta else []
             if isinstance(result,str):
                 value=json.loads(result)
+                screenshot=value.pop('screenshot',None)
+                if screenshot:
+                    if screenshot.get('mime_type')!='image/png':raise ValueError('invalid_native_capture')
+                    return types.CallToolResult(isError=bool(value.get('error') or value.get('ok') is False),content=metadata+[
+                        types.TextContent(type='text',text=json.dumps(value,ensure_ascii=False)),
+                        types.ImageContent(type='image',mimeType='image/png',data=screenshot['data'])])
                 return types.CallToolResult(isError=bool(value.get('error') or value.get('ok') is False),
                     content=metadata+[types.TextContent(type='text',text=result)])
             content=metadata

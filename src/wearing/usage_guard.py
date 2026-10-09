@@ -11,7 +11,6 @@ import os
 from pathlib import Path
 import re
 import uuid
-from urllib.parse import urlparse
 
 try:
     from .usage import UsageBook, UsageError
@@ -63,6 +62,20 @@ def receipt(value):
             if type(number) is int and 0 <= number <= 1_000_000_000:
                 result[output] = number
                 break
+    # DeepSeek exposes top-level cache counters. OpenAI-compatible Responses
+    # and chat use nested details. Never infer a cache hit from request content.
+    total = result.get("input_tokens")
+    hit = usage.get("prompt_cache_hit_tokens")
+    miss = usage.get("prompt_cache_miss_tokens")
+    for details_key in ("prompt_tokens_details", "input_tokens_details"):
+        if hit is None:
+            hit = _mapping(usage.get(details_key)).get("cached_tokens")
+    valid = lambda number: type(number) is int and 0 <= number <= 1_000_000_000
+    if total is not None:
+        if valid(hit) and hit <= total and (miss is None or valid(miss) and hit + miss == total):
+            result["cached_input_tokens"] = hit
+        elif hit is None and valid(miss) and miss <= total:
+            result["cached_input_tokens"] = total - miss
     return result
 
 
@@ -139,31 +152,71 @@ class _AsyncStream(_Stream):
 
 def wrap_sdk_request(original, book, identity, *, asynchronous=False):
     def prepare(client, options):
+        # Use the SDK's own resolution: an absolute options.url bypasses
+        # base_url. Never send its credentials or apply its rates elsewhere.
+        from httpx import InvalidURL, URL
+        def origin(url):
+            return url.scheme, url.host, url.port or {"https": 443, "http": 80}.get(url.scheme)
+        try:
+            base = URL(client.base_url)
+            destination = client._prepare_url(options.url)
+            if (base.scheme not in ("http", "https") or not base.host
+                    or base.userinfo or destination.userinfo
+                    or origin(destination) != origin(base)):
+                raise ValueError("Different provider origin")
+            host = client._build_headers(options).get("host")
+            if host is not None:
+                host_url = URL(base.scheme + "://" + host)
+                if (origin(host_url) != origin(base) or host_url.userinfo
+                        or host_url.raw_path != b"/" or host_url.fragment):
+                    raise ValueError("Different provider Host")
+        except (InvalidURL, TypeError, ValueError):
+            raise UsageError("quota_provider") from None
+        copied = options.model_copy(deep=True) if hasattr(options, "model_copy") else options.copy(deep=True)
+        copied.follow_redirects = False
         if options.method.lower() == "get":
-            return None, options
+            return None, copied
         # Fail closed for other native API families rather than imply coverage.
-        path = urlparse(str(options.url)).path.rstrip("/")
+        path = destination.path.rstrip("/")
         if not path.endswith(("/chat/completions", "/completions", "/embeddings", "/responses")):
             raise UsageError("quota_provider")
-        copied = options.model_copy(deep=True) if hasattr(options, "model_copy") else options.copy(deep=True)
         copied.max_retries = 0
-        copied.follow_redirects = False
         body = copied.json_data if isinstance(copied.json_data, dict) else {}
         extra = copied.extra_json if isinstance(copied.extra_json, dict) else {}
         effective = {**body, **extra}
-        if path.endswith("/chat/completions"):
+        # One reservation covers one context and one completion. Do not accept
+        # multi-choice/best-of/batched requests that silently multiply the bound.
+        if any(key in effective and effective[key] is not None and (type(effective[key]) is not int or effective[key] != 1) for key in ("n", "best_of")):
+            raise UsageError("quota_provider")
+        for key in ("n", "best_of"):
+            if key in effective and effective[key] is None:
+                body[key] = extra[key] = 1
+        if path.endswith(("/embeddings", "/completions")) and not path.endswith("/chat/completions"):
+            prompt = effective.get("input" if path.endswith("/embeddings") else "prompt")
+            if isinstance(prompt, list) and prompt and not all(type(item) is int for item in prompt) and len(prompt) != 1:
+                raise UsageError("quota_provider")
+        output_tokens = 0
+        if path.endswith("/completions"):
             # A request count cap is finite only with bounded output per call.
             field = "max_completion_tokens" if "max_completion_tokens" in effective else "max_tokens"
             limit = effective.get(field)
             body[field] = min(limit, 8192) if type(limit) is int and limit > 0 else 8192
             extra[field] = body[field]
+            output_tokens = body[field]
+            # Ensure the alternate cap cannot override the enforced limit.
+            if field == "max_completion_tokens" and "max_tokens" in effective:
+                body["max_tokens"] = extra["max_tokens"] = output_tokens
+            if effective.get("stream") and path.endswith("/chat/completions"):
+                stream_options = effective.get("stream_options")
+                body["stream_options"] = extra["stream_options"] = {**(stream_options if isinstance(stream_options, dict) else {}), "include_usage": True}
         if path.endswith("/responses"):
             limit = effective.get("max_output_tokens")
             body["max_output_tokens"] = min(limit, 8192) if type(limit) is int and limit > 0 else 8192
             extra["max_output_tokens"] = body["max_output_tokens"]
+            output_tokens = body["max_output_tokens"]
         copied.json_data = body
         copied.extra_json = extra
-        call_id = book.reserve(identity, "model", uuid.uuid4().hex, provider=urlparse(str(client.base_url)).hostname, model=effective.get("model"))
+        call_id = book.reserve(identity, "model", uuid.uuid4().hex, provider=destination.host, model=effective.get("model"), reserve_output_tokens=output_tokens)
         return call_id, copied
 
     if asynchronous:

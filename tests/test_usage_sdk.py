@@ -101,3 +101,127 @@ print('guarded SDK requests:',len(seen))
     result = subprocess.run([str(python), '-c', textwrap.dedent(script), str(Path(__file__).parents[1] / 'src'), str(tmp_path)], capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stderr[-4000:]
     assert 'guarded SDK requests: 6' in result.stdout
+
+
+def test_installed_sdk_reserves_money_before_network_and_settles_cache_receipt(tmp_path):
+    installed = Path(__file__).parents[1] / '.wearing/runtime/installed.json'
+    if not installed.exists(): pytest.skip('Managed Hermes SDK is not installed')
+    python = Path(json.loads(installed.read_text())['python'])
+    if not python.is_file(): pytest.skip('Managed Hermes SDK interpreter unavailable')
+    script = r'''
+import sys,json
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+import httpx
+from openai import OpenAI
+from openai._base_client import SyncAPIClient
+from wearing.usage import UsageBook, UsageError
+from wearing.usage_guard import wrap_sdk_request
+b=UsageBook(Path(sys.argv[2]),enabled=True)
+b.configure_pricing({'version':'synthetic-sdk-v1','currency':'CNY','budget':'2.10','models':[{'provider':'unit.invalid','model':'fixture','input_per_million':'2','cached_input_per_million':'0.2','output_per_million':'8','max_input_tokens':1000000,'max_output_tokens':8192}]})
+seen=[]
+def respond(request):
+ body=json.loads(request.content); seen.append(body)
+ assert b.snapshot('daily')['cost']['active_reserved_micros']==2065536
+ if body.get('stream'):
+  assert body['stream_options']['include_usage'] is True
+  return httpx.Response(200,headers={'content-type':'text/event-stream'},content='data: [DONE]\n\n')
+ return httpx.Response(200,json={'id':'one','object':'chat.completion','created':1,'model':'fixture','choices':[{'index':0,'message':{'role':'assistant','content':'ok'},'finish_reason':'stop'}],'usage':{'prompt_tokens':10,'completion_tokens':3,'total_tokens':13,'prompt_cache_hit_tokens':8,'prompt_cache_miss_tokens':2}})
+SyncAPIClient.request=wrap_sdk_request(SyncAPIClient.request,b,'daily')
+c=OpenAI(api_key='test-only',base_url='https://unit.invalid/v1',http_client=httpx.Client(transport=httpx.MockTransport(respond)))
+try: c.chat.completions.create(model='fixture',messages=[],n=2)
+except UsageError as error: assert error.code=='quota_provider'
+else: raise AssertionError('Multi-completion multiplied the reservation')
+assert not seen and b.snapshot('daily')['resources']['model']['calls']==0
+c.chat.completions.create(model='fixture',messages=[],max_tokens=99999,n=None)
+assert seen[0]['max_tokens']==8192 and seen[0]['n']==1
+assert b.snapshot('daily')['cost']['settled_estimate_micros']==30
+stream=c.chat.completions.create(model='fixture',messages=[],stream=True,stream_options={'include_usage':False})
+assert list(stream)==[]  # Complete transport with no usage is still uncertain.
+view=b.snapshot('daily')
+assert view['cost']['uncertain_reserved_micros']==2065536
+assert view['resources']['model']['active']==0
+try: c.chat.completions.create(model='fixture',messages=[])
+except UsageError as error: assert error.code=='quota_budget'
+else: raise AssertionError('Insufficient money reached the paid endpoint')
+assert len(seen)==2
+assert b.snapshot('daily')['resources']['model']['calls']==2
+print('money admission and receipt passed')
+'''
+    result = subprocess.run([str(python), '-c', textwrap.dedent(script), str(Path(__file__).parents[1] / 'src'), str(tmp_path)], capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr[-4000:]
+    assert 'money admission and receipt passed' in result.stdout
+
+
+def test_installed_sdk_rejects_cross_origin_and_host_override_before_network_or_reservation(tmp_path):
+    installed = Path(__file__).parents[1] / '.wearing/runtime/installed.json'
+    if not installed.exists(): pytest.skip('Managed Hermes SDK is not installed')
+    python = Path(json.loads(installed.read_text())['python'])
+    if not python.is_file(): pytest.skip('Managed Hermes SDK interpreter unavailable')
+    script = r'''
+import sys,json,asyncio
+from pathlib import Path
+from typing import Any
+sys.path.insert(0,sys.argv[1])
+import httpx
+from openai import OpenAI, AsyncOpenAI, APIStatusError
+from openai._base_client import SyncAPIClient, AsyncAPIClient
+from wearing.usage import UsageBook, UsageError
+from wearing.usage_guard import wrap_sdk_request
+b=UsageBook(Path(sys.argv[2]),enabled=True)
+b.configure_pricing({'version':'synthetic-origin-v1','currency':'CNY','budget':'10','models':[{'provider':'unit.invalid','model':'fixture','input_per_million':'2','cached_input_per_million':'0.2','output_per_million':'8','max_input_tokens':1000000,'max_output_tokens':8192}]})
+seen=[]
+def respond(request):
+ seen.append((str(request.url),request.headers.get('host'),request.headers.get('authorization')))
+ if request.url.path.endswith('/redirect'):
+  return httpx.Response(307,headers={'location':'https://other.invalid/models'})
+ return httpx.Response(200,json={'usage':{'prompt_tokens':10,'completion_tokens':1}})
+SyncAPIClient.request=wrap_sdk_request(SyncAPIClient.request,b,'daily')
+AsyncAPIClient.request=wrap_sdk_request(AsyncAPIClient.request,b,'daily',asynchronous=True)
+c=OpenAI(api_key='fixture-only',base_url='https://unit.invalid/v1',http_client=httpx.Client(transport=httpx.MockTransport(respond),follow_redirects=True))
+body={'model':'fixture','messages':[]}
+for url,headers in [
+ ('https://other.invalid/v1/chat/completions',{}),
+ ('http://unit.invalid/v1/chat/completions',{}),
+ ('https://unit.invalid:444/v1/chat/completions',{}),
+ ('https://other-user:other-password@unit.invalid/v1/chat/completions',{}),
+ ('/chat/completions',{'Host':'other.invalid'}),
+ ('/chat/completions',{'hOsT':'unit.invalid:444'}),
+ ('/chat/completions',{'Host':'unit.invalid:not-a-port'}),
+]:
+ try: c.post(url,cast_to=dict[str,Any],body=body,options={'headers':headers})
+ except UsageError as error: assert error.code=='quota_provider'
+ else: raise AssertionError('Cross-provider request passed admission')
+try: c.get('https://other.invalid/models',cast_to=dict[str,Any])
+except UsageError as error: assert error.code=='quota_provider'
+else: raise AssertionError('GET leaked provider credentials across origin')
+async def check_async():
+ ac=AsyncOpenAI(api_key='fixture-only',base_url='https://unit.invalid/v1',http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond)))
+ try: await ac.post('https://other.invalid/v1/chat/completions',cast_to=dict[str,Any],body=body)
+ except UsageError as error: assert error.code=='quota_provider'
+ else: raise AssertionError('Async cross-provider request passed admission')
+ await ac.close()
+asyncio.run(check_async())
+assert not seen and b.snapshot('daily')['resources']['model']['calls']==0
+# SDK-relative paths and same-origin absolute paths remain valid. Explicit
+# default ports and hostname case must compare like the SDK HTTP destination.
+c.post('/chat/completions',cast_to=dict[str,Any],body=body)
+c.post('https://UNIT.INVALID:443/v1/chat/completions',cast_to=dict[str,Any],body=body,options={'headers':{'Host':'UNIT.INVALID:443'}})
+assert len(seen)==2 and all(url=='https://unit.invalid/v1/chat/completions' for url,_,_ in seen)
+assert all(auth=='Bearer fixture-only' for _,_,auth in seen)
+view=b.snapshot('daily')
+assert view['resources']['model']['calls']==2 and view['cost']['active_reserved_micros']==0
+assert view['cost']['settled_estimate_micros']==56
+# Even unmetered GETs must not follow a redirect into another provider/account.
+try: c.get('/redirect',cast_to=dict[str,Any])
+except APIStatusError as error: assert error.status_code==307
+else: raise AssertionError('Provider redirect was followed')
+assert len(seen)==3 and seen[-1][0]=='https://unit.invalid/v1/redirect'
+assert b.snapshot('daily')['resources']['model']['calls']==2
+assert 'fixture-only' not in b.path.read_bytes().decode('latin1')
+c.close()
+print('origin, Host and redirect guard passed')
+'''
+    result = subprocess.run([str(python), '-c', textwrap.dedent(script), str(Path(__file__).parents[1] / 'src'), str(tmp_path)], capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr[-4000:]
+    assert 'origin, Host and redirect guard passed' in result.stdout

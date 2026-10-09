@@ -60,6 +60,11 @@ class ArtifactBook:
                 );
                 CREATE INDEX IF NOT EXISTS artifact_owner ON artifacts(identity_id, created_at);
             """)
+            # Older results did not retain their original workspace path. Keep
+            # those rows unknown; never infer ownership from a filename.
+            db.execute("BEGIN IMMEDIATE")
+            if "source_path" not in {row[1] for row in db.execute("PRAGMA table_info(artifacts)")}:
+                db.execute("ALTER TABLE artifacts ADD COLUMN source_path TEXT")
 
     def workspace(self, identity):
         self.store.identity(identity)
@@ -168,5 +173,10 @@ class ArtifactBook:
                     "created_at": stamp, "size": len(raw), "sha256": sha, "state": "generated",
                     "checks": {"file": "verified", "render": "not_verified", "content": "not_verified"},
                     "choices": [choice.model_dump() for choice in draft.choices]}
-            db.execute("INSERT INTO artifacts VALUES(?,?,?,?,?,?,?,?,?,?,?)", (artifact_id, identity, task["id"], task["run_id"], request_key, fingerprint, json.dumps(item, ensure_ascii=False), raw, sha, draft.previous_id, stamp))
+            db.execute("""INSERT INTO artifacts
+                (id,identity_id,task_id,run_id,request_key,fingerprint,metadata,html,sha256,previous_id,created_at,source_path)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (artifact_id, identity, task["id"], task["run_id"], request_key, fingerprint,
+                 json.dumps(item, ensure_ascii=False), raw, sha, draft.previous_id, stamp,
+                 path.relative_to(root).as_posix()))
             return item

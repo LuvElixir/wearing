@@ -134,7 +134,17 @@ class NotificationService:
 
     def _collect(self, db, identity):
         stamp = self.clock()
+        silent = self._silent_scheduled(db, identity)
+        for task_id in silent:
+            # Pre-upgrade entries which have not reached the provider can still
+            # be suppressed. Never rewrite an accepted/uncertain send as unsent.
+            db.execute("""UPDATE notification_outbox SET state='cancelled',error_code='SilentSchedule',updated_at=?
+              WHERE identity_id=? AND state IN ('pending','awaiting_registration') AND event_key IN
+              (SELECT event_key FROM notification_events WHERE identity_id=? AND task_id=? AND kind='result')""",
+                       (stamp, identity, identity, task_id))
         for item in self.activity._items(db, identity):
+            if item['task_id'] in silent:
+                continue
             # A user checking/closing a result is not a new agent result.
             kind = ("approval" if item["status"] == "waiting_for_approval" and item["label"] == "等你确认"
                     else "result" if item["status"] in {"completed_unverified", "failed"} else None)
@@ -149,6 +159,27 @@ class NotificationService:
                   FROM notification_devices d WHERE identity_id=? AND owner_scope!='' AND (enabled=1 OR reason='expired')
                   AND NOT EXISTS (SELECT 1 FROM task_principals p WHERE p.task_id=? AND p.owner_scope!=d.owner_scope)""",
                            (key, stamp, stamp, identity, item["task_id"]))
+
+    @staticmethod
+    def _silent_scheduled(db, identity, task_id=None):
+        """A model token is silent only for its trusted scheduler occurrence.
+
+        Inspect the terminal task output, not the asynchronously reconciled
+        occurrence status, so collector/reconciler ordering cannot cause a push.
+        Both identity and inherited account ownership must match the schedule.
+        """
+        tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if not {'schedule_occurrences', 'personal_schedules', 'task_principals', 'background_principals'} <= tables:
+            return set()
+        rows = db.execute("""SELECT DISTINCT t.id,t.output FROM tasks t
+          JOIN schedule_occurrences o ON o.task_id=t.id
+          JOIN personal_schedules s ON s.id=o.schedule_id AND s.identity_id=t.identity_id
+          LEFT JOIN task_principals tp ON tp.task_id=t.id
+          LEFT JOIN background_principals bp ON bp.kind='schedule' AND bp.source_id=s.id
+          WHERE t.identity_id=? AND t.status IN ('completed_unverified','verified')
+          AND tp.owner_scope IS bp.owner_scope AND (? IS NULL OR t.id=?)""",
+                          (identity, task_id, task_id)).fetchall()
+        return {row['id'] for row in rows if (row['output'] or '').strip() == '[SILENT]'}
 
     def collect(self):
         with self.store.connection() as db:
@@ -359,6 +390,8 @@ class NotificationService:
                                     if item["task_id"] == row["task_id"]), None)
                     event = db.execute("SELECT version FROM notification_events WHERE event_key=?", (row["event_key"],)).fetchone()
                     valid = bool(current and current["version"] == event[0])
+                    if row['task_id'] in self._silent_scheduled(db, row['identity_id'], row['task_id']):
+                        valid = False
                 if not valid:
                     db.execute("UPDATE notification_outbox SET state='cancelled',error_code='Superseded',updated_at=? WHERE event_key=? AND identity_id=? AND installation_id=?",
                                (stamp, row["event_key"], row["identity_id"], row["installation_id"]))
@@ -384,6 +417,11 @@ class NotificationService:
               AND installation_id=? AND owner_scope=? AND state='sending' AND attempts=? AND token=? AND generation=?""",
               (row["event_key"], row["identity_id"], row["installation_id"], row["owner_scope"], row["attempts"], row["token"], row["generation"])).fetchone()
             if not pending:
+                return False
+            if row['kind'] != 'record_reminder' and row['task_id'] in self._silent_scheduled(db, row['identity_id'], row['task_id']):
+                db.execute("""UPDATE notification_outbox SET state='cancelled',error_code='SilentSchedule',updated_at=?
+                  WHERE event_key=? AND identity_id=? AND installation_id=? AND owner_scope=? AND state='sending'""",
+                           (self.clock(), row['event_key'], row['identity_id'], row['installation_id'], row['owner_scope']))
                 return False
             visible = (self.reminders.current_event(db, row['event_key'], row['identity_id'], row['task_id'], row['owner_scope'])
                        if row['kind'] == 'record_reminder' else db.execute("""SELECT 1 FROM tasks t LEFT JOIN task_principals p ON p.task_id=t.id

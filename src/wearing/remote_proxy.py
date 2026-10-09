@@ -11,7 +11,19 @@ from mcp.server.stdio import stdio_server
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from wearing.cloud.relay import instance_relay, RelayError
+from wearing.cloud.instance import read_private
 from wearing.mcp_server import create_server
+
+
+def remote_enabled(root):
+    """A live private operator gate, never inferred from a cached tool catalog."""
+    try:
+        value = json.loads(read_private(Path(root) / 'data/remote-devices.json'))
+        return (isinstance(value, dict) and set(value) == {'schema_version', 'enabled'}
+                and type(value['schema_version']) is int and value['schema_version'] == 1
+                and value['enabled'] is True)
+    except (OSError, ValueError):
+        return False
 
 
 def tool_schemas(store,identity):
@@ -29,8 +41,8 @@ def tool_schemas(store,identity):
                      (bool({'computer.observe','computer.status'}.intersection(r['methods'])) if tool.name=='wearing_computer_observe' else
                       'computer.input' in r['methods'] if tool.name.startswith('wearing_computer_') else 'phone.'+tool.name in r['methods'])]
             if not allowed: continue
-            # Hermes caches schemas at boot. Resolve the current grant at execution,
-            # so another phone of an existing kind works without stale ID enums.
+            # Resolve the current grant at execution as well as discovery, so
+            # cached model schemas can never authorize a stale resource ID.
             value['inputSchema']['properties']['resource_id']={'type':'string',
                 'description':'先调用 wearing_list_devices，选择当前身份已接入的 resource_id。'}
             schemas[tool.name]=types.Tool.model_validate(value)
@@ -46,7 +58,7 @@ async def serve(root,identity):
     session_grant=None
     grant_session=None
     def current_tools():
-        tools=tool_schemas(store,identity)
+        tools=tool_schemas(store,identity) if remote_enabled(root) else []
         return tools,json.dumps([t.model_dump(mode='json',by_alias=True) for t in tools],sort_keys=True)
     async def list_tools(context,params):
         nonlocal session,signature
@@ -69,6 +81,9 @@ async def serve(root,identity):
 
     async def call_tool(context,params):
         nonlocal session_grant,grant_session
+        if not remote_enabled(root):
+            session_grant = grant_session = None
+            return types.CallToolResult(isError=True,content=[types.TextContent(type='text',text='device_tool_not_granted')])
         args=params.arguments or {}
         if params.name=='wearing_list_devices':
             return types.CallToolResult(content=[types.TextContent(type='text',text=json.dumps(store.inventory(identity),ensure_ascii=False))])

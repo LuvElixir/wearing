@@ -11,6 +11,17 @@ const malformed = () => new ApiError('设备状态不完整，请重新检测后
 function unique<T>(values: T[], key: (v: T) => string): T[] {if (new Set(values.map(key)).size !== values.length) throw malformed(); return values;}
 function list(v: unknown): unknown[] {if (!Array.isArray(v)) throw malformed(); return v;}
 export type DeviceResource = {resource_id: string; name: string; kind: 'computer' | 'android'; methods: string[]};
+/** These are declared permissions, never proof an app is installed or a task succeeded. */
+export function deviceCapabilityLabels(device: DeviceResource): string[] {
+  const methods = new Set(device.methods), labels: string[] = [];
+  if (methods.has('computer.observe') || methods.has('phone.mobile_take_screenshot') || methods.has('phone.mobile_list_elements_on_screen')) labels.push('查看屏幕');
+  if (methods.has('computer.input')) labels.push('鼠标与键盘');
+  if (methods.has('phone.mobile_click_on_screen_at_coordinates') || methods.has('phone.mobile_swipe_on_screen')) labels.push('点击与滑动');
+  if (methods.has('phone.mobile_type_keys')) labels.push('键盘输入');
+  if (methods.has('phone.mobile_list_apps')) labels.push('查看已安装应用');
+  if (methods.has('phone.mobile_launch_app')) labels.push('打开应用');
+  return labels;
+}
 export type DeviceOffer = {schema_version: 1; resources: DeviceResource[]};
 export type InspectedResource = DeviceResource & {already_paired: boolean};
 export type CloudDevice = DeviceResource & {connector_id: string; connected: boolean; online: boolean; paused: boolean;

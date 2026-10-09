@@ -1,4 +1,4 @@
-"""Per-user launchd / Task Scheduler integration; no device or admin listener."""
+"""Per-user launchd / Task Scheduler / systemd integration; no admin listener."""
 from datetime import datetime, timezone
 from functools import wraps
 import hashlib
@@ -36,9 +36,9 @@ def lifecycle_lock(method):
     return guarded
 
 
-def command(argv, *, check=True):
+def command(argv, *, check=True, env=None):
     try:
-        value = subprocess.run(argv, capture_output=True, text=True, timeout=30)
+        value = subprocess.run(argv, capture_output=True, text=True, timeout=30, env=env)
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ServiceError('系统常驻服务没有响应，请检查当前用户的登录会话。') from error
     if check and value.returncode:
@@ -103,6 +103,38 @@ def windows_task_xml(name, argv, home, sid, marker):
     return ET.tostring(root,encoding='unicode')
 
 
+def systemd_quote(value):
+    value=str(value)
+    if any(ord(char)<32 or ord(char)==127 for char in value):
+        raise ServiceError('常驻路径或会话环境不能含控制字符。')
+    # Unit specifiers are expanded even in quotes. ExecStart's ':' prefix below
+    # disables environment expansion; this is never interpreted by a shell.
+    return '"'+value.replace('\\','\\\\').replace('"','\\"').replace('%','%%')+'"'
+
+
+def systemd_path(value):
+    """Path assignments are literal, unlike ExecStart/Environment word lists."""
+    value=str(value)
+    if (not value.startswith('/') or value!=value.rstrip() or value.endswith('\\')
+            or any(ord(char)<32 or ord(char)==127 for char in value)):
+        raise ServiceError('常驻工作目录必须是无控制字符的绝对路径。')
+    return value.replace('%','%%')
+
+
+def linux_user_unit(argv, home, environment):
+    session_keys=('DISPLAY','XAUTHORITY','DBUS_SESSION_BUS_ADDRESS','XDG_RUNTIME_DIR','XDG_SESSION_TYPE','PATH')
+    lines=['[Unit]','Description=Pajio device connector','After=graphical-session-pre.target',
+           '', '[Service]','Type=exec','ExecStart=:'+ ' '.join(systemd_quote(part) for part in argv),
+           'WorkingDirectory='+systemd_path(home),'Restart=on-failure','RestartSec=5',
+           'TimeoutStopSec=120','UMask=0077','NoNewPrivileges=yes',
+           'StandardOutput=null','StandardError=null']
+    for key in session_keys:
+        if environment.get(key):
+            lines.append('Environment='+systemd_quote(key+'='+environment[key]))
+    lines.extend(['','[Install]','WantedBy=default.target',''])
+    return '\n'.join(lines)
+
+
 class ConnectorService:
     def __init__(self, root):
         self.root=Path(root).expanduser().absolute()
@@ -116,7 +148,7 @@ class ConnectorService:
         except (OSError, ValueError, KeyError) as error:
             raise ServiceError('请先完成本机设备配对，再设置常驻。') from error
         self.system=platform.system()
-        if self.system not in ('Darwin','Windows'):raise ServiceError('常驻安装目前支持 macOS 和 Windows。')
+        if self.system not in ('Darwin','Windows','Linux'):raise ServiceError('常驻安装支持 macOS、Windows 和 Linux。')
         self.home=Path.home()
         self.id=hashlib.sha256(str(self.root).encode()).hexdigest()[:16]
         self.label='com.wearing.connector.'+self.id
@@ -145,6 +177,41 @@ class ConnectorService:
         if path.is_symlink() or hashlib.sha256(read_private(path).encode()).hexdigest()!=manifest['definition_sha256']:
             raise ServiceError('后台任务已被修改，本次不会覆盖或停止它。')
 
+    def unit_path(self):
+        return self.home/'.config/systemd/user'/(self.label+'.service')
+
+    def systemd(self, *args, check=True):
+        # Xfce may have its own dbus-run-session bus. systemctl must reach the
+        # *user manager* bus, not the desktop's accessibility/application bus.
+        runtime='/run/user/'+str(os.getuid())
+        env={**os.environ,'XDG_RUNTIME_DIR':runtime,
+             'DBUS_SESSION_BUS_ADDRESS':'unix:path='+runtime+'/bus'}
+        return command(['systemctl','--user',*args],check=check,env=env)
+
+    def linux_verify(self, manifest):
+        path=self.unit_path()
+        if path.is_symlink() or hashlib.sha256(read_private(path).encode()).hexdigest()!=manifest['definition_sha256']:
+            raise ServiceError('后台任务已被修改，本次不会覆盖或停止它。')
+        result=self.systemd('show',path.name,'--property=FragmentPath','--property=DropInPaths')
+        fields=dict(line.split('=',1) for line in result.stdout.splitlines() if '=' in line)
+        if fields.get('FragmentPath')!=str(path) or fields.get('DropInPaths')!='':
+            raise ServiceError('后台任务存在外部定义或覆盖配置，本次不会修改它。')
+
+    def verify(self, manifest):
+        if self.system=='Darwin':self.mac_verify(manifest)
+        elif self.system=='Linux':self.linux_verify(manifest)
+        else:self.win_verify(manifest)
+
+    def finish_linux_install(self, manifest):
+        path=self.unit_path()
+        if path.is_symlink() or hashlib.sha256(read_private(path).encode()).hexdigest()!=manifest['definition_sha256']:
+            raise ServiceError('后台任务已被修改，本次不会覆盖或停止它。')
+        self.systemd('daemon-reload')
+        self.linux_verify(manifest)
+        self.systemd('enable',path.name)
+        manifest={**manifest,'installation_state':'installed'}
+        write_private_json(self.manifest,manifest)
+
     def win_script(self, action):
         return "$ErrorActionPreference='Stop';$n="+ps_quote(self.label)+";$p='\\Wearing\\';"+action
 
@@ -172,7 +239,11 @@ class ConnectorService:
     def install(self, adopt=None):
         with self.lock:
             if self.manifest.exists():
-                self.load();return self.status()
+                manifest=self.load()
+                if self.system=='Linux' and manifest.get('installation_state')=='pending':
+                    self.finish_linux_install(manifest)
+                    if desired(self.root)=='running':self.start()
+                return self.status()
             if self.system=='Darwin':
                 if adopt:
                     if not re.fullmatch(r'com\.wearing\.connector\.[a-z0-9-]+',adopt):raise ServiceError('只能迁移 Pajio 设备连接器。')
@@ -195,6 +266,17 @@ class ConnectorService:
                        'StandardOutPath':str(logdir/(self.label+'.stdout.log')),'StandardErrorPath':str(logdir/(self.label+'.stderr.log'))}
                     write_private_text(path,plistlib.dumps(v).decode())
                 digest=hashlib.sha256(path.read_bytes()).hexdigest()
+            elif self.system=='Linux':
+                if adopt:raise ServiceError('Linux 首次安装使用独立的用户连接器服务。')
+                path=self.unit_path()
+                if path.exists() or path.is_symlink():
+                    raise ServiceError('同名后台任务已经存在，本次不会覆盖。')
+                existing=self.systemd('show',path.name,'--property=LoadState','--property=FragmentPath',check=False)
+                fields=dict(line.split('=',1) for line in existing.stdout.splitlines() if '=' in line)
+                if fields.get('LoadState')!='not-found' or fields.get('FragmentPath'):
+                    raise ServiceError('用户服务不可用或同名后台任务已经存在，本次不会覆盖。')
+                write_private_text(path,linux_user_unit(self.argv,self.home,os.environ))
+                digest=hashlib.sha256(path.read_bytes()).hexdigest()
             else:
                 if adopt:raise ServiceError('Windows 首次安装使用独立的设备连接器任务。')
                 sid=powershell("[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value").stdout.strip()
@@ -206,8 +288,11 @@ class ConnectorService:
                     "$s=New-Object -ComObject 'Schedule.Service';$s.Connect();try{$null=$s.GetFolder($p)}catch{$null=$s.GetFolder('\\').CreateFolder('Wearing')};"
                     "Register-ScheduledTask -TaskName $n -TaskPath $p -Xml (Get-Content -LiteralPath "+ps_quote(str(path))+" -Raw -Encoding UTF8) | Out-Null")
                 powershell(script);digest=hashlib.sha256(path.read_bytes()).hexdigest()
-            write_private_json(self.manifest,{'schema_version':1,'root':str(self.root),'platform':self.system,'label':self.label,
-                'argv':self.argv,'definition_sha256':digest,**({'user_sid':sid} if self.system=='Windows' else {})})
+            manifest={'schema_version':1,'root':str(self.root),'platform':self.system,'label':self.label,
+                'argv':self.argv,'definition_sha256':digest,**({'user_sid':sid} if self.system=='Windows' else {}),
+                **({'installation_state':'pending'} if self.system=='Linux' else {})}
+            write_private_json(self.manifest,manifest)
+            if self.system=='Linux':self.finish_linux_install(manifest)
             # Installation never overrides an explicit previous stop.
             if desired(self.root)=='running':self.start()
             return self.status()
@@ -218,8 +303,7 @@ class ConnectorService:
         try:require_settled(self.root)
         except ValueError as error:raise ServiceError(str(error)) from error
         manifest=self.load()
-        if self.system=='Darwin':self.mac_verify(manifest)
-        else:self.win_verify(manifest)
+        self.verify(manifest)
         if self.running() and desired(self.root)=='stopped':
             raise ServiceError('正在等待停止完成，请结束后再启动。')
         set_desired(self.root,'running')
@@ -229,14 +313,14 @@ class ConnectorService:
                 if command(['launchctl','print',target],check=False).returncode:
                     command(['launchctl','bootstrap',f'gui/{os.getuid()}',str(self.plist_path())])
                 else:command(['launchctl','kickstart',target])
+            elif self.system=='Linux':self.systemd('start',self.unit_path().name)
             else:powershell(self.win_script('Start-ScheduledTask -TaskName $n -TaskPath $p'))
         return self.status()
 
     @lifecycle_lock
     def stop(self):
         manifest=self.load()
-        if self.system=='Darwin':self.mac_verify(manifest)
-        else:self.win_verify(manifest)
+        self.verify(manifest)
         set_desired(self.root,'stopped')
         return self.status()
 
@@ -250,6 +334,11 @@ class ConnectorService:
             target=f'gui/{os.getuid()}/{self.label}'
             if not command(['launchctl','print',target],check=False).returncode:command(['launchctl','bootout',target])
             self.plist_path().unlink()
+        elif self.system=='Linux':
+            self.linux_verify(manifest)
+            self.systemd('disable','--now',self.unit_path().name)
+            self.unit_path().unlink()
+            self.systemd('daemon-reload')
         else:
             self.win_verify(manifest);powershell(self.win_script('Unregister-ScheduledTask -TaskName $n -TaskPath $p -Confirm:$false'))
         self.manifest.unlink()
@@ -258,8 +347,7 @@ class ConnectorService:
     @lifecycle_lock
     def status(self):
         manifest=self.load()
-        if self.system=='Darwin':self.mac_verify(manifest)
-        else:self.win_verify(manifest)
+        self.verify(manifest)
         running=self.running();mode=desired(self.root)
         try:
             raw=json.loads(read_private(self.root/'status.json'))

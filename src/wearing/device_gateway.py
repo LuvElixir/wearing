@@ -1,4 +1,4 @@
-"""Persistent ownership fence for Pajio's known Android entry points.
+"""Persistent ownership fence for Pajio's native device entry points.
 
 This is not an OS sandbox or a media transport. Private sessions are disabled
 unless a trusted host composition explicitly supplies readiness. No screen,
@@ -209,13 +209,38 @@ class DeviceGateway:
             db.execute('UPDATE ownership SET expires=? WHERE resource=?', (self.clock()+ttl, scope.resource_id))
             return self._public(self._row(db, scope.resource_id))
 
-    def pause(self, scope, session_id, epoch):
+    def pause(self, scope, session_id, epoch, *, preserve_return=False):
         self.snapshot(scope.resource_id)
         with self.tx() as db:
             row = self._session(db, scope, session_id, epoch)
+            # A video/input worker can observe the intentional return fence
+            # before the trusted clear request arrives. Preserve that fence;
+            # only finish_human with a positive clear ACK makes the agent ready.
+            if preserve_return is True and row['state'] == 'awaiting_scope':
+                return self._public(row)
             if row['state'] != 'paused':
                 db.execute("UPDATE ownership SET epoch=epoch+1,state='paused',expires=NULL WHERE resource=?", (scope.resource_id,))
             return self._public(self._row(db, scope.resource_id))
+
+    def prepare_return(self, scope, session_id, epoch):
+        """Fence new media before awaiting an asynchronous, trusted flush.
+
+        This is deliberately not an agent-ready state. A failed flush or a
+        process restart must leave the device paused, never automatically return.
+        """
+        self._ready()
+        with self.native_lock(scope.resource_id), self.tx() as db:
+            row = self._session(db, scope, session_id, epoch)
+            if row['state'] not in ('human_private', 'awaiting_scope'):
+                raise GatewayError('human_session_not_active')
+            db.execute("UPDATE ownership SET state='awaiting_scope' WHERE resource=?", (scope.resource_id,))
+            return self._public(self._row(db, scope.resource_id))
+
+    def _validate_return(self, scope, session_id, epoch):
+        with self.tx() as db:
+            row = self._session(db, scope, session_id, epoch)
+            if row['state'] not in ('human_private', 'awaiting_scope'):
+                raise GatewayError('human_session_not_active')
 
     def finish_human(self, scope, session_id, epoch, *, safe_screen_confirmed=False,
                      scope_confirmed=False, clear_media=None):
@@ -226,11 +251,11 @@ class DeviceGateway:
             previous = self._row(db, scope.resource_id)
             if previous['scope'] == scope.serialized() and previous['session'] == session_id and previous['state'] == 'agent_ready' and previous['epoch'] == epoch:
                 return self._public(previous)
-        self.validate_human(scope, session_id, epoch)
+        self._validate_return(scope, session_id, epoch)
         if safe_screen_confirmed is not True or scope_confirmed is not True or not callable(clear_media):
             raise GatewayError('human_return_confirmation_required')
         with self.native_lock(scope.resource_id):
-            self.validate_human(scope, session_id, epoch)
+            self._validate_return(scope, session_id, epoch)
             # Trusted media adapter callback, never a client-supplied bool. The
             # agent stays fenced while buffers and the private channel close.
             try:
@@ -242,7 +267,7 @@ class DeviceGateway:
                 raise GatewayError('private_media_not_cleared')
             with self.tx() as db:
                 row = self._session(db, scope, session_id, epoch)
-                if row['state'] != 'human_private':
+                if row['state'] not in ('human_private', 'awaiting_scope'):
                     raise GatewayError('human_session_not_active')
                 db.execute("UPDATE ownership SET epoch=epoch+1,state='agent_ready',expires=NULL WHERE resource=?", (scope.resource_id,))
                 return self._public(self._row(db, scope.resource_id))

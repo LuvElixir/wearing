@@ -31,8 +31,8 @@ def test_life_registration_matches_engine_startup_contract_without_installed_eng
     assert registered == expected_life_tool_names()
 
 
-@pytest.mark.parametrize("connectors,computer,disabled_memory,life", [(False, False, False, False), (True, False, False, False), (False, True, False, False), (False, False, True, False), (False, False, False, True)])
-def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, computer, disabled_memory, life):
+@pytest.mark.parametrize("connectors,computer,disabled_memory,life,remote", [(False, False, False, False, False), (True, False, False, False, False), (False, True, False, False, False), (False, False, True, False, False), (False, False, False, True, False), (False, False, False, False, True)])
+def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, computer, disabled_memory, life, remote):
     runtime = HermesRuntime(Path(__file__).resolve().parents[1] / ".wearing")
     if not runtime.python.is_file():
         pytest.skip("Install the pinned local engine to run its integration contract")
@@ -70,7 +70,15 @@ def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, 
         life_root = tmp_path / "life"
         Store(life_root / "wearing.sqlite3")
         life_connector = {"command": sys.executable, "args": [str(Path(__file__).resolve().parents[1] / "src/wearing/life_proxy.py"), str(life_root), "daily"]}
-    prepare_profile(home, runtime.source, files, phone, computer, life=life_connector)
+    remote_connector = None
+    if remote:
+        from wearing.cloud.instance import initialize_instance
+        from wearing.cloud.relay import instance_relay, PairRequest
+        from wearing.cloud.device_setup import tools_for
+        remote_root = tmp_path / 'cloud'
+        initialize_instance(remote_root, 'tenant_test', 'http://127.0.0.1:18865')
+        remote_connector = {'command': sys.executable, 'args': [str(Path(__file__).resolve().parents[1] / 'src/wearing/remote_proxy.py'), str(remote_root), 'daily']}
+    prepare_profile(home, runtime.source, files, phone, computer, remote=remote_connector, life=life_connector)
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
@@ -113,6 +121,29 @@ def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, 
                 assert caps["wearing"]["app_observation_receipts"] is True
                 assert caps["wearing"]["confirmation_guard"] == "durable-v1"
                 assert caps["wearing"]["session_recall_guard"] == "sources-v1"
+                assert caps['wearing']['remote_device_tools'] == []
+                if remote:
+                    # Already-running engine: first enrollment publishes into the
+                    # actual upstream registry and the HTTP capabilities follow.
+                    relay = instance_relay(remote_root)
+                    spec = {'resource_id': 'computer_test', 'kind': 'computer', 'name': 'Synthetic desktop',
+                            'methods': ['computer.observe', 'computer.status']}
+                    pair = relay.pair_code('daily', [spec], tools_for([spec]))
+                    relay.pair(PairRequest(code=pair['code'], token='a'*64))
+                    write_private_json(remote_root/'data/remote-devices.json', {'schema_version': 1, 'enabled': True})
+                    expected = {'mcp__wearing_devices__wearing_list_devices', 'mcp__wearing_devices__wearing_computer_observe'}
+                    for _ in range(100):
+                        current = client.get('/v1/capabilities').json()['wearing']['remote_device_tools']
+                        if set(current) == expected: break
+                        time.sleep(.1)
+                    assert set(current) == expected
+                    assert process.poll() is None
+                    write_private_json(remote_root/'data/remote-devices.json', {'schema_version': 1, 'enabled': False})
+                    for _ in range(100):
+                        current = client.get('/v1/capabilities').json()['wearing']['remote_device_tools']
+                        if not current: break
+                        time.sleep(.1)
+                    assert current == []
                 assert set(caps["wearing"]["life_tools"]) == ({"mcp__wearing_life__" + name for name in ("request_confirmation", "life_records", "life_create", "life_change", "task_lists", "task_list_change", "calendar_series", "goal_list", "goal_create", "goal_change", "schedule_list", "schedule_create", "schedule_change", "artifact_list", "artifact_read", "artifact_publish", "artifact_design_guide", "chat_import_search", "chat_import_read")} | {"mcp__wearing_life__" + name for name in CLOUD_NAMES | NATIVE_NAMES} if life else set())
                 if life:
                     from wearing.life_proxy import TOOLS
@@ -145,6 +176,18 @@ def test_real_adapter_exposes_only_personal_engine_routes(tmp_path, connectors, 
                     assert removed.status_code == 200, removed.text
                     assert removed.json()["targets"]["user"]["entries"] == ["喜欢准确简短结论"]
                     assert '测试偏好' not in (home / "memories/USER.md").read_text()
+                    removal = removed.json()["targets"]["user"]
+                    record = removal["history"]["items"][0]
+                    assert record["source"] == "user" and record["action"] == "remove" and record["undoable"]
+                    undo = {"target": "user", "action": "undo", "history_id": record["id"], "revision": removal["revision"]}
+                    reverted = client.patch("/v1/wearing/memory", json=undo)
+                    assert reverted.status_code == 200, reverted.text
+                    assert reverted.json()["targets"]["user"]["entries"] == ["喜欢准确简短结论", "测试偏好"]
+                    assert "测试偏好" in (home / "memories/USER.md").read_text()
+                    assert client.patch("/v1/wearing/memory", json=undo).status_code == 409
+                    latest_read = client.get("/v1/wearing/memory").json()["targets"]["user"]
+                    assert latest_read["history"]["items"][0]["action"] == "undo"
+                    assert latest_read["revision"] == reverted.json()["targets"]["user"]["revision"]
                 latest = client.get("/v1/wearing/memory").json()["targets"]["user"]
                 original_entries = latest["entries"]
                 toggled = client.patch("/v1/wearing/memory", json={"target": "user", "action": "set_enabled", "enabled": not latest["enabled"], "revision": latest["revision"], "settings_revision": latest["settings_revision"]})

@@ -319,7 +319,7 @@ def main():
                                    {'endpoint':bundle.endpoint,'ca_pem':bundle.ca_pem})
                 write_private_json(args.output,bundle.model_dump(mode="json"))
                 write_private_json(args.root / "data/remote-devices.json",{"schema_version":1,"enabled":True})
-                print("配对文件已私有保存，有效十分钟；重启本实例引擎后启用远程设备工具。")
+                print("配对文件已私有保存，有效十分钟；已运行新版引擎会自动刷新设备工具。尚未装载设备代理的旧引擎，需先完成一次版本激活。")
             elif args.action == "revoke-device":
                 from .cloud.relay import instance_relay
                 instance_relay(args.root).revoke(args.connector_id)

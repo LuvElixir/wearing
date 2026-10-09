@@ -1,0 +1,30 @@
+[Unit]
+Description=Pajio dedicated Firefox desktop
+Requires=pajio-desktop-session.service
+After=pajio-desktop-session.service
+PartOf=pajio-desktop-session.service
+
+[Service]
+Type=exec
+Environment=DISPLAY=:10
+Environment=XAUTHORITY=%t/pajio-x11/Xauthority
+Environment=XDG_SESSION_TYPE=x11
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/pajio-desktop-bus
+Environment=NO_AT_BRIDGE=0
+Environment=GTK_MODULES=atk-bridge
+Environment=GTK_IM_MODULE=ibus
+Environment=XMODIFIERS=@im=ibus
+Environment=LANG=zh_CN.UTF-8
+Environment=MOZ_ENABLE_WAYLAND=0
+ExecStartPre=/opt/pajio-native/wait-x11.sh
+ExecStart=/usr/bin/firefox --no-remote --profile %h/.mozilla/pajio about:blank
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+UMask=0077
+NoNewPrivileges=yes
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Pajio Desktop Native Probe</title>
+<style>
+body{font:20px system-ui;background:#f6f3ee;color:#273142;margin:0;padding:42px 60px}
+main{max-width:1000px;margin:auto}label{display:block;margin:24px 0 8px}
+input,button{font:inherit;padding:14px;border:1px solid #aaa;border-radius:8px}
+input{width:480px}button{background:#dce9f4;cursor:pointer;margin-left:16px}
+output{display:block;margin:24px 0;color:#225d40}section{height:360px;padding:24px 0;border-top:1px solid #ddd}
+</style><main>
+<h1>Pajio Desktop Native Probe</h1><p>Local acceptance fixture · 本地桌面验收，不连接真实账号。</p>
+<label for="note">Test note</label><input id="note" aria-label="Test note" autofocus autocomplete="off">
+<button id="save" onclick="document.getElementById('result').value='Saved '+(++window.count)">Save note</button>
+<output id="result" aria-live="polite">Not saved</output>
+<section><h2>Scroll section 1</h2><p>Moving down should reveal later sections.</p></section>
+<section><h2>Scroll section 2</h2><p>第二段：远程滚动和中文字体。</p></section>
+<section><h2>Scroll section 3</h2><p>第三段：下方内容。</p></section>
+<section><h2>Scroll section 4</h2></section><section><h2>Scroll section 5</h2></section>
+<script>window.count=0;</script></main></html>

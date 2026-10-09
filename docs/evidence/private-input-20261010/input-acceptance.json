@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "fixture": "dedicated-redroid14",
+  "observed_at": "2026-10-09T17:40:58Z",
+  "apk_sha256": "80960fcaa86936abdf20de79660ea63cbc10f024b3f43b3a6ee53e92c1037c27",
+  "native_swipe_changes_screen": true,
+  "native_tap_opens_search": true,
+  "unicode_input_delivered": true,
+  "logcat": {
+    "plain_matches": 0,
+    "base64_matches": 0
+  },
+  "broadcast_history": {
+    "plain_matches": 0,
+    "base64_matches": 0
+  },
+  "input_method_dump": {
+    "plain_matches": 0,
+    "base64_matches": 0
+  },
+  "ps": {
+    "plain_matches": 0,
+    "base64_matches": 0
+  },
+  "wrong_session_denied": true,
+  "wrong_server_uid_denied": true,
+  "untrusted_android_uid_denied": true,
+  "restored_ime": "com.android.inputmethod.latin/.LatinIME",
+  "remaining_private_forward": false,
+  "owned_nonce_cleared": true,
+  "private_ime_running_after_close": false
+}

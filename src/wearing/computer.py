@@ -1,5 +1,6 @@
 """Local desktop enrollment; actual control uses Hermes + Cua Driver."""
 import json
+import sys
 from pathlib import Path
 
 from .config import write_private_json
@@ -15,4 +16,4 @@ def enrolled(data_dir: Path) -> bool:
 
 
 def enroll(data_dir: Path):
-    write_private_json(data_dir / "computer.json", {"enrolled": True, "resource_id": "computer_local", "backend": "hermes-cua"})
+    write_private_json(data_dir / "computer.json", {"enrolled": True, "resource_id": "computer_local", "backend": "linux-x11" if sys.platform.startswith('linux') else "hermes-cua"})

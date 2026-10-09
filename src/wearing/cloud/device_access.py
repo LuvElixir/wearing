@@ -53,7 +53,7 @@ def active(db, resource):
 
 
 def public(store, db, c, spec, row=None):
-    supported = bool(store.human_access_ready and c['human_access_ready'] and spec['kind'] == 'android')
+    supported = bool(store.human_access_ready and c['human_access_ready'] and spec['kind'] in ('android', 'computer'))
     control = db.execute('SELECT generation FROM controls WHERE resource=?', (spec['resource_id'],)).fetchone()
     return {'resource_id': spec['resource_id'], 'supported': supported,
             'unavailable_reason': None if supported else 'private_gateway_unavailable',
@@ -91,7 +91,9 @@ def request(store, identity, actor, resource, *, expected_generation, request_id
         error('invalid_human_request', 422)
     with store.tx() as db:
         c, spec = owned(db, identity, resource)
-        if not store.human_access_ready or not c['human_access_ready'] or spec['kind'] != 'android':
+        from .device_maintenance import guard as maintenance_guard
+        maintenance_guard(db, resource)
+        if not store.human_access_ready or not c['human_access_ready'] or spec['kind'] not in ('android', 'computer'):
             error('private_gateway_unavailable')
         # Agent availability is intentionally false while paused. A new human
         # session needs physical connectivity, not permission to run an agent.
@@ -141,6 +143,8 @@ def close(store, identity, actor, resource, *, session_id, epoch):
 def finish(store, identity, actor, resource, *, session_id, epoch, safe_screen_confirmed, scope_confirmed):
     with store.tx() as db:
         c, spec, row = session(db, identity, actor, resource, session_id, epoch)
+        from .device_maintenance import guard as maintenance_guard
+        maintenance_guard(db, resource)
         if not store.human_access_ready or not c['human_access_ready']:
             error('private_gateway_unavailable')
         if safe_screen_confirmed is not True or scope_confirmed is not True:

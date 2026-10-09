@@ -39,6 +39,25 @@ def draft(key='test-briefing-request-01', base=0, **values):
     return CreateBriefing(date='2026-10-07', timezone='Asia/Shanghai', request_key=key, base_version=base, **values)
 
 
+@pytest.mark.parametrize('zone,local_stamp,local_day', [
+    ('Asia/Shanghai', '2026-10-10T02:40:00+08:00', '2026-10-10'),
+    ('America/Los_Angeles', '2026-10-09T11:40:00-07:00', '2026-10-09'),
+])
+@pytest.mark.parametrize('target', ['2026-10-08', '2026-10-10', '2026-10-12'])
+def test_prompt_anchors_request_day_in_requested_timezone_and_keeps_target(tmp_path, monkeypatch, zone, local_stamp, local_day, target):
+    monkeypatch.setattr('wearing.briefing_api.now', lambda: '2026-10-09T18:40:00+00:00')
+    _, _, _, _, book = setup(tmp_path)
+    request = CreateBriefing(date=target, timezone=zone, request_key='qa-date-anchor-request')
+    row = book.reserve('daily', request)
+    assert f'请求保存时刻：{local_stamp}' in row['prompt']
+    assert f'按 {zone} 换算的请求当天：{local_day}' in row['prompt']
+    assert f'本版目标日期：{target}' in row['prompt']
+    assert '正文不使用今天、明天、昨天代替目标日期' in row['prompt']
+    # A replay across midnight must retain the original intent and time context.
+    monkeypatch.setattr('wearing.briefing_api.now', lambda: '2026-10-11T18:40:00+00:00')
+    assert book.reserve('daily', request) == row
+
+
 async def test_creation_uses_real_task_service_replay_and_no_duplicate_model_run(tmp_path):
     store, _, hermes, service, book = setup(tmp_path)
     results = await asyncio.gather(*(book.create('daily', draft(), service) for _ in range(4)))
@@ -121,6 +140,93 @@ async def test_only_actual_published_artifacts_make_visual_result_and_keep_sourc
     # Later source changes do not mutate the saved input availability snapshot.
     life.create('daily', LifeDraft(kind='note', title='Later record'), 'qa-note-two')
     assert next(source for source in book.get('daily', item['id'])['sources'] if source['id'] == 'note')['count'] == 1
+
+
+async def test_sources_exclude_only_unchanged_ledger_linked_briefings_and_preserve_real_progress(tmp_path):
+    store, artifacts, _, service, book = setup(tmp_path)
+    root = artifacts.workspace('daily'); root.mkdir(parents=True)
+    first = await book.create('daily', draft(), service)
+    raw = '<html><body>QA first briefing</body></html>'
+    (root / 'brief.html').write_text(raw)
+    brief_artifact = artifacts.publish('daily', ArtifactDraft(path='brief.html', title='First brief', summary='QA'), 'brief-output')
+    store.update(first['task_id'], status='completed_unverified')
+    # Exact same bytes in a user file are not the original published path.
+    (root / 'user-copy.html').write_text(raw)
+    normal = await service.submit_message('QA real research result', 'daily', 'non-briefing-task')
+    (root / 'research.html').write_text('<html>QA research progress</html>')
+    artifacts.publish('daily', ArtifactDraft(path='research.html', title='Research', summary='QA'), 'research-output')
+    store.update(normal['task']['id'], status='completed_unverified')
+    source = book.sources('daily', ['files'])[0]
+    assert {item['path'] for item in source['references']} == {'user-copy.html', 'research.html'}
+    assert source['count'] == 2
+    second = book.reserve('daily', draft('second-briefing-generation', base=1))
+    assert {item['path'] for item in json.loads(second['sources'])[-1]['references']} == {'user-copy.html', 'research.html'}
+    assert '最多给 1 项有用的可选下一步' in second['prompt']
+    assert '不要为缺少数据写长篇报告' in second['prompt']
+    assert '不计入新增文件、来源覆盖或重要变化' in second['prompt']
+    # Reusing a path for new content makes it eligible again.
+    (root / 'brief.html').write_text('<html>QA new user content</html>')
+    assert book.sources('daily', ['files'])[0]['count'] == 3
+    (root / 'brief.html').write_text(raw)
+    # Pre-migration results have no safe path provenance and stay visible.
+    with store.connection() as db:
+        db.execute('UPDATE artifacts SET source_path=NULL WHERE id=?', (brief_artifact['id'],))
+    assert book.sources('daily', ['files'])[0]['count'] == 3
+    assert '旧版可能未记原路径' in second['prompt']
+
+
+async def test_briefing_source_filter_is_identity_and_account_scoped_and_supports_scheduler_link(tmp_path):
+    store, artifacts, _, service, book = setup(tmp_path)
+    owner = 'a' * 64
+    first = await book.create('daily', draft(), service, owner_scope=owner)
+    root = artifacts.workspace('daily'); root.mkdir(parents=True)
+    raw = '<html>QA briefing</html>'; (root / 'same-name.html').write_text(raw)
+    artifacts.publish('daily', ArtifactDraft(path='same-name.html', title='QA', summary='QA'), 'owner-brief')
+    store.update(first['task_id'], status='completed_unverified')
+    assert book.sources('daily', ['files'], owner_scope=owner)[0]['count'] == 0
+    assert book.sources('daily', ['files'], owner_scope='b' * 64)[0]['count'] == 1
+    # Scheduled briefs link a direct task instead of an HTTP handoff.
+    with store.connection() as db:
+        db.execute('UPDATE daily_briefings SET direct_task_id=? WHERE id=?', (first['task_id'], first['id']))
+        db.execute('DELETE FROM message_handoffs WHERE task_id=?', (first['task_id'],))
+    assert book.sources('daily', ['files'], owner_scope=owner)[0]['count'] == 0
+    other = store.save_identity('Other QA')['id']; other_root = artifacts.workspace(other)
+    other_root.mkdir(parents=True); (other_root / 'same-name.html').write_text(raw)
+    assert book.sources(other, ['files'], owner_scope=owner)[0]['count'] == 1
+
+
+async def test_excluded_briefings_do_not_consume_file_preview_slots(tmp_path):
+    store, artifacts, _, service, book = setup(tmp_path)
+    root = artifacts.workspace('daily'); root.mkdir(parents=True)
+    first = await book.create('daily', draft(), service)
+    (root / 'a-brief.html').write_text('<html>QA briefing</html>')
+    artifacts.publish('daily', ArtifactDraft(path='a-brief.html', title='QA', summary='QA'), 'briefing-file')
+    store.update(first['task_id'], status='completed_unverified')
+    for number in range(30): (root / f'z-{number:02}.txt').write_text('QA')
+    source = book.sources('daily', ['files'])[0]
+    assert source['count'] == 30
+    assert len(source['references']) == 30
+    assert all(item['path'].startswith('z-') for item in source['references'])
+    assert source['truncated'] is True  # The underlying bounded scan does not claim completeness.
+
+
+async def test_replaced_symlink_is_not_followed_to_decide_briefing_exclusion(tmp_path, monkeypatch):
+    store, artifacts, _, service, book = setup(tmp_path)
+    root = artifacts.workspace('daily'); root.mkdir(parents=True)
+    first = await book.create('daily', draft(), service)
+    raw = '<html>QA briefing</html>'; path = root / 'brief.html'; path.write_text(raw)
+    artifacts.publish('daily', ArtifactDraft(path='brief.html', title='QA', summary='QA'), 'briefing-file')
+    store.update(first['task_id'], status='completed_unverified')
+    # If followed, equal bytes would hide the file. A raced symlink must stay
+    # uncertain instead; the later scoped tool must perform a fresh safe read.
+    outside = tmp_path / 'outside.html'; outside.write_text(raw)
+    from wearing.workspace import list_files
+    def replaced(*args, **kwargs):
+        listing = list_files(*args, **kwargs)
+        path.unlink(); path.symlink_to(outside)
+        return listing
+    monkeypatch.setattr('wearing.briefing_api.list_files', replaced)
+    assert book.sources('daily', ['files'])[0]['count'] == 1
 
 
 async def test_failure_and_partial_text_are_never_called_finished_visuals(tmp_path):

@@ -7,6 +7,7 @@ import ArtifactPanel from './ArtifactPanel';
 import NativeSearchPanel, {type SearchContext} from './NativeSearchPanel';
 import CloudSessionPanel from './CloudSessionPanel';
 import {persistNativeConnection, restoreNativeConnection} from './native-session';
+import {initialConnection, PUBLIC_PAJIO_ENDPOINT} from './connection-default';
 import BriefPanel from './BriefPanel';
 import type {OngoingCreateRequest} from './ongoing-management-forms';
 import {AppThemeProvider, useAppTheme, useThemedStyles, type AppColors} from './app-theme';
@@ -75,9 +76,10 @@ import OnboardingPanel from './OnboardingPanel';
 import {useOnboarding} from './useOnboarding';
 import {shouldEnterOnboarding} from './onboarding-model';
 import {TabScrollMemory} from './tab-scroll-memory';
+import {NativeRemoteDevicePanel} from './NativeRemoteDevicePanel';
 
 type Form = {id: string; text: string; kind: Kind; media: Media[]; organize: boolean; start: string; end: string};
-type Screen = 'capture' | 'tools' | 'tasks' | 'agenda' | 'notes' | 'conversation' | 'settings' | 'detail' | 'memory' | 'companion' | 'today' | 'connection' | 'native' | 'trash' | 'briefing' | 'artifact' | 'search' | 'share-intake' | 'chat-import' | 'account-deletion' | 'task-detail' | 'calendar-series' | 'bookmarks' | 'conversation-sources' | 'onboarding';
+type Screen = 'capture' | 'tools' | 'tasks' | 'agenda' | 'notes' | 'conversation' | 'settings' | 'detail' | 'memory' | 'companion' | 'today' | 'connection' | 'native' | 'trash' | 'briefing' | 'artifact' | 'search' | 'share-intake' | 'chat-import' | 'account-deletion' | 'task-detail' | 'calendar-series' | 'bookmarks' | 'conversation-sources' | 'onboarding' | 'remote-device';
 function tabForScreen(screen: Screen): BottomNavigationPage | null {
   return screen==='conversation'?'now':screen==='today'||screen==='agenda'||screen==='notes'?'review':screen==='tasks'?'goals':screen==='memory'?'memory':screen==='companion'?'companion':null;
 }
@@ -146,13 +148,14 @@ function Mobile() {
   const [deletionFrozen, setDeletionFrozen] = useState(false);
   const wardrobe = useWardrobe(connection);
   const [identities, setIdentities] = useState<{id: string; name: string}[]>([]);
-  const {view,memoryPath,memoryFile,memorySection,hubSection,artifact,authDone,authError} = useLocalSearchParams<{view?: string;memoryPath?:string;memoryFile?:string;memorySection?:string;hubSection?:string;artifact?:string;authDone?:string;authError?:string}>();
-  const screen: Screen = ['capture','tools','tasks','agenda','notes','conversation','settings','detail','memory','companion','today','connection','native','trash','briefing','artifact','search','share-intake','chat-import','account-deletion','task-detail','calendar-series','bookmarks','conversation-sources','onboarding'].includes(view || '') ? view as Screen : 'conversation';
+  const {view,memoryPath,memoryFile,memorySection,hubSection,artifact,authDone,authError,resource,deviceKind,deviceName} = useLocalSearchParams<{view?: string;memoryPath?:string;memoryFile?:string;memorySection?:string;hubSection?:string;artifact?:string;authDone?:string;authError?:string;resource?:string;deviceKind?:string;deviceName?:string}>();
+  const screen: Screen = ['capture','tools','tasks','agenda','notes','conversation','settings','detail','memory','companion','today','connection','native','trash','briefing','artifact','search','share-intake','chat-import','account-deletion','task-detail','calendar-series','bookmarks','conversation-sources','onboarding','remote-device'].includes(view || '') ? view as Screen : 'conversation';
   const [menu, setMenu] = useState(false), [adding, setAdding] = useState(false);
   const [taskTab, setTaskTab] = useState<'tasks' | 'goals' | 'schedules' | 'lists'>('tasks');
   const [readingPositions] = useState(() => new TabScrollMemory());
   const artifactId = /^art_[a-f0-9]{1,64}$/.test(artifact || '') ? artifact! : '';
   const [chatImportShareId, setChatImportShareId] = useState<string | undefined>();
+  const [briefingIntro, setBriefingIntro] = useState(false);
   function openChatImport(id?: string) {setChatImportShareId(id); setScreen('chat-import');}
   const onboardingReturn = useRef<Screen>('conversation');
   const onboardingSeen = useRef<Connection|null>(null);
@@ -174,6 +177,7 @@ function Mobile() {
   const selectedTab = tabForScreen(screen)||lastTab;
   function selectTab(tab: BottomNavigationPage) {Keyboard.dismiss();setLastTab(tab);setReviewRequest(null);setScreen(tab==='now'?'conversation':tab==='review'?'today':tab==='goals'?'tasks':tab);}
   function goBack(){
+    if(screen==='remote-device'){router.setParams({view:'settings',hubSection:'devices',resource:'',deviceKind:'',deviceName:''});return;}
     if((screen==='settings'||screen==='companion')&&hubSection){router.setParams({hubSection:hubSection==='wardrobe'?'appearance':''});return;}
     if(screen==='memory'&&memoryFile){router.setParams({memoryFile:''});return;}
     if(screen==='memory'&&memoryPath){router.setParams({memoryPath:memoryPath.split('/').slice(0,-1).join('/')});return;}
@@ -224,7 +228,8 @@ function Mobile() {
   function setMessage(text: string) {setFeedback({text, source: 'action'});}
   const [connected, setConnected] = useState(false);
   const [busy, setBusy] = useState(false); const syncBusy = useRef(false); const [saving, setSaving] = useState(false); const [ready, setReady] = useState(false);
-  const [address, setAddress] = useState('https://pajio.luckyloading.com'); const [identity, setIdentity] = useState('daily');
+  const [address, setAddress] = useState(PUBLIC_PAJIO_ENDPOINT); const [identity, setIdentity] = useState('daily');
+  const [advancedConnection, setAdvancedConnection] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [chatRecord, setChatRecord] = useState<RecordItem | null>(null);
   const [detail, setDetail] = useState<RecordItem | null>(null);
@@ -317,7 +322,7 @@ function Mobile() {
     let active = true;
     (async () => {try {
       const stored = await restoreNativeConnection();
-      const connection = stored || {endpoint: Platform.OS === 'web' ? window.location.origin + '/' : 'http://127.0.0.1:8765/', identity: 'daily'};
+      const connection = initialConnection(stored, Platform.OS, Platform.OS === 'web' ? window.location.origin : undefined);
       connection.endpoint = connectionEndpoint(connection, true); if (!active) return;
       await handlers.current.activateConnection(connection); setReady(true); if(!stored&&Platform.OS!=='web')setScreen('connection');
     } catch (error) {setMessage(error instanceof Error ? error.message : '本机存储暂时无法打开，尚未保存新记录。请检查存储空间后重试。');}})();
@@ -589,7 +594,7 @@ function Mobile() {
     {screen === 'search' && connection && <NativeSearchPanel connection={connection} initial={searchContext.current?.scope === scopeOf(connection) ? searchContext.current.value : undefined} onRemember={value => {searchContext.current = {scope: scopeOf(connection), value};}} onTask={openActivityTask} onRecord={id=>void openSearchRecord(id)} onFiles={openFiles}/>}
     {screen === 'today' && connection && <ConnectedTodayPanel isCurrent={()=>current.current===connection} key={scopeOf(connection)} connection={connection} records={visibleRecords} connected={connected} onRefreshRecords={()=>synchronize(current.current,false)} onBriefing={()=>setScreen('briefing')} onCalendar={()=>setScreen('agenda')} onRecord={open} onTask={openActivityTask} onDraft={prepareMessage}/>}
     {screen === 'artifact' && connection && artifactId && <ArtifactPanel connection={connection} artifactId={artifactId} onBack={goBack} onTask={openActivityTask} onArtifact={openArtifact}/>}
-    {(screen === 'briefing'||(screen==='artifact'&&!artifactId)) && connection && <BriefPanel connection={connection} isCurrent={() => current.current === connection} onTask={openActivityTask} onArtifact={openArtifact}/>}
+    {(screen === 'briefing'||(screen==='artifact'&&!artifactId)) && connection && <BriefPanel connection={connection} isCurrent={() => current.current === connection} firstRun={briefingIntro} onTask={openActivityTask} onArtifact={openArtifact}/>}
     {screen === 'native' && <View style={{gap:24}}>{connection && <><NativeActionPanel connection={connection}/><NativeSyncPanel connection={connection}/></>}<NativeConnections scope={connection?scopeOf(connection):'disconnected'} key={connection?scopeOf(connection):'disconnected'} onDraft={prepareMessage} onPhoto={()=>{setScreen('capture');void photo(false);}}/></View>}
     {screen === 'capture' && <>
       <View style={s.greeting}><View style={{flex: 1}}><Text variant="headlineLarge" style={s.heading}>补记记录</Text><Text variant="bodyLarge" style={s.muted}>也可以直接补充或修改记录。</Text></View></View>
@@ -619,14 +624,33 @@ function Mobile() {
     {screen === 'memory' && connection && <MemoryLibrary key={scopeOf(connection)} connection={connection} onSources={()=>setScreen('conversation-sources')} onFiles={()=>openReviewTool('files')} onChat={text=>text?prepareMessage(text):setScreen('conversation')} onConnect={()=>setScreen('settings')}/>}
     {(screen === 'companion'||screen === 'settings') && <SettingsHub key={connection?scopeOf(connection):'disconnected'} onOnboarding={connection?()=>{onboardingReturn.current=screen;onboardingSeen.current=connection;setScreen('onboarding');}:undefined} onAccountDeletion={()=>setScreen('account-deletion')} onBookmarks={()=>setScreen('bookmarks')} onChat={prepareMessage} onSync={()=>void refresh()} pendingCount={pending.length+pendingMutations.length} syncing={busy||manualSync} wardrobe={wardrobe} personal={screen === 'companion'} connection={connection} identity={name} connected={connected} onConnection={()=>setScreen('connection')} onFiles={()=>openReviewTool('files')} onNative={()=>setScreen('native')}/>}
     {screen === 'notes' && <><View style={s.section}>{visibleRecords.some(r => r.kind === 'note') ? visibleRecords.filter(r => r.kind === 'note').map(row) : <Text style={s.empty}>还没有笔记。Pajio 整理出的想法和资料会出现在这里。</Text>}</View></>}
-    {screen === 'connection' && <><Text variant="headlineLarge" style={s.heading}>连接你的 Pajio。</Text><Text style={s.muted}>已有记录和未同步内容，会分别留在各自的身份里。</Text><View style={{gap: 20, marginTop: 24}}><TextInput mode="outlined" label="Pajio 地址" accessibilityLabel="Pajio 地址" value={address} onChangeText={setAddress} autoCapitalize="none" autoCorrect={false} keyboardType="url"/><CloudSessionPanel connection={connection} address={address} disabled={busy||captureLocked} onConnected={async next=>{await activateConnection(next);setReady(true);if(next.session?.accessToken){setScreen('conversation');setMessage('登录已完成。');}else{setMessage('已退出账户，本机草稿仍保留。');}}}/><Text style={s.muted}>本机开发连接</Text><TextInput mode="outlined" label="身份标识" accessibilityLabel="身份标识" value={identity} onChangeText={setIdentity} autoCapitalize="none"/>{identities.map(i => <Button key={i.id} mode={identity === i.id ? 'contained-tonal' : 'text'} onPress={() => setIdentity(i.id)}>{i.name}</Button>)}<Button mode="contained" onPress={connect} disabled={busy || captureLocked} loading={busy} contentStyle={s.buttonSize}>连接 Pajio</Button><Text style={s.muted}>{Platform.OS === 'web' ? '当前是手机客户端代码的网页预览，拍照和系统权限需在手机验收。' : '受邀用户用上方账户登录。本机开发可填写电脑地址和身份标识，或扫码短期配对。'}</Text><Text style={s.muted}>离开应用时停止录音并尝试保存。已保存的原件留在应用私有目录；卸载或清除应用数据会移除未同步记录。</Text></View></>}
+    {screen === 'connection' && <>
+      <Text variant="headlineLarge" style={s.heading}>连接你的 Pajio。</Text>
+      <Text style={s.muted}>已有记录和未同步内容，会分别留在各自的身份里。</Text>
+      <View style={{gap: 20, marginTop: 24}}>
+        <TextInput mode="outlined" label="Pajio 地址" accessibilityLabel="Pajio 地址" value={address} onChangeText={setAddress} autoCapitalize="none" autoCorrect={false} keyboardType="url"/>
+        <CloudSessionPanel connection={connection} address={address} disabled={busy||captureLocked} onConnected={async next=>{await activateConnection(next);setReady(true);if(next.session?.accessToken){setScreen('conversation');setMessage('登录已完成。');}else{setMessage('已退出账户，本机草稿仍保留。');}}}/>
+        <View style={{borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8, gap: 14}}>
+          <Button icon={advancedConnection ? 'chevron-up' : 'chevron-down'} accessibilityLabel="高级 / 开发连接" accessibilityState={{expanded: advancedConnection}} onPress={() => setAdvancedConnection(value => !value)}>高级 / 开发连接</Button>
+          {advancedConnection ? <View style={{gap: 16}}>
+            <Text style={s.muted}>仅用于本机开发或专用服务。填写上方地址和身份标识后连接，也可使用短期配对。</Text>
+            <TextInput mode="outlined" label="身份标识" accessibilityLabel="身份标识" value={identity} onChangeText={setIdentity} autoCapitalize="none"/>
+            {identities.map(i => <Button key={i.id} mode={identity === i.id ? 'contained-tonal' : 'text'} onPress={() => setIdentity(i.id)}>{i.name}</Button>)}
+            <Button mode="contained-tonal" onPress={connect} disabled={busy || captureLocked} loading={busy} contentStyle={s.buttonSize}>连接 Pajio</Button>
+          </View> : null}
+        </View>
+        {Platform.OS === 'web' ? <Text style={s.muted}>当前是手机客户端代码的网页预览，拍照和系统权限需在手机验收。</Text> : null}
+        <Text style={s.muted}>离开应用时停止录音并尝试保存。已保存的原件留在应用私有目录；卸载或清除应用数据会移除未同步记录。</Text>
+      </View>
+    </>}
     {screen === 'trash' && <><Text style={s.heading}>最近删除</Text><Text style={s.muted}>移除的记录保留在这里，点开可以恢复。</Text><Button disabled={busy} onPress={()=>void synchronize(current.current,false)}>刷新记录</Button>{records.filter(r=>r.deleted_at).map(row)}{!records.some(r=>r.deleted_at)&&<Text style={s.empty}>没有已删除的记录。</Text>}</>}
     {screen === 'detail' && detail && connection && (detail.kind==='note'&&detail.url?<BookmarkDetailPanel connection={connection} recordId={detail.id} outbox={outbox} mutations={mutations} isCurrent={()=>current.current===connection} onBack={goBack} onChanged={()=>{void synchronize(current.current,false);}}/>:<RecordDetail key={scopeOf(connection)+detail.id} record={detail} connection={connection} onChanged={item=>recordChanged(item,connection)} onChat={item=>{setChatRecord(item);setScreen('conversation');}}/>)}
     {(screen==='settings'||screen==='companion')&&!hubSection&&<><Button onPress={()=>openChatImport()}>导入选定聊天</Button><Button onPress={()=>setScreen('share-intake')}>分享收件箱</Button><Button onPress={()=>setScreen('trash')}>最近删除</Button></>}
 
   </ReadingScrollView>;
   if (deletionFrozen && screen !== 'connection') return <SafeAreaView style={{flex: 1, backgroundColor: c.canvas}}><StatusBar style={mode === 'night' ? 'light' : 'dark'}/><ScrollView contentContainerStyle={s.scroll}>{deletionPanel}{message ? <Text accessibilityLiveRegion="polite" style={s.muted}>{message}</Text> : null}<Button onPress={() => setScreen('connection')}>重新登录或切换账户</Button></ScrollView></SafeAreaView>;
-  if(screen==='onboarding' && connection && !deletionFrozen) return <View style={{flex:1}}><AppBackdrop/><NativeSyncSession connection={connection} isCurrent={()=>current.current===connection} onRecordsChanged={()=>{void synchronize(current.current,false);}}/><SafeAreaView style={{flex:1,backgroundColor:'transparent'}}><StatusBar style={mode==='night'?'light':'dark'}/><OnboardingPanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')} connection={connection} outfit={wardrobe.state.outfit} isCurrent={()=>current.current===connection&&!deletionFrozen} onComplete={()=>{if(current.current===connection){onboardingSeen.current=connection;setScreen('today');}}} onClose={()=>{if(current.current===connection){onboardingSeen.current=connection;setScreen(onboardingReturn.current);}}}/></SafeAreaView></View>;
+  if(screen==='remote-device' && connection && !deletionFrozen) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}><NativeRemoteDevicePanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')+'|'+resource} connection={connection} resource={resource||''} name={(deviceName||'').slice(0,100)} kind={deviceKind==='android'?'android':'computer'} onBack={goBack}/></KeyboardAvoidingView></SafeAreaView>;
+  if(screen==='onboarding' && connection && !deletionFrozen) return <View style={{flex:1}}><AppBackdrop/><NativeSyncSession connection={connection} isCurrent={()=>current.current===connection} onRecordsChanged={()=>{void synchronize(current.current,false);}}/><SafeAreaView style={{flex:1,backgroundColor:'transparent'}}><StatusBar style={mode==='night'?'light':'dark'}/><OnboardingPanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')} connection={connection} outfit={wardrobe.state.outfit} isCurrent={()=>current.current===connection&&!deletionFrozen} onComplete={destination=>{if(current.current===connection){onboardingSeen.current=connection;setBriefingIntro(destination==='briefing');setScreen(destination||'today');}}} onClose={()=>{if(current.current===connection){onboardingSeen.current=connection;setScreen(onboardingReturn.current);}}}/></SafeAreaView></View>;
   return <View style={{flex:1}}><AppBackdrop/>
     {connection && !deletionFrozen && <><NativeActionSession connection={connection}/><NativeSyncSession connection={connection} isCurrent={()=>current.current===connection} onRecordsChanged={()=>{void synchronize(current.current,false);}}/></>}
     {connection&&connected?<NativeNotificationSession connection={connection}/>:null}

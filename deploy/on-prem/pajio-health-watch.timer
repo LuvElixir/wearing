@@ -1,0 +1,11 @@
+[Unit]
+Description=Observe Pajio infrastructure every two minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+AccuracySec=5s
+Unit=pajio-health-watch.service
+
+[Install]
+WantedBy=timers.target

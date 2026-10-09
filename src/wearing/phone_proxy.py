@@ -18,11 +18,28 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 
 try:
+    from .android import adb_path
     from .mobile import TOOLS, registry, read_capabilities, u2_python, u2_installed
     from .device_gateway import DeviceGateway, GatewayError, action_lock_path
+    from .mcp_server import create_server
 except ImportError:
+    from android import adb_path
     from mobile import TOOLS, registry, read_capabilities, u2_python, u2_installed
     from device_gateway import DeviceGateway, GatewayError, action_lock_path
+    from mcp_server import create_server
+
+
+def tool_schema(tool):
+    return tool.model_dump(mode="json", by_alias=True)["inputSchema"]
+
+
+def tool_failed(result):
+    return result.model_dump(mode="json", by_alias=True).get("isError", False)
+
+
+def mark_failed(result):
+    field = "isError" if "isError" in type(result).model_fields else "is_error"
+    setattr(result, field, True)
 
 
 class DeviceBusy(Exception):
@@ -111,10 +128,10 @@ def record_capability(data_dir, rid, capability):
 
 def normalize_result(result):
     if any(isinstance(c, types.TextContent) and c.text.endswith("Please fix the issue and try again.") for c in result.content):
-        result.is_error = True
+        mark_failed(result)
     for content in result.content:
         if isinstance(content, types.TextContent) and content.text.startswith("Non-ASCII text is not supported on Android"):
-            result.is_error = True
+            mark_failed(result)
             content.text = "此基础输入通道没有输入中文。请读取当前输入框，使用 mobile_set_text 填写中文并核对结果。"
     return result
 
@@ -136,7 +153,7 @@ def stamp_observation(result, name, ids):
                     data["_wearing_observation"] = meta
                     block.text = json.dumps(data, ensure_ascii=False)
                     return result
-    data = {"_wearing_observation": meta, "ok": not result.is_error}
+    data = {"_wearing_observation": meta, "ok": not tool_failed(result)}
     if name == "mobile_take_screenshot":
         data["ok"] = bool(data["ok"] and any(isinstance(c, types.ImageContent) for c in result.content))
     result.content.insert(0, types.TextContent(type="text", text=json.dumps(data, ensure_ascii=False)))
@@ -144,7 +161,7 @@ def stamp_observation(result, name, ids):
 
 
 def scoped_schema(tool):
-    schema = json.loads(json.dumps(tool.input_schema))
+    schema = json.loads(json.dumps(tool_schema(tool)))
     properties = schema.setdefault("properties", {})
     properties.pop("device", None)
     properties.pop("locale", None)
@@ -154,14 +171,14 @@ def scoped_schema(tool):
     if tool.name == "mobile_type_keys":
         description += " 英文和数字输入。中文请读取输入框后使用 mobile_set_text；不要用拼音代替用户指定文字。"
     return types.Tool(name=tool.name, description="操作指定的 Pajio 手机资源。" + description,
-                      input_schema=schema, annotations=tool.annotations)
+                      inputSchema=schema, annotations=tool.annotations)
 
 
 def extra_schemas():
     return [types.Tool(name="mobile_list_devices", description="列出已接入 Pajio 的手机、在线与暂停状态。先选明确的 resource_id；用户没有指明且存在多台可用手机时，先澄清。离线或暂停不可改用另一台。",
-                      input_schema={"type": "object", "properties": {}, "additionalProperties": False}),
+                      inputSchema={"type": "object", "properties": {}, "additionalProperties": False}),
             types.Tool(name="mobile_set_text", description="替换当前聚焦的 Android 原生输入框全文，支持中文。先读取当前界面，将刚观察的原文字传入 expected_text；本工具核对旧值、单次填写并读回校验，不点击提交。密码框、无稳定标识的输入框不支持。失败或未知时重新观察，不盲目重试。",
-                       input_schema={"type": "object", "properties": {
+                       inputSchema={"type": "object", "properties": {
                            "resource_id": {"type": "string"}, "text": {"type": "string", "maxLength": 12000},
                            "expected_text": {"type": "string", "maxLength": 12000}},
                            "required": ["resource_id", "text", "expected_text"], "additionalProperties": False})]
@@ -186,9 +203,23 @@ async def run_child(command, env, payload=None, timeout=15):
 
 
 async def device_states(data_dir, env):
-    adb = data_dir / "runtime/android/platform-tools" / ("adb.exe" if os.name == "nt" else "adb")
-    output = (await run_child([str(adb), "devices"], env)).decode("utf-8", "replace")
+    adb = env.get("ADBUTILS_ADB_PATH") or adb_path(data_dir / "runtime")
+    if not adb:
+        raise ValueError("手机连接组件尚未就绪，请先安装 Android 工具。")
+    output = (await run_child([adb, "devices"], env)).decode("utf-8", "replace")
     return {parts[0]: parts[1] for line in output.splitlines() if len(parts := line.split()) == 2 and parts[1] in ("device", "offline", "unauthorized")}
+
+
+def driver_environment(data_dir):
+    # Reuse the same resolver as NativeAdapter availability: execution guests
+    # use the operator-installed system ADB; local clients may use the SDK.
+    adb = adb_path(data_dir / "runtime")
+    if not adb:
+        raise ValueError("手机连接组件尚未就绪，请先安装 Android 工具。")
+    env = {k: v for k, v in os.environ.items() if k in ("HOME", "USERPROFILE", "SystemRoot", "TEMP", "TMP", "TMPDIR", "PATH", "LANG")}
+    env.update(MOBILEMCP_DISABLE_TELEMETRY="1", MOBILEMCP_LEGACY_ROBOT="1", ADBUTILS_ADB_PATH=adb,
+               PATH=str(Path(adb).parent) + os.pathsep + env.get("PATH", ""))
+    return env
 
 
 async def native_input(data_dir, config, args, env):
@@ -201,7 +232,7 @@ async def native_input(data_dir, config, args, env):
     result = json.loads(output)
     if result.get("input_readback_verified"):
         record_capability(data_dir, args["resource_id"], "native_text_readback")
-    return types.CallToolResult(is_error=not result.get("ok"), content=[types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))])
+    return types.CallToolResult(isError=not result.get("ok"), content=[types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))])
 
 
 async def read_screen(client, args, data_dir, config, env):
@@ -211,14 +242,14 @@ async def read_screen(client, args, data_dir, config, env):
         payload = json.dumps({"serial": config["serial"], "operation": "observe"}).encode()
         output = await run_child([str(u2_python(data_dir / "runtime")), str(Path(__file__).with_name("android_text.py"))], env, payload, timeout=15)
         observed = json.loads(output)
-        return types.CallToolResult(is_error=not observed.get("ok"), content=[types.TextContent(type="text", text=json.dumps(observed, ensure_ascii=False))])
+        return types.CallToolResult(isError=not observed.get("ok"), content=[types.TextContent(type="text", text=json.dumps(observed, ensure_ascii=False))])
     # The legacy driver's own retry loop can outlive a cancelled MCP request.
     # Never start UiAutomator2 after timing that request out: both would own
     # Android's UI automation channel at once. Ask for a screenshot instead.
     try:
         return normalize_result(await asyncio.wait_for(client.call_tool("mobile_list_elements_on_screen", args), timeout=20))
     except asyncio.TimeoutError:
-        return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text="界面读取超时，请使用截图观察。")])
+        return types.CallToolResult(isError=True, content=[types.TextContent(type="text", text="界面读取超时，请使用截图观察。")])
 
 
 async def guarded_phone_action(resource_id, operation, gateway=None):
@@ -233,10 +264,7 @@ async def guarded_phone_action(resource_id, operation, gateway=None):
 async def serve(data_dir):
     installed = json.loads((data_dir / "runtime/mobile/installed.json").read_text())
     registry(data_dir)  # Validate before starting any driver.
-    adb_dir = data_dir / "runtime/android/platform-tools"
-    env = {k: v for k, v in os.environ.items() if k in ("HOME", "USERPROFILE", "SystemRoot", "TEMP", "TMP", "TMPDIR", "PATH", "LANG")}
-    env.update(MOBILEMCP_DISABLE_TELEMETRY="1", MOBILEMCP_LEGACY_ROBOT="1", ADBUTILS_ADB_PATH=str(adb_dir / ("adb.exe" if os.name == "nt" else "adb")),
-               PATH=str(adb_dir) + os.pathsep + env.get("PATH", ""))
+    env = driver_environment(data_dir)
     async with AsyncExitStack() as stack:
         error_log = stack.enter_context(open(os.devnull, "w"))
         incoming, outgoing = await stack.enter_async_context(stdio_client(StdioServerParameters(
@@ -291,28 +319,28 @@ async def serve(data_dir):
                 # A takeover fences even an observation which started before
                 # the handoff. Never return its pixels/text to the model.
                 result = stamp_observation(result, name, ids)
-                receipt(data_dir, name, "tool_error" if result.is_error else "returned_unverified", time.monotonic() - started, **ids)
+                receipt(data_dir, name, "tool_error" if tool_failed(result) else "returned_unverified", time.monotonic() - started, **ids)
                 return result
             except asyncio.CancelledError:
                 receipt(data_dir, name, "unknown", time.monotonic() - started, **ids)
                 raise
             except DeviceBusy:
                 receipt(data_dir, name, "busy", time.monotonic() - started, **ids)
-                return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text="这部手机正由另一项操作使用，请稍后重试。")])
+                return types.CallToolResult(isError=True, content=[types.TextContent(type="text", text="这部手机正由另一项操作使用，请稍后重试。")])
             except GatewayError:
                 receipt(data_dir, name, "unknown", time.monotonic() - started, **ids)
-                return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text="这部手机已由本人接管或暂停，画面与操作不可继续。请等待本人明确交还；不要重新观察或重试动作。")])
+                return types.CallToolResult(isError=True, content=[types.TextContent(type="text", text="这部手机已由本人接管或暂停，画面与操作不可继续。请等待本人明确交还；不要重新观察或重试动作。")])
             except ValueError as error:
                 receipt(data_dir, name, "blocked", time.monotonic() - started, **ids)
-                return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text=str(error))])
+                return types.CallToolResult(isError=True, content=[types.TextContent(type="text", text=str(error))])
             except Exception:
                 receipt(data_dir, name, "unknown", time.monotonic() - started, **ids)
-                return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text="手机操作未得到完整结果，请先重新观察屏幕。不要自动重复点击或输入。")])
+                return types.CallToolResult(isError=True, content=[types.TextContent(type="text", text="手机操作未得到完整结果，请先重新观察屏幕。不要自动重复点击或输入。")])
             finally:
                 if guard:
                     guard.release()
 
-        server = Server("wearing-phone", on_list_tools=list_tools, on_call_tool=call_tool)
+        server = create_server("wearing-phone", list_tools, call_tool)
         read, write = await stack.enter_async_context(stdio_server())
         await server.run(read, write, server.create_initialization_options())
 

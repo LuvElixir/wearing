@@ -132,7 +132,8 @@ def adapter_class():
                 if change.get("action") == "set_enabled":
                     result = set_memory_enabled(Path(os.environ["HERMES_HOME"]), change)
                 else:
-                    result = mutate_memory(load_on_disk_store(), change, _scan_memory_content, ENTRY_DELIMITER)
+                    result = mutate_memory(load_on_disk_store(), change, _scan_memory_content, ENTRY_DELIMITER,
+                                           home=Path(os.environ["HERMES_HOME"]))
                 if not result.get("success"):
                     return web.json_response({"error": result.get("error", "记忆没有改动，请刷新后重试。")}, status=result.get("status", 409))
                 snapshot = memory_snapshot()
@@ -141,7 +142,7 @@ def adapter_class():
                     toolsets = load_config_readonly().get("platform_toolsets", {}).get("api_server", [])
                     self.memory_tools = (["memory"] if "memory" in toolsets and any(t["enabled"] for t in snapshot["targets"].values()) else []) + (["session_search"] if "session_search" in toolsets else [])
                 return web.json_response(snapshot)
-            except (OSError, ValueError):
+            except (OSError, ValueError, RuntimeError):
                 return web.json_response({"error": "记忆暂时无法保存，请重新读取后核对。"}, status=503)
 
         def _make_profile_prefix_middleware(self):
@@ -183,7 +184,11 @@ def adapter_class():
             data["wearing"]["computer_tools"] = ["computer_use"] if self.computer_enabled else []
             data["wearing"]["file_tools"] = self.file_tools
             data["wearing"]["phone_tools"] = self.phone_tools
-            data["wearing"]["remote_device_tools"] = self.remote_tools
+            # The first enrollment (and later device kinds/permission changes)
+            # updates the upstream registry through MCP tools/list_changed.
+            from tools.registry import registry
+            data["wearing"]["remote_device_tools"] = sorted(entry.name for entry in registry.get_all_entries()
+                if entry.name.startswith("mcp__wearing_devices__") and entry.toolset == "mcp-wearing_devices")
             data["wearing"]["life_tools"] = self.life_tools
             data["wearing"]["web_tools"] = self.web_tools
             data["wearing"]["planning_tools"] = self.planning_tools
@@ -211,9 +216,9 @@ def memory_snapshot():
                 raise ValueError("Unsafe or oversized memory file")
             path.read_text(encoding="utf-8")
     try:
-        from .memory_controls import revision, settings_snapshot
+        from .memory_controls import revision, settings_snapshot, memory_history
     except ImportError:
-        from memory_controls import revision, settings_snapshot
+        from memory_controls import revision, settings_snapshot, memory_history
     _, settings_revision = settings_snapshot(Path(os.environ["HERMES_HOME"]))
     store = load_on_disk_store()
     return {"available": True, "observed_at": datetime.now(timezone.utc).isoformat(),
@@ -222,7 +227,9 @@ def memory_snapshot():
                                  "revision": revision(store._entries_for(target)),
                                  "used_chars": store._char_count(target),
                                  "limit_chars": store._char_limit(target),
-                                 "settings_revision": settings_revision} for target in ("user", "memory")}}
+                                 "settings_revision": settings_revision,
+                                 "history": memory_history(Path(os.environ["HERMES_HOME"]), target,
+                                                           store._entries_for(target), enabled=store.target_enabled(target))} for target in ("user", "memory")}}
 
 
 async def serve():
@@ -280,7 +287,7 @@ async def serve():
             from tools.mcp_tool_discovery import discover_mcp_tools
             discovered = await asyncio.to_thread(discover_mcp_tools, ["wearing_devices"])
             adapter.remote_tools = [name for name in discovered if name.startswith("mcp__wearing_devices__")]
-            if not any(name.endswith("__wearing_list_devices") for name in adapter.remote_tools):
+            if adapter.remote_tools and not any(name.endswith("__wearing_list_devices") for name in adapter.remote_tools):
                 raise RuntimeError("Pajio remote connector did not expose its inventory tool")
         if "wearing_life" in toolsets:
             from tools.mcp_tool_discovery import discover_mcp_tools

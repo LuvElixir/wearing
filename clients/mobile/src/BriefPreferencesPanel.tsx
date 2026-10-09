@@ -9,12 +9,12 @@ import {BriefAutomationPanel} from './BriefAutomationPanel';
 import {serviceFetch} from './transport';
 import {BriefPreferenceApi, BriefPreferences, BriefSettings, PreferenceChanges, PreferenceRequest, PreferenceValues, preferenceValues, sourceAvailabilityLabel} from './briefing-preferences';
 
-type Props = {connection: Connection; onChange: (preferences: BriefPreferences) => void; isCurrent?: () => boolean};
+type Props = {connection: Connection; onChange: (preferences: BriefPreferences) => void; isCurrent?: () => boolean; showSourceSummary?: boolean};
 const defaults: PreferenceValues = {interests: [], priorities: '', sources: ['event', 'task', 'note', 'files'], max_items: 3};
 export default function BriefPreferencesPanel(props: Props) {
   return <Preferences key={`${scopeOf(props.connection)}|${props.connection.session?.credentialId || ''}`} {...props}/>;
 }
-function Preferences({connection, onChange, isCurrent}: Props) {
+function Preferences({connection, onChange, isCurrent, showSourceSummary}: Props) {
   const {colors: c} = useAppTheme();
   const api = useMemo(() => new BriefPreferenceApi(connection, serviceFetch), [connection]);
   const changes = useMemo(() => new PreferenceChanges(storage, api), [api]);
@@ -74,6 +74,7 @@ function Preferences({connection, onChange, isCurrent}: Props) {
     <TactilePressable accessibilityRole="button" accessibilityLabel={expanded ? '收起简报偏好' : '设置兴趣、关注重点与简报来源'} onPress={() => setExpanded(value => !value)} style={{minHeight: 44, justifyContent: 'center'}}>
       <Text style={{...text, fontWeight: '600'}}>简报偏好 {expanded ? '−' : '+'}</Text><Text style={muted}>{settings ? `${settings.preferences.sources.length} 个来源 · 最多 ${settings.preferences.max_items} 项重点 · 设置版本 ${settings.preferences.revision}` : '兴趣、关注重点与资料范围'}</Text>
     </TactilePressable>
+    {showSourceSummary && !expanded && settings ? <View style={{gap:8}}><Text style={muted}>本次可用来源</Text>{settings.available_sources.filter(source=>source.selected).map(source=><View key={source.id}><Text style={text}>{source.label}</Text><Text style={muted}>{sourceAvailabilityLabel(source)}</Text></View>)}<Text style={muted}>点生成后才开始整理；不足的部分会在结果里说明。</Text></View> : null}
     {expanded ? <>
       <Text style={text}>感兴趣的主题</Text><Text style={muted}>每行一个，最多 8 项。例如产品设计、正在学习的领域。</Text>
       <TextInput multiline accessibilityLabel="简报兴趣，每行一个" editable={!disabled && !!settings} value={interests} onChangeText={setInterests} maxLength={487} placeholder="每行一个主题" placeholderTextColor={c.muted} style={input}/>

@@ -1,0 +1,26 @@
+{
+  "source": "scrcpy-h264",
+  "fps_limit": 24.0,
+  "available": true,
+  "first_frame_ms": 372,
+  "dimensions": [
+    720,
+    1280
+  ],
+  "unique_frames": 85,
+  "different_images": 78,
+  "interval_seconds": 5.012,
+  "measured_decoded_fps": 16.96,
+  "process_exited": true,
+  "decoder_thread_stopped": true,
+  "latest_frame_cleared": true,
+  "own_forward_removed": true,
+  "own_server_file_removed": true,
+  "cleanup_followup": {
+    "all_pajio_scrcpy_server_files_absent": true,
+    "scrcpy_server_process_absent": true,
+    "socket_client_process_absent": true,
+    "private_ime_process_absent": true,
+    "method": "ADB ls exit status and ps following close; no concurrent capture"
+  }
+}

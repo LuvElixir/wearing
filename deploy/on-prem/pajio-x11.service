@@ -1,0 +1,20 @@
+[Unit]
+Description=Pajio isolated X11 display
+
+[Service]
+Type=exec
+Environment=DISPLAY=:10
+Environment=XDG_SESSION_TYPE=x11
+Environment=XAUTHORITY=%t/pajio-x11/Xauthority
+RuntimeDirectory=pajio-x11
+RuntimeDirectoryMode=0700
+ExecStart=/opt/pajio-native/start-x11.sh
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=yes
+StandardOutput=null
+StandardError=journal
+
+[Install]
+WantedBy=default.target

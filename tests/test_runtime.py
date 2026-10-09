@@ -95,6 +95,30 @@ async def test_model_login_is_required_before_launching_gateway(tmp_path, monkey
     assert runtime.process is None
 
 
+@pytest.mark.parametrize('local_devices', [False, True])
+async def test_valid_cloud_runtime_connects_remote_discovery_before_first_enrollment(tmp_path, monkeypatch, local_devices):
+    from wearing.cloud.instance import initialize_instance
+    root=tmp_path/'instance'
+    initialize_instance(root,'tenant_test','http://127.0.0.1:18865')
+    runtime=HermesRuntime(root/'data',local_devices=local_devices)
+    assert not (root/'data/remote-devices.json').exists()
+    monkeypatch.setattr(runtime,'status',lambda:{'installed':True})
+    async def model_ready(force=False):return {'state':'ready'}
+    monkeypatch.setattr(runtime,'inspect_model',model_ready)
+    profiles=[]
+    class StopBeforeLaunch(Exception):pass
+    def capture(*args,**kwargs):
+        profiles.append(args[5]);raise StopBeforeLaunch()
+    monkeypatch.setattr('wearing.runtime.prepare_profile',capture)
+    with pytest.raises(StopBeforeLaunch):await runtime.start()
+    remote=profiles[0]
+    if local_devices:assert remote is None
+    else:
+        assert remote['args'][-2:]==[str(root),'daily']
+        assert remote['args'][0].endswith('remote_proxy.py')
+    assert runtime.process is None
+
+
 def test_stopping_owned_process_exits_and_does_not_touch_unrelated_process():
     child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
     unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])

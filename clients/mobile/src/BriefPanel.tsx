@@ -14,12 +14,12 @@ import {wallClock, wallTimeToInstant} from './ongoing-management-forms';
 import BriefPreferencesPanel from './BriefPreferencesPanel';
 import {sourceAvailabilityLabel} from './briefing-preferences';
 
-type Props = {connection: Connection; onTask: (id: string) => void; onArtifact: (id: string) => void; onBack?: () => void; isCurrent?: () => boolean};
+type Props = {connection: Connection; onTask: (id: string) => void; onArtifact: (id: string) => void; onBack?: () => void; isCurrent?: () => boolean; firstRun?: boolean};
 const message = (cause: unknown) => cause instanceof Error ? cause.message : '暂时没有完成，请稍后再试。';
 const pendingKey = (scope: string) => `briefing-request:${scope}`;
 export default function BriefPanel(props: Props) {return <BriefSession key={`${scopeOf(props.connection)}|${props.connection.session?.credentialId || ''}`} {...props}/>;}
 
-function BriefSession({connection, onTask, onArtifact, onBack, isCurrent}: Props) {
+function BriefSession({connection, onTask, onArtifact, onBack, isCurrent, firstRun}: Props) {
   const {colors: c, mode} = useAppTheme(), s = useThemedStyles(makeStyles);
   const api = useMemo(() => new BriefingApi(connection, serviceFetch), [connection]);
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai');
@@ -99,11 +99,12 @@ function BriefSession({connection, onTask, onArtifact, onBack, isCurrent}: Props
     } finally {current.busy = false; if (current.live) setSaving(false);}
   };
   const latest = items[0], displayed = items.find(item => item.id === selected) || latest;
-  const createLabel = pending ? '取回上次生成回执' : latest?.state === 'not_started' ? '继续准备原简报' : latest ? '重新整理一版' : '生成这一天的图文简报';
+  const createLabel = pending ? '取回上次生成回执' : latest?.state === 'not_started' ? '继续准备原简报' : latest ? '重新整理一版' : firstRun ? '整理我的第一份简报' : '生成这一天的图文简报';
   return <View style={s.stack}>
     {onBack ? <TactilePressable accessibilityLabel="返回今天" onPress={onBack} disabled={saving} style={s.back}><ArrowLeft size={18} color={c.ink}/><Text style={s.link}>今天</Text></TactilePressable> : null}
     <View style={s.header}><View><Text accessibilityRole="header" style={s.title}>每日简报</Text><Text style={s.secondary}>把已知的事，整理成清楚的一页。</Text></View><TactilePressable accessibilityLabel="刷新简报状态" onPress={refresh} disabled={loading || saving} style={s.round}>{loading ? <ActivityIndicator color={c.muted}/> : <RefreshCw size={20} color={c.ink}/>}</TactilePressable></View>
-    <BriefPreferencesPanel connection={connection} isCurrent={isCurrent} onChange={value => setPreferencesRevision(value.revision)}/>
+    {firstRun && !displayed && <Text style={s.secondary}>你的初始选择已保存。先核对下面可用的资料，再点生成；没有资料也可以稍后回来，不需要补写一段自我介绍。</Text>}
+    <BriefPreferencesPanel connection={connection} isCurrent={isCurrent} showSourceSummary={firstRun} onChange={value => setPreferencesRevision(value.revision)}/>
     <TactilePressable accessibilityLabel={'选择简报日期，' + date} disabled={saving || restoring} onPress={() => {setPickerDate(date); setPicker(value => !value);}} style={s.date}><CalendarDays size={19} color={c.accent}/><Text style={s.label}>{date}</Text><Text style={s.caption}>{timezone}</Text></TactilePressable>
     {picker ? <View><DateTimePicker value={new Date(wallTimeToInstant(pickerDate, '12:00', timezone))} mode="date" timeZoneName={timezone} locale="zh-CN" themeVariant={mode === 'night' ? 'dark' : 'light'} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(event, value) => {
       if (Platform.OS !== 'ios') setPicker(false);

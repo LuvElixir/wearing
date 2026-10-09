@@ -6,6 +6,7 @@ neither a request body nor a client flag can enable private device access.
 """
 from fastapi import HTTPException, Request
 from pydantic import Field
+from typing import Literal
 
 from .cloud.commands import Identifier, Record
 from .cloud.relay import RelayError
@@ -25,6 +26,11 @@ class SessionAccess(Record):
 class ReturnAccess(SessionAccess):
     safe_screen_confirmed: bool = Field(strict=True)
     scope_confirmed: bool = Field(strict=True)
+
+
+class MediaOffer(SessionAccess):
+    type: Literal['offer']
+    sdp: str = Field(min_length=4, max_length=65536)
 
 
 ERROR_COPY = {
@@ -83,3 +89,29 @@ def install_device_access_routes(app, relay_provider, *, local_devices=True):
     @app.post('/api/devices/access/{resource_id}/return')
     def give_back(request: Request, resource_id: Identifier, body: ReturnAccess):
         return invoke('return_human', request, resource_id, **body.model_dump())
+
+    @app.get('/api/devices/access/{resource_id}/transport')
+    def media_transport(request: Request, resource_id: Identifier):
+        from .private_media_access import transport
+        identity, actor = context(request)
+        if local_devices:
+            raise HTTPException(409, '当前入口尚未配置私密远程接入。')
+        try:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(transport(relay_provider(), identity, actor, resource_id),
+                                headers={'Cache-Control': 'no-store'})
+        except RelayError as error:
+            raise HTTPException(error.status, ERROR_COPY.get(error.code, '远程画面尚未就绪，请重新连接。')) from None
+
+    @app.post('/api/devices/access/{resource_id}/offer')
+    async def media_offer(request: Request, resource_id: Identifier, body: MediaOffer):
+        from .private_media_access import offer
+        identity, actor = context(request)
+        if local_devices:
+            raise HTTPException(409, '当前入口尚未配置私密远程接入。')
+        try:
+            from fastapi.responses import JSONResponse
+            answer = await offer(relay_provider(), identity, actor, resource_id, **body.model_dump())
+            return JSONResponse(answer, headers={'Cache-Control': 'no-store'})
+        except RelayError as error:
+            raise HTTPException(error.status, ERROR_COPY.get(error.code, '远程画面尚未就绪，请重新连接。')) from None

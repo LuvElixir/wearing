@@ -179,7 +179,7 @@ def test_nondefault_memory_workspace_are_isolated_and_result_bodies_verified(boo
     raw = b'<html>project result</html>'
     aid = 'art_' + 'c' * 32
     with book.store.connection() as db:
-        db.execute('INSERT INTO artifacts VALUES(?,?,?,?,?,?,?,?,?,?,?)', (aid, other, task['id'], 'run', 'request', 'fp', json.dumps({'title': 'project result'}), raw, hashlib.sha256(raw).hexdigest(), None, now()))
+        db.execute('INSERT INTO artifacts(id,identity_id,task_id,run_id,request_key,fingerprint,metadata,html,sha256,previous_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)', (aid, other, task['id'], 'run', 'request', 'fp', json.dumps({'title': 'project result'}), raw, hashlib.sha256(raw).hexdigest(), None, now()))
     receipt = book.create(other, 'test_request_key_001')
     files = unzip(book, other, receipt)
     assert files['memory/USER.md'] == b'other own memory'

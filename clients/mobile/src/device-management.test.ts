@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ApiError, type Connection} from './core';
-import {DeviceManagementApi, approvalDescription, canDecide, deviceStatus, parseCloudDevice, parseDeviceOffer, selectedDeviceOffer,
+import {DeviceManagementApi, approvalDescription, canDecide, deviceCapabilityLabels, deviceStatus, parseCloudDevice, parseDeviceOffer, selectedDeviceOffer,
   type CloudDevice, type DeviceApproval, type DeviceOffer, type DeviceReview, type PairingIntent, type PermissionIntent} from './device-management';
 
 const connection: Connection = {endpoint: 'https://device-tests.invalid', identity: 'test_identity'};
@@ -30,6 +30,11 @@ function harness(replies: (() => Response | Promise<Response>)[], selected = con
   return {api, calls};
 }
 const status = (expected: number) => (cause: unknown) => cause instanceof ApiError && cause.status === expected;
+test('device capability labels describe declared methods without inventing apps or writable access', () => {
+  assert.deepEqual(deviceCapabilityLabels(device({methods:['computer.observe','computer.status']})), ['查看屏幕']);
+  assert.deepEqual(deviceCapabilityLabels(device({kind:'android',methods:['phone.mobile_list_apps','phone.mobile_take_screenshot']})), ['查看屏幕','查看已安装应用']);
+  assert.deepEqual(deviceCapabilityLabels(device({methods:['future_unknown_capability']})), []);
+});
 
 test('manifest import strips resource metadata and rejects executable top-level data, duplicate resources and empty scopes', () => {
   const parsed = parseDeviceOffer({...manifest, resources: [{...manifest.resources[0], script: 'never execute this', methods: ['computer.status', 'computer.status']}]});

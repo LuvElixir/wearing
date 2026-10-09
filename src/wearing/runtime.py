@@ -537,16 +537,15 @@ class HermesRuntime:
             self.prepare_home()
             try:
                 remote = None
-                if not self.local_devices and (self.data_dir / "remote-devices.json").exists():
-                    from .cloud.instance import load_instance, read_private
-                    enabled = json.loads(read_private(self.data_dir / "remote-devices.json"))
-                    if enabled == {"schema_version": 1, "enabled": True}:
-                        load_instance(self.data_dir.parent)
-                        # This outbox client runs in Pajio's environment, rather than mixing
-                        # its SDK/dependencies into the separately managed Hermes interpreter.
-                        remote = {"command": sys.executable, "args": [str(Path(__file__).with_name("remote_proxy.py")),
-                                  str(self.data_dir.parent), self.identity_id], "timeout": 180,
-                                  "elicitation": {"enabled": True, "timeout": 90}}
+                if not self.local_devices:
+                    from .cloud.instance import load_instance
+                    load_instance(self.data_dir.parent)
+                    # Keep discovery connected before the first enrollment. The proxy
+                    # checks the private enable flag on every list/call; tools/list_changed
+                    # updates Hermes' registry without restarting an active task.
+                    remote = {"command": sys.executable, "args": [str(Path(__file__).with_name("remote_proxy.py")),
+                              str(self.data_dir.parent), self.identity_id], "timeout": 180,
+                              "elicitation": {"enabled": True, "timeout": 90}}
                 self.profile = prepare_profile(self.home, self.source, filesystem_configuration(self.root, self.workspace),
                                                mobile.configuration(self.root, self.python) if self.local_devices and self.identity_id == DEFAULT_IDENTITY else None,
                                                self.local_devices and self.identity_id == DEFAULT_IDENTITY and computer.enrolled(self.data_dir), remote,

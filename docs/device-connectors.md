@@ -80,3 +80,11 @@ wearing tenant revoke-device --root /var/lib/wearing/instance --connector-id con
 后续需接公开登录/网页云端路由、设备配对和接管界面、电脑输入审批、正式 Mac/Windows 安装与更新、设备凭据轮换、回执/画面的保留策略和跨天故障恢复。Windows/iPhone、其他 Android 品牌及大量设备没有因此变成已验收。电话、邮箱、支付/收款资源也仍未取得或接通。
 
 验收记录见 [S2 真实设备证据](evidence/remote-device-2026-10-03.md)。
+
+## 2026-10-10：首次接入后的工具发现
+
+合法私有云实例在引擎启动时即连接设备 MCP。尚无 `remote-devices.json`、配置禁用/损坏/权限不安全时，工具列表为空，缓存的工具调用也拒绝；配对本身不会越过这个独立开关。每次列工具和调用都会重新读取私有授权文件。
+
+首次启用、增加电脑或手机种类、权限变化会通过 `tools/list_changed` 更新同一个 Hermes 进程的注册表。下一轮模型调用使用当前工具目录；默认工具搜索模式可能把设备函数收进 `tool_search` / `tool_describe` / `tool_call`，不会因此丢失设备能力。现有任务不因配对被重启。每条动作仍经 relay 的身份、资源、方法和接管状态校验。
+
+`test_remote_mcp_engine.py` 使用真正安装的固定 Hermes 解释器，覆盖无授权启动、启用、电脑与手机先后加入、禁用/重启用，在同一 MCP 连接中核对模型工具搜索和描述结果；`test_engine_integration.py` 另验真实引擎 HTTP 能力目录随之更新。这些测试不调用模型、不触碰真实设备，实际模型和设备回执仍须单独验收。

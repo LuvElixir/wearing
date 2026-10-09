@@ -10,10 +10,15 @@ import sys
 
 def main():
     source, action = Path(sys.argv[1]).resolve(), sys.argv[2]
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     sys.path.insert(0, str(source))
     from tools.bot_desktop import lease
     if action == "status":
-        from tools.computer_use.permissions import computer_use_status
+        if sys.platform.startswith('linux'):
+            from wearing.linux_computer import LinuxComputerBackend
+            computer_use_status = LinuxComputerBackend().status
+        else:
+            from tools.computer_use.permissions import computer_use_status
         value = computer_use_status()
         executable = (value.get("source") or {}).get("executable")
         if executable and sys.platform == "darwin":
@@ -31,6 +36,9 @@ def main():
             current = lease.get()
         print(json.dumps(lease.public_view(current)))
     elif action == "install":
+        if sys.platform.startswith('linux'):
+            from wearing.linux_computer import LinuxComputerBackend
+            sys.exit(0 if LinuxComputerBackend().status().get('ready') else 1)
         from hermes_cli.tools_config_cua import install_cua_driver
         sys.exit(0 if install_cua_driver() else 1)
     elif action == "permissions":

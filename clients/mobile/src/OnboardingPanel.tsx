@@ -14,7 +14,7 @@ import {storage} from './storage';
 import {serviceFetch} from './transport';
 import type {OutfitId} from './wardrobe';
 
-type Props={connection:Connection;outfit:OutfitId;isCurrent:()=>boolean;onComplete:()=>void;onClose:()=>void};
+type Props={connection:Connection;outfit:OutfitId;isCurrent:()=>boolean;onComplete:(destination?:'today'|'briefing')=>void;onClose:()=>void};
 const steps=['见个面','你的日常','常用应用','兴趣与表达','带上资料','确认偏好'];
 export default function OnboardingPanel(props:Props){return <Content key={scopeOf(props.connection)+'|'+(props.connection.session?.credentialId||'local')} {...props}/>;}
 function Content({connection,outfit,isCurrent,onComplete,onClose}:Props){
@@ -22,6 +22,7 @@ function Content({connection,outfit,isCurrent,onComplete,onClose}:Props){
   const [snapshot,setSnapshot]=useState<OnboardingSnapshot|null>(null),[values,setValues]=useState<OnboardingValues>(emptyOnboarding),[step,setStep]=useState(0);
   const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[pending,setPending]=useState(false),[conflict,setConflict]=useState(false),[branch,setBranch]=useState(false),[localConflict,setLocalConflict]=useState(false);
   const locked=useRef(false),fields=useRef({values,step});
+  const destination=useRef<'today'|'briefing'>('today');
   const [session]=useState(()=>new OnboardingActivity(()=>isCurrent()&&accountWorkAllowed(connection)));
   const active=session.active;
   const [api]=useState(()=>new OnboardingApi(connection,serviceFetch,active));
@@ -61,7 +62,7 @@ function Content({connection,outfit,isCurrent,onComplete,onClose}:Props){
     try{
       const receipt=await changes.save(retry?undefined:{revision:snapshot.revision,request_key:Crypto.randomUUID(),status,step:nextStep,values:status==='skipped'?emptyOnboarding():values});
       if(!active())return;setSnapshot(receipt);setPending(false);setValues(receipt.values);setStep(receipt.step);
-      if(receipt.status==='completed'||receipt.status==='skipped')onComplete();
+      if(receipt.status==='completed'||receipt.status==='skipped')onComplete(receipt.status==='skipped'?'today':destination.current);
     }catch(cause){if(active()){const unresolved=await changes.pending().catch(()=>null);if(active()){setError(onboardingIssue(cause));setPending(!!unresolved);setConflict(cause instanceof ApiError&&cause.status===409);}}}
     finally{locked.current=false;if(active())setBusy(false);}
   };
@@ -113,7 +114,8 @@ function Content({connection,outfit,isCurrent,onComplete,onClose}:Props){
       </Entrance>}
     </ScrollView>
     {snapshot&&!loading&&!branch?<View style={s.footer}>
-      <PrimaryButton label={step===0?'开始认识':step===5?'确认并进入 Pajio':'继续'} leading={step===5?<Check size={18} color={c.onAccent}/>:<ArrowRight size={18} color={c.onAccent}/>} disabled={disabled} loading={busy} onPress={()=>void save(step===5?'completed':'draft',Math.min(5,step+1))}/>
+      <PrimaryButton label={step===0?'开始认识':step===5?'保存偏好，查看今日安排':'继续'} leading={step===5?<Check size={18} color={c.onAccent}/>:<ArrowRight size={18} color={c.onAccent}/>} disabled={disabled} loading={busy} onPress={()=>{destination.current='today';void save(step===5?'completed':'draft',Math.min(5,step+1));}}/>
+      {step===5?<PrimaryButton label="保存偏好，准备一份简报" tone="quiet" disabled={disabled} onPress={()=>{destination.current='briefing';void save('completed',5);}}/>:null}
       {step===0&&snapshot.status==='draft'?<TactilePressable disabled={busy||pending||localConflict} accessibilityLabel="跳过初始设置，进入产品" onPress={()=>void save('skipped',0)} style={s.skip}><Text style={s.copy}>先进去看看</Text></TactilePressable>:step>0&&step<4&&!(step===1?values.roles.length:step===2?values.apps.length:values.interests.length||values.reply_detail||values.reply_tone)?<TactilePressable disabled={disabled} accessibilityLabel="这一项暂时不补充" onPress={()=>void save('draft',step+1)} style={s.skip}><Text style={s.copy}>这一项暂时不补充</Text></TactilePressable>:<Text style={[s.caption,{textAlign:'center'}]}>当前身份的选择 · 可随时返回修改</Text>}
     </View>:null}
   </View>;

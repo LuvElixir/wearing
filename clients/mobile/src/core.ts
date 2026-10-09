@@ -1,5 +1,6 @@
 import {commitRecordReceipt} from './record-sync';
 import {isBookmarkUrl} from './bookmark-url';
+import {memoryHistoryId, validMemoryHistory, type MemoryHistory} from './memory-history';
 /** Canonical records remain on the service; creations and edits have separate durable queues. */
 export type Kind = 'note' | 'task' | 'event';
 export type Draft = {kind: Kind; title: string; content: string; timezone: string; start_at?: string; end_at?: string; all_day?: boolean; due_at?: string | null; url?: string | null};
@@ -174,7 +175,17 @@ export class Outbox {
 }
 
 export type MemorySnapshot = {available: boolean; message?: string; observed_at?: string; identity_id: string;
-  targets?: Record<'user' | 'memory', {enabled: boolean; entries: string[]; revision?: string; settings_revision?: string; used_chars?: number; limit_chars?: number}>};
+  targets?: Record<'user' | 'memory', {enabled: boolean; entries: string[]; revision?: string; settings_revision?: string; used_chars?: number; limit_chars?: number; history?: MemoryHistory}>};
+export type MemoryChange = {target:'user'|'memory'; revision:string; action:'add'|'replace'|'remove'|'clear'|'set_enabled'; index?:number; content?:string; enabled?:boolean; settings_revision?:string} | {target:'user'|'memory'; revision:string; action:'undo'; history_id:string};
+function completeMemorySnapshot(data: unknown, identity: string, mutation = false): data is MemorySnapshot {
+  if (!data || typeof data !== 'object') return false;
+  const snapshot = data as MemorySnapshot;
+  if (snapshot.identity_id !== identity || typeof snapshot.available !== 'boolean' || (mutation && !snapshot.available)) return false;
+  return !snapshot.available || ['user', 'memory'].every(key => {
+    const page = snapshot.targets?.[key as 'user' | 'memory'];
+    return !!page && typeof page.enabled === 'boolean' && Array.isArray(page.entries) && page.entries.every(entry => typeof entry === 'string') && (!mutation || typeof page.revision === 'string' && /^[a-f0-9]{64}$/.test(page.revision)) && (page.history === undefined || validMemoryHistory(page.history, page));
+  });
+}
 export type OngoingItem = {id: string; title: string; status: string; detail: string};
 
 export class WearingApi implements Transport {
@@ -199,10 +210,11 @@ export class WearingApi implements Transport {
     if (!data.identities.some((i: {id: string}) => i.id === this.connection.identity)) throw new ApiError('这份连接里没有所选身份，请重新选择。', 404);
     this.token = data.token; return data;
   }
-  async changeMemory(change: {target:'user'|'memory'; revision:string; action:'add'|'replace'|'remove'|'clear'|'set_enabled'; index?:number; content?:string; enabled?:boolean; settings_revision?:string}): Promise<MemorySnapshot> {
+  async changeMemory(change: MemoryChange): Promise<MemorySnapshot> {
+    if (change.action === 'undo' && (!memoryHistoryId(change.history_id) || !/^[a-f0-9]{64}$/.test(change.revision))) throw new ApiError('这条修改记录暂时不能撤销，请刷新后重新选择。', 422);
     await this.bootstrap();
-    const data = await this.request('/api/memory', 'PATCH', JSON.stringify(change));
-    if (!data || data.identity_id !== this.connection.identity || data.available !== true || !data.targets || !['user','memory'].every(key => typeof data.targets[key]?.revision === 'string' && /^[a-f0-9]{64}$/.test(data.targets[key].revision) && Array.isArray(data.targets[key].entries) && data.targets[key].entries.every((entry:unknown)=>typeof entry==='string'))) throw new ApiError('记忆回执不完整，请刷新核对后再操作。', 422);
+    const data = await this.request('/api/memory', 'PATCH', JSON.stringify(change), 'application/json', false);
+    if (!completeMemorySnapshot(data, this.connection.identity, true)) throw new ApiError('记忆回执不完整，请刷新核对后再操作。', 422);
     return data;
   }
   async voiceAuthorization(): Promise<string> {await this.bootstrap(); return this.token;}
@@ -236,8 +248,7 @@ export class WearingApi implements Transport {
   }
   async memory(): Promise<MemorySnapshot> {
     const data = await this.request('/api/memory');
-    if (data.identity_id !== this.connection.identity || typeof data.available !== 'boolean' ||
-      (data.available && ['user', 'memory'].some(key => !data.targets?.[key] || typeof data.targets[key].enabled !== 'boolean' || !Array.isArray(data.targets[key].entries) || data.targets[key].entries.some((entry: unknown) => typeof entry !== 'string')))) {
+    if (!completeMemorySnapshot(data, this.connection.identity)) {
       throw new ApiError('没有收到当前身份的完整记忆，请稍后刷新。', 422);
     }
     return data;

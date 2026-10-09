@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "package": "io.pajio.privateinput",
+  "version_code": 1,
+  "apk_sha256": "80960fcaa86936abdf20de79660ea63cbc10f024b3f43b3a6ee53e92c1037c27",
+  "sources": {
+    "AndroidManifest.xml": "4cb89f141d66f40334a1e98f59c906304a3492bf53edc9f9d6b75c9cfdf4964f",
+    "res/xml/method.xml": "63a8fbf832bca89108f7cd2f2451d34179abde3773fb18fb58889cf881dde2a7",
+    "src/io/pajio/privateinput/PrivateInputMethod.java": "2f90635f4d0af9382ead57dd135fb6bc5d9c05b22a8eca91192bac750127992d",
+    "src/io/pajio/privateinput/SocketClient.java": "d7f816c0684cdfd0cc4e0dec2cc25d62bcd0df4ead43b2676574f3dcffd0ed60"
+  }
+}

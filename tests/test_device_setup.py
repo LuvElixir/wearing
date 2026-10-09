@@ -10,7 +10,7 @@ from wearing.cloud.commands import DeviceCommand
 from wearing.cloud.device_setup import DeviceOffer, PairDevices, create_pairing
 from wearing.cloud.relay import (RelayStore, RelayError, PairRequest, ConnectionRequest,
     PollRequest, ClaimRequest, ResultRequest, DeviceReview, utc, CONNECTION_SECONDS)
-from wearing.cloud.instance import initialize_instance
+from wearing.cloud.instance import initialize_instance, read_private
 from wearing.cloud.worker import create_tenant_app
 from wearing.config import write_private_json
 from wearing.connectors.remote.adapter import NativeAdapter
@@ -171,3 +171,55 @@ async def test_pairing_and_review_routes_require_auth_csrf_and_identity(tmp_path
         c.headers.update(headers)
         bad=await c.post('/api/devices/offer',json={**OFFER,'private_key':'do-not-echo'})
         assert bad.status_code==422 and 'do-not-echo' not in bad.text
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+async def test_manual_pair_api_enables_versioned_private_remote_tools(tmp_path, monkeypatch, legacy):
+    monkeypatch.setenv('PAJIO_TRIAL_LIMITS','1')
+    from wearing.remote_proxy import remote_enabled, tool_schemas
+    root,relay=prepare(tmp_path)
+    flag=root/'data/remote-devices.json'
+    if legacy:write_private_json(flag,{'enabled':True})
+    assert not remote_enabled(root)
+    app=create_tenant_app(root,engine_autostart=False)
+    headers={'Authorization':'Bearer '+(root/'gateway.key').read_text().strip(),'X-Wearing-Tenant':'tenant_A'}
+    async with app.router.lifespan_context(app),httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url=ORIGIN) as client:
+        # Neither unauthenticated nor missing-CSRF requests may enable the gate.
+        assert (await client.post('/api/devices/pair',json=request().model_dump(mode='json'))).status_code==401
+        client.headers.update(headers)
+        assert (await client.post('/api/devices/pair',json=request().model_dump(mode='json'))).status_code==403
+        assert not remote_enabled(root)
+        client.headers.update({'X-Wearing-Token':(await client.get('/api/bootstrap')).json()['token'],'Origin':ORIGIN})
+        response=await client.post('/api/devices/pair',json=request().model_dump(mode='json'))
+        assert response.status_code==200
+        assert json.loads(read_private(flag))=={'schema_version':1,'enabled':True}
+        assert remote_enabled(root)
+        bundle=response.json()['bundle']
+        relay.pair(PairRequest(code=bundle['code'],token=TOKEN))
+        assert {t.name for t in tool_schemas(relay,'daily')}=={'wearing_list_devices','mobile_list_elements_on_screen','mobile_press_button'}
+        assert {t.name for t in tool_schemas(relay,'another_identity')}=={'wearing_list_devices'}
+        # Retrying the same authorized pairing repairs the old shape and returns
+        # the same pairing bundle, rather than minting a second connector.
+        write_private_json(flag,{'enabled':True})
+        response=await client.post('/api/devices/pair',json=request().model_dump(mode='json'))
+        assert response.status_code==200 and response.json()['bundle']==bundle
+        assert remote_enabled(root)
+
+
+def test_operator_pair_cli_writes_the_same_gate_and_explains_old_engine_activation(tmp_path, monkeypatch, capsys):
+    from wearing.cli import main
+    from wearing.cloud.device_setup import tools_for
+    from wearing.remote_proxy import remote_enabled
+    root,_=prepare(tmp_path)
+    inventory=tmp_path/'inventory.json';ca=tmp_path/'ca.pem';output=tmp_path/'pair.json'
+    write_private_json(inventory,{'resources':[SPEC],'tools':tools_for([SPEC])})
+    ca.write_text('synthetic certificate');ca.chmod(0o600)
+    monkeypatch.setattr('sys.argv',['wearing','tenant','pair-device','--root',str(root),
+        '--endpoint','https://relay.example','--ca',str(ca),'--inventory',str(inventory),'--output',str(output)])
+    main()
+    assert json.loads(read_private(root/'data/remote-devices.json'))=={'schema_version':1,'enabled':True}
+    assert remote_enabled(root)
+    bundle=json.loads(read_private(output));assert bundle['tenant_id']=='tenant_A'
+    text=capsys.readouterr().out
+    assert '自动刷新' in text and '旧引擎' in text and '版本激活' in text
+    assert bundle['code'] not in text

@@ -58,6 +58,8 @@ def propose(store,identity,body,*,for_run=False):
         matches=[c for c in db.execute('SELECT * FROM connectors WHERE identity=? AND revoked=0',(identity,))
                  if any(r['resource_id']==body.resource_id and 'computer.input' in r['methods'] for r in json.loads(c['resources']))]
         if len(matches)!=1:raise RelayError('desktop_input_not_granted')
+        from .device_maintenance import guard as maintenance_guard
+        maintenance_guard(db,body.resource_id)
         c=matches[0]
         if c['expires']<=utc().timestamp() or not json.loads(c['availability']).get(body.resource_id) or not store.control_ready(db,body.resource_id,c['connection']):
             raise RelayError('resource_offline_or_paused')

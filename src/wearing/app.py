@@ -2,6 +2,7 @@ from .mobile import RegistryError
 """Loopback-only control surface. No credentials are returned to the browser."""
 
 import asyncio
+import json
 import logging
 import re
 import secrets
@@ -516,7 +517,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
         relay = cloud_relay()
         try:
             bundle = create_pairing(relay, settings.data_dir.parent, request.state.identity_id, body)
-            write_private_json(settings.data_dir / 'remote-devices.json', {'enabled':True})
+            write_private_json(settings.data_dir / 'remote-devices.json', {'schema_version':1,'enabled':True})
             return {'bundle':bundle, 'expires_in':600}
         except RelayError as error:
             raise device_error(error) from error
@@ -685,7 +686,10 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
         client = service.hermes if identity_id == DEFAULT_IDENTITY else identity_clients.get(identity_id) if runtime_for(identity_id).status()["running"] else None
         if client is None:
             raise HTTPException(409, "当前身份的执行引擎尚未启动，请连接后重试。")
-        body = await request.json()
+        try:
+            body = await request.json()
+        except (ValueError, UnicodeDecodeError) as error:
+            raise HTTPException(422, "记忆修改格式无效。") from error
         if not isinstance(body, dict) or len(json.dumps(body)) > 100000:
             raise HTTPException(422, "记忆修改格式无效。")
         try:

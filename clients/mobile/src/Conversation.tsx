@@ -15,6 +15,8 @@ import {AppDock} from './experience/AppDock';
 import {conversationTextScaleScript, isDeviceOffline} from './conversation-presentation';
 import {artifactNavigationScript, readArtifactNavigation} from './artifact-navigation';
 
+const bridgeUnavailable = '聊天输入尚未连接。请重新打开对话，已保存的本机草稿会保留。';
+
 // A changed endpoint/identity must not leave another connection's WebView visible.
 export default function Conversation(props: ConversationProps) {
   const url = nativeConversationLink(connectionEndpoint(props.connection, true), props.connection.identity, props.record);
@@ -59,6 +61,11 @@ function ConversationPage({url, active = true, visible = true, showComposer = tr
     const timer = setTimeout(() => setSlow(true), 12000);
     return () => clearTimeout(timer);
   }, [loading]);
+  useEffect(() => {
+    if (loading || error || !source || snapshot?.ready) return;
+    const timer = setTimeout(() => setError(bridgeUnavailable), 12000);
+    return () => clearTimeout(timer);
+  }, [loading, error, source, snapshot?.ready]);
   function retry() {
     try {connectionHeaders(connection);}
     catch {setExpired(true); return;}
@@ -72,6 +79,7 @@ function ConversationPage({url, active = true, visible = true, showComposer = tr
     return seq;
   }
   const pairingExpired = !source;
+  const awaitingBridge = !loading && !error && !!source && !snapshot?.ready;
   const message = pairingExpired ? (connection.session?'请到「我的 → 连接与身份」重新登录。本机草稿和录音仍会保留。':'短期配对已过期，请在电脑上重新生成链接。本机草稿和录音仍会保留。') : offline ? '当前没有网络连接。恢复连接后，点「重新打开」继续。' : error || (slow ? '连接比平时慢，可以稍候或重试。' : '正在打开对话…');
   const expandedComposer = showComposer && !compactComposer;
   return <View style={s.page}>
@@ -96,6 +104,7 @@ function ConversationPage({url, active = true, visible = true, showComposer = tr
         if(!value||retiredPages.current.has(value.pageId)||(snapshotRef.current && snapshotRef.current.pageId!==value.pageId))return;
         if(snapshotRef.current?.pageId===value.pageId && value.ackSeq<snapshotRef.current.ackSeq)return;
         snapshotRef.current=value; sequence.current=Math.max(sequence.current,value.ackSeq);setSnapshot(value);
+        if (value.ready) setError(previous => previous === bridgeUnavailable ? '' : previous);
       }}
       onError={() => {setError('暂时没打开对话，请检查 Pajio 的连接。'); setLoading(false);}}
       onHttpError={event => {if (event.nativeEvent.url.split('#')[0] === url.split('#')[0]) {setError('对话服务暂时不可用，可以稍后重试。'); setLoading(false);}}}
@@ -109,8 +118,8 @@ function ConversationPage({url, active = true, visible = true, showComposer = tr
       javaScriptCanOpenWindowsAutomatically={false} mixedContentMode="never"
       allowFileAccess={false} allowFileAccessFromFileURLs={false} allowUniversalAccessFromFileURLs={false}
     />}
-    {(loading || error || pairingExpired) ? <View style={s.status} accessibilityLiveRegion="polite">
-      {loading && !slow && !pairingExpired && !offline ? <ActivityIndicator color={c.accent} size="small"/> : null}
+    {(loading || awaitingBridge || error || pairingExpired) ? <View style={s.status} accessibilityLiveRegion="polite">
+      {(loading || awaitingBridge) && !slow && !pairingExpired && !offline ? <ActivityIndicator color={c.accent} size="small"/> : null}
       <Text style={s.message}>{message}</Text>
       {!pairingExpired && (error || slow || offline) ? <Pressable accessibilityRole="button" accessibilityLabel="重新打开对话" onPress={retry} style={({pressed}) => [s.retry, pressed && s.pressed]}><Text style={s.retryText}>重新打开</Text></Pressable> : null}
     </View> : null}

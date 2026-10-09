@@ -1,4 +1,5 @@
 import httpx
+import json
 import pytest
 
 from wearing.app import create_app
@@ -52,5 +53,29 @@ async def test_unavailable_engine_keeps_memory_unavailable(tmp_path):
             assert response.status_code == 200
             assert response.json()["available"] is False
             assert "targets" not in response.json() and "private-error" not in response.text
+    finally:
+        await hermes.close()
+
+
+async def test_memory_patch_routes_valid_write_and_rejects_invalid_json(tmp_path):
+    calls = []
+    def handler(request):
+        assert request.method == 'PATCH' and request.url.path == '/v1/wearing/memory'
+        calls.append(json.loads(request.content))
+        return httpx.Response(200, json=snapshot())
+    hermes = HermesClient(Settings(tmp_path, hermes_key='test'), httpx.MockTransport(handler))
+    app = create_app(Settings(tmp_path), hermes)
+    try:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
+            token = (await client.get('/api/bootstrap')).json()['token']
+            client.headers['X-Wearing-Token'] = token
+            change = {'target': 'user', 'action': 'add', 'revision': '0' * 64, 'content': '合成偏好'}
+            saved = await client.patch('/api/memory', json=change)
+            assert saved.status_code == 200 and saved.json()['identity_id'] == 'daily'
+            assert calls == [change]
+            for raw in (b'{', b'[]', b'null', b'\xff', json.dumps({'content': 'x' * 100001}).encode()):
+                invalid = await client.patch('/api/memory', content=raw, headers={'Content-Type': 'application/json'})
+                assert invalid.status_code == 422
+            assert calls == [change]
     finally:
         await hermes.close()

@@ -8,6 +8,7 @@ from wearing.notifications import NotificationConfig, NotificationService, Notif
 from wearing.notifications_api import install_notification_routes
 from wearing.app import create_app
 from wearing.config import Settings
+from wearing.schedules import ScheduleBook, ScheduleDraft
 
 PROJECT = '12345678-abcd-1234-abcd-123456789abc'
 INSTALL = 'synthetic-phone-001'
@@ -287,3 +288,127 @@ async def test_registration_cannot_outlive_trusted_session_or_local_seven_day_le
     with pytest.raises(NotificationError) as error:
         service.register('daily', INSTALL, TOKEN, PROJECT, 'ios', clock.value - 1)
     assert error.value.status == 401
+
+
+def scheduled_result(store, monkeypatch, *, output='[SILENT]', status='completed_unverified',
+                     identity='daily', owner=None):
+    book = ScheduleBook(store)
+    with monkeypatch.context() as patch:
+        patch.setattr('wearing.schedules.now', lambda: '2026-10-10T00:00:00+00:00')
+        schedule = book.create(identity, ScheduleDraft(title='Synthetic quiet check',
+            instruction='Inspect only synthetic inputs.', kind='once', at='2026-10-10T00:01:00+00:00'),
+            'synthetic-quiet-check', owner_scope=owner)
+        patch.setattr('wearing.schedules.now', lambda: '2026-10-10T00:01:00+00:00')
+        task = book.claim(schedule['id'])
+        assert task
+        store.update(task['id'], status=status, output=output)
+    return book, schedule, task
+
+
+@pytest.mark.parametrize('reconcile_first', [False, True])
+@pytest.mark.parametrize('owner', [None, 'local', 'a' * 64])
+async def test_silent_schedule_never_pushes_regardless_of_reconcile_order_or_restart(
+        setup, monkeypatch, reconcile_first, owner):
+    service, store, calls, _ = setup
+    service.register('daily', INSTALL, TOKEN, PROJECT, 'ios', service.clock() + 3600, owner_scope=owner or 'local')
+    book, schedule, _ = scheduled_result(store, monkeypatch, output=' \n[SILENT]\n ', owner=owner)
+    if reconcile_first:
+        book.reconcile()
+    await service.tick()
+    book.reconcile()
+    restarted = NotificationService(store, config=CONFIG, client=service.client, clock=service.clock)
+    await asyncio.gather(service.tick(), restarted.tick())
+    assert book.get('daily', schedule['id'])['occurrences'][0]['status'] == 'silent'
+    assert calls == [] and rows(service) == []
+
+
+@pytest.mark.parametrize('scheduled,status,output', [
+    (False, 'completed_unverified', '[SILENT]'),
+    (True, 'completed_unverified', 'A real change needs review.'),
+    (True, 'completed_unverified', '[SILENT] but there is also a new result.'),
+    (True, 'failed', '[SILENT]'),
+])
+async def test_silent_token_does_not_hide_manual_answers_real_changes_or_failures(
+        setup, monkeypatch, scheduled, status, output):
+    service, store, calls, _ = setup
+    register(service)
+    if scheduled:
+        book, _, task = scheduled_result(store, monkeypatch, status=status, output=output)
+        book.reconcile()
+    else:
+        task = result(store)
+        store.update(task['id'], output=output)
+    await service.tick()
+    assert len(calls) == 1
+    assert json.loads(calls[0].content)['data']['task_id'] == task['id']
+
+
+@pytest.mark.parametrize('mismatch', ['owner', 'identity', 'missing_schedule_owner', 'missing_task_owner'])
+async def test_silent_suppression_requires_same_identity_and_owner_provenance(setup, monkeypatch, mismatch):
+    service, store, calls, _ = setup
+    owner = 'b' * 64
+    service.register('daily', INSTALL, TOKEN, PROJECT, 'ios', service.clock() + 3600, owner_scope=owner)
+    book, schedule, task = scheduled_result(store, monkeypatch, owner=owner)
+    # A mismatched/legacy association cannot confer another account's silence
+    # policy on a task. Corrupt only the isolated fixture's provenance link.
+    with store.connection() as db:
+        if mismatch == 'owner':
+            db.execute('UPDATE background_principals SET owner_scope=? WHERE source_id=?', ('a' * 64, schedule['id']))
+        elif mismatch == 'identity':
+            other = store.save_identity('Synthetic other identity')['id']
+            db.execute('UPDATE personal_schedules SET identity_id=? WHERE id=?', (other, schedule['id']))
+        elif mismatch == 'missing_schedule_owner':
+            db.execute('DELETE FROM background_principals WHERE source_id=?', (schedule['id'],))
+        else:
+            db.execute('DELETE FROM task_principals WHERE task_id=?', (task['id'],))
+    book.reconcile()
+    await service.tick()
+    assert len(calls) == 1
+    assert json.loads(calls[0].content)['data']['task_id'] == task['id']
+
+
+@pytest.mark.parametrize('state', ['pending', 'awaiting_registration'])
+async def test_upgrade_cancels_unsent_silent_schedule_outbox(setup, monkeypatch, state):
+    service, store, calls, _ = setup
+    register(service)
+    scheduled_result(store, monkeypatch)
+    with monkeypatch.context() as patch:
+        # Emulate the old collector; the new service must safely adopt its queue.
+        patch.setattr(service, '_silent_scheduled', lambda *args: set())
+        service.collect()
+    with store.connection() as db:
+        db.execute('UPDATE notification_outbox SET state=?', (state,))
+    restarted = NotificationService(store, config=CONFIG, client=service.client, clock=service.clock)
+    await restarted.tick()
+    assert calls == []
+    assert [(row['state'], row['error_code']) for row in rows(service)] == [('cancelled', 'SilentSchedule')]
+
+
+@pytest.mark.parametrize('stage', ['claim', 'handoff'])
+async def test_silent_guard_is_rechecked_without_collecting_again(setup, monkeypatch, stage):
+    service, store, calls, _ = setup
+    register(service)
+    scheduled_result(store, monkeypatch)
+    with monkeypatch.context() as patch:
+        patch.setattr(service, '_silent_scheduled', lambda *args: set())
+        service.collect()
+        claimed = service._claim() if stage == 'handoff' else None
+    if stage == 'claim':
+        assert service._claim() is None
+    else:
+        assert claimed and service._delivery_authorized(claimed) is False
+    assert calls == [] and rows(service)[0]['state'] == 'cancelled'
+
+
+@pytest.mark.parametrize('state', ['ticket', 'provider_accepted', 'unknown'])
+async def test_silence_fix_does_not_rewrite_already_handed_off_or_uncertain_sends(setup, monkeypatch, state):
+    service, store, calls, _ = setup
+    register(service)
+    scheduled_result(store, monkeypatch)
+    with monkeypatch.context() as patch:
+        patch.setattr(service, '_silent_scheduled', lambda *args: set())
+        service.collect()
+    with store.connection() as db:
+        db.execute('UPDATE notification_outbox SET state=?,ticket_id=?', (state, 'historical-ticket'))
+    service.collect()
+    assert calls == [] and rows(service)[0]['state'] == state

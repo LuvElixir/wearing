@@ -92,6 +92,15 @@ function TaskSession({connection, taskId, isCurrent, onConversation, onArtifact}
         {task.status === 'failed' && <Text style={s.body}>{task.failureReason || '这次任务没有完成。已返回的内容会保留，可以回到对话补充情况。'}</Text>}
         {task.status === 'waiting_for_approval' && <PrimaryButton label="回到对话查看这一步" onPress={() => onConversation(task.id)}/>}
       </View>
+      <View style={s.card}>
+        <Text style={s.subheading}>进展记录{stale ? ' · 上次读取' : ''}</Text>
+        {task.events.length ? (showEvents ? task.events : task.events.slice(-3)).map((event, index, shown) => <View key={`${event.at}-${index}`} style={s.timelineRow}>
+          <View style={s.timelineRail}><View style={[s.timelineDot, index===shown.length-1&&s.timelineCurrent]}/>{index<shown.length-1&&<View style={s.timelineLine}/>}</View>
+          <View style={s.timelineWords}><Text style={s.body}>{event.label}</Text><Text style={s.caption}>{stamp(event.at)}</Text></View>
+        </View>) : <Text style={s.caption}>还没有可展示的状态回执。有新进展会更新在这里。</Text>}
+        {task.events.length>3&&<PrimaryButton label={showEvents?'收起较早记录':`查看全部 ${task.events.length} 条记录`} tone="quiet" onPress={()=>setShowEvents(value=>!value)}/>}
+        {task.eventsTruncated&&<Text style={s.caption}>这里保留最近 100 条可识别的状态变化。</Text>}
+      </View>
       {!!task.output && <View style={s.card}><Text style={s.subheading}>{task.status === 'completed_unverified' || task.status === 'verified' ? '返回的结果' : '当前已返回的内容'}</Text><Text selectable style={s.body}>{task.output}</Text></View>}
       {!!task.artifacts.length && <View style={s.card}><Text style={s.subheading}>图文与文件结果</Text>{task.artifacts.map(item => <PrimaryButton key={item.id} tone="quiet" leading={<FileText size={18} color={c.ink}/>} label={item.title} onPress={() => onArtifact(item.id)}/>)}{task.artifactsTruncated && <Text style={s.caption}>这里显示最近 100 份，较早结果可从资料与文件查看。</Text>}</View>}
       {!!task.blockedReason && <View style={s.card}><Text style={s.subheading}>暂时还不能开始</Text><Text style={s.body}>{task.blockedReason}</Text></View>}
@@ -102,8 +111,6 @@ function TaskSession({connection, taskId, isCurrent, onConversation, onArtifact}
       <PrimaryButton label="回到原对话" tone="quiet" onPress={() => onConversation(task.id)}/>
       <PrimaryButton label={showPrompt ? '收起原话' : '查看最初交代的事'} tone="quiet" onPress={() => setShowPrompt(value => !value)}/>
       {showPrompt && <View style={s.card}><Text selectable style={s.body}>{task.prompt}</Text></View>}
-      <PrimaryButton label={showEvents ? '收起过程记录' : '查看过程记录'} tone="quiet" onPress={() => setShowEvents(value => !value)}/>
-      {showEvents && <View style={s.card}>{task.events.length ? task.events.map((event, index) => <View key={index} style={s.row}><Text style={s.body}>{event.label}</Text><Text style={s.caption}>{stamp(event.at)}</Text></View>) : <Text style={s.caption}>暂无可展示的过程记录。</Text>}{task.eventsTruncated && <Text style={s.caption}>展示最近 100 条可识别的状态变化。</Text>}</View>}
     </>}
   </View>;
 }
@@ -124,4 +131,4 @@ function TaskStatus({label, stale}: {label: string; stale: boolean}) {
   }, [label, reduced, opacity]);
   return <Animated.Text accessibilityLiveRegion="polite" style={[s.status, {opacity}]}>{stale ? '上次状态 · ' : ''}{label}</Animated.Text>;
 }
-const styles = (c: AppColors) => StyleSheet.create({root:{gap:16}, loading:{paddingVertical:24,paddingHorizontal:19,gap:10}, row:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10}, heading:{fontSize:26,fontWeight:'600',color:c.ink,flex:1}, title:{fontSize:22,lineHeight:32,fontWeight:'600',color:c.ink}, subheading:{fontSize:17,lineHeight:25,fontWeight:'600',color:c.ink}, body:{fontSize:16,lineHeight:27,color:c.ink,flexShrink:1}, caption:{fontSize:13,lineHeight:21,color:c.muted}, status:{fontSize:14,lineHeight:23,color:c.accentInk}, error:{fontSize:14,lineHeight:23,color:c.danger},card:{backgroundColor:c.surface,borderRadius:22,padding:19,gap:14}});
+const styles = (c: AppColors) => StyleSheet.create({root:{gap:16}, loading:{paddingVertical:24,paddingHorizontal:19,gap:10}, row:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10}, heading:{fontSize:26,fontWeight:'600',color:c.ink,flex:1}, title:{fontSize:22,lineHeight:32,fontWeight:'600',color:c.ink}, subheading:{fontSize:17,lineHeight:25,fontWeight:'600',color:c.ink}, body:{fontSize:16,lineHeight:27,color:c.ink,flexShrink:1}, caption:{fontSize:13,lineHeight:21,color:c.muted}, status:{fontSize:14,lineHeight:23,color:c.accentInk}, error:{fontSize:14,lineHeight:23,color:c.danger},card:{backgroundColor:c.surface,borderRadius:22,padding:19,gap:14},timelineRow:{flexDirection:'row',gap:12},timelineRail:{width:12,alignItems:'center',paddingTop:9},timelineDot:{width:8,height:8,borderRadius:4,backgroundColor:c.outline},timelineCurrent:{backgroundColor:c.accent},timelineLine:{width:1,flex:1,minHeight:20,marginTop:5,backgroundColor:c.line},timelineWords:{flex:1,gap:2}});

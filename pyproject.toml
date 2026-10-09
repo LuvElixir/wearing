@@ -33,6 +33,7 @@ cloud = [
 ]
 connector = ["mcp>=1.20,<2"]
 capture = ["av>=15,<17", "websockets>=15,<17"]
+private-media = ["aiortc>=1.14,<2", "mss>=10,<11"]
 
 [project.scripts]
 wearing = "wearing.cli:main"

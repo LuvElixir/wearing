@@ -88,3 +88,129 @@ print('pinned memory pause/resume/clear verified')
 '''
     result = subprocess.run([str(python), '-c', textwrap.dedent(code), str(source), str(root / 'src'), str(tmp_path)], capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stderr[-3000:]
+
+
+class JournalStore:
+    def __init__(self, user=None, memory=None, *, enabled=True):
+        self.entries = {'user': list(user or []), 'memory': list(memory or [])}
+        self.enabled = enabled
+        self.before_commit = None
+        self.fail_write = False
+
+    def target_enabled(self, target):
+        return self.enabled
+
+    def _mutate(self, target, apply):
+        if self.before_commit:
+            self.before_commit(self)
+        outcome = apply(self.entries[target].copy(), 65536)
+        if isinstance(outcome, dict):
+            return outcome
+        if self.fail_write:
+            raise RuntimeError('Synthetic atomic writer failure')
+        self.entries[target] = outcome[0]
+        return {'success': True}
+
+
+def edit(store, home, action, target='user', **fields):
+    return mutate_memory(store, {'target': target, 'action': action,
+                                'revision': revision(store.entries[target]), **fields},
+                         lambda _: False, '\n§\n', home=home)
+
+
+def history(store, home, target='user'):
+    from wearing.memory_controls import memory_history
+    return memory_history(home, target, store.entries[target], enabled=store.enabled)
+
+
+def test_history_undo_is_identity_bound_and_ignores_client_provenance(tmp_path):
+    a = tmp_path / 'a'; a.mkdir()
+    b = tmp_path / 'b'; b.mkdir()
+    store = JournalStore(['before'])
+    assert edit(store, a, 'replace', index=0, content='after', source='model')['success']
+    record = history(store, a)['items'][0]
+    assert record['before'] == ['before'] and record['after'] == ['after']
+    assert record['source'] == 'user' and record['undoable']
+    assert record['created_at'].endswith('+00:00')
+    assert record['before_revision'] == revision(['before'])
+    assert record['after_revision'] == revision(['after'])
+    assert history(store, b)['items'] == []
+    assert edit(store, b, 'undo', history_id=record['id'])['status'] == 409
+    assert edit(store, a, 'undo', history_id=record['id'])['success']
+    assert store.entries['user'] == ['before']
+    undone = history(store, a)['items']
+    assert undone[0]['action'] == 'undo' and undone[0]['undo_of'] == record['id']
+    assert not any(item['undoable'] for item in undone)
+    assert edit(store, a, 'undo', history_id=record['id'])['status'] == 409
+    assert (a / '.pajio-memory-history/user.json').stat().st_mode & 0o777 == 0o600
+    assert (a / '.pajio-memory-history').stat().st_mode & 0o777 == 0o700
+
+
+def test_undo_rechecks_revision_inside_upstream_mutation_lock(tmp_path):
+    store = JournalStore(['before'])
+    assert edit(store, tmp_path, 'replace', index=0, content='after')['success']
+    record = history(store, tmp_path)['items'][0]
+    # A model can write without Pajio's journal lock: the upstream reread/CAS
+    # must catch that change before any undo replaces the file.
+    store.before_commit = lambda s: s.entries['user'].append('new model memory')
+    assert edit(store, tmp_path, 'undo', history_id=record['id'])['status'] == 409
+    assert store.entries['user'] == ['after', 'new model memory']
+    assert not history(store, tmp_path)['items'][0]['undoable']
+    assert len(history(store, tmp_path)['items']) == 1
+
+
+def test_clear_removes_target_history_backups_and_interrupted_temporary_files(tmp_path):
+    store = JournalStore(['private old value'], ['other target'])
+    assert edit(store, tmp_path, 'replace', index=0, content='private current')['success']
+    assert edit(store, tmp_path, 'add', target='memory', content='keep history')['success']
+    directory = tmp_path / '.pajio-memory-history'
+    (directory / '.user-history-interrupted').write_text('private temporary value')
+    (directory / '.memory-history-interrupted').write_text('other temporary value')
+    memories = tmp_path / 'memories'; memories.mkdir()
+    (memories / 'USER.md.bak.123').write_text('private backup value')
+    (memories / 'MEMORY.md.bak.123').write_text('keep backup')
+    saved_record = history(store, tmp_path)['items'][0]
+    # Stale clear must not delete backups or history.
+    assert edit(store, tmp_path, 'clear', revision=revision(['stale']))['status'] == 409
+    assert (memories / 'USER.md.bak.123').is_file()
+    store.enabled = False
+    assert not history(store, tmp_path)['items'][0]['undoable']
+    assert edit(store, tmp_path, 'clear')['success']
+    assert store.entries['user'] == []
+    assert not (directory / 'user.json').exists()
+    assert not (directory / '.user-history-interrupted').exists()
+    assert not (memories / 'USER.md.bak.123').exists()
+    assert history(store, tmp_path)['items'] == []
+    assert history(store, tmp_path, 'memory')['items']
+    assert (directory / '.memory-history-interrupted').is_file()
+    assert (memories / 'MEMORY.md.bak.123').is_file()
+    store.enabled = True
+    assert edit(store, tmp_path, 'undo', history_id=saved_record['id'])['status'] == 409
+
+
+def test_failed_upstream_commit_is_never_exposed_as_undoable(tmp_path):
+    store = JournalStore(['before']); store.fail_write = True
+    with pytest.raises(RuntimeError, match='Synthetic'):
+        edit(store, tmp_path, 'replace', index=0, content='after')
+    snapshot = history(store, tmp_path)
+    assert snapshot['items'] == [] and snapshot['unconfirmed_changes']
+    assert store.entries['user'] == ['before']
+    store.fail_write = False
+    assert edit(store, tmp_path, 'clear')['success']
+    assert not history(store, tmp_path)['unconfirmed_changes']
+
+
+def test_history_is_bounded_and_unsafe_paths_do_not_change_memory(tmp_path):
+    store = JournalStore(['value 0'])
+    for n in range(25):
+        assert edit(store, tmp_path, 'replace', index=0, content=f'value {n + 1}')['success']
+    snapshot = history(store, tmp_path)
+    assert len(snapshot['items']) == 20
+    assert snapshot['items'][0]['after'] == ['value 25']
+    path = tmp_path / '.pajio-memory-history/user.json'
+    path.unlink(); elsewhere = tmp_path / 'elsewhere'; elsewhere.write_text('keep')
+    path.symlink_to(elsewhere)
+    with pytest.raises(ValueError, match='Unsafe'):
+        edit(store, tmp_path, 'replace', index=0, content='unsafe')
+    assert store.entries['user'] == ['value 25']
+    assert elsewhere.read_text() == 'keep'

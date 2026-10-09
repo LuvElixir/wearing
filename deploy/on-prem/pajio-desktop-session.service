@@ -1,0 +1,29 @@
+[Unit]
+Description=Pajio isolated Xfce and accessibility session
+Requires=pajio-x11.service
+After=pajio-x11.service
+
+[Service]
+Type=exec
+Environment=DISPLAY=:10
+Environment=XAUTHORITY=%t/pajio-x11/Xauthority
+Environment=XDG_SESSION_TYPE=x11
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/pajio-desktop-bus
+Environment=NO_AT_BRIDGE=0
+Environment=GTK_MODULES=atk-bridge
+Environment=GTK_IM_MODULE=ibus
+Environment=QT_IM_MODULE=ibus
+Environment=XMODIFIERS=@im=ibus
+Environment=LANG=zh_CN.UTF-8
+ExecStartPre=/opt/pajio-native/wait-x11.sh
+ExecStart=/usr/bin/dbus-run-session --config-file=/etc/pajio-native/session-bus.conf -- /opt/pajio-native/start-desktop-session.sh
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+UMask=0077
+NoNewPrivileges=yes
+StandardOutput=null
+StandardError=journal
+
+[Install]
+WantedBy=default.target

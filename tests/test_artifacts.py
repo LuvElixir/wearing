@@ -47,6 +47,30 @@ def test_publish_is_immutable_idempotent_and_bound_to_real_run(tmp_path):
         book.publish("daily", draft, "no-run")
 
 
+def test_source_path_is_canonical_internal_and_old_rows_survive_concurrent_migration(tmp_path):
+    store = Store(tmp_path / 'wearing.sqlite3')
+    book, _, draft = setup(store)
+    prior = book.publish('daily', draft, 'legacy')
+    with store.connection() as db:
+        assert db.execute('SELECT source_path FROM artifacts WHERE id=?', (prior['id'],)).fetchone()[0] == 'result.html'
+        db.execute('ALTER TABLE artifacts DROP COLUMN source_path')
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        reopened = list(pool.map(lambda _: ArtifactBook(store), range(8)))
+    assert all(instance.get('daily', prior['id']) == prior for instance in reopened)
+    # A replay retains the original row and does not guess/backfill provenance.
+    assert book.publish('daily', draft, 'legacy') == prior
+    with store.connection() as db:
+        assert db.execute('SELECT source_path FROM artifacts WHERE id=?', (prior['id'],)).fetchone()[0] is None
+    root = book.workspace('daily'); (root / 'nested').mkdir()
+    (root / 'nested' / 'result.html').write_text(HTML)
+    current = book.publish('daily', draft.model_copy(update={'path': './nested//result.html'}), 'new')
+    with store.connection() as db:
+        assert db.execute('SELECT source_path FROM artifacts WHERE id=?', (current['id'],)).fetchone()[0] == 'nested/result.html'
+    assert 'source_path' not in current and 'path' not in current
+    assert 'source_path' not in book.get('daily', current['id'])
+    assert all('source_path' not in item for item in book.list('daily'))
+
+
 @pytest.mark.parametrize("path", ["../outside.html", "/tmp/outside.html", "bad\\path.html", "missing.html", "image.svg", "link.html"])
 def test_invalid_paths_and_symlinks_cannot_publish(tmp_path, path):
     book, _, draft = setup(Store(tmp_path / "wearing.sqlite3"))
