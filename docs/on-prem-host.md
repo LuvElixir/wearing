@@ -1,26 +1,51 @@
 # 用公司闲置 PC 承载 Pajio：接入准备
 
-2026-10-09。当前只有方案与只读检查脚本，尚未重装、修改公司网络或部署服务。已获得整机可重装的授权；仍须先确认实际目标机、磁盘和可恢复备份。历史设备资料不能替代本次检测结果，也不据此承诺能容纳多少用户。
+2026-10-09。目标主机已重装为 **Proxmox VE 裸机 + Ubuntu LTS 独立 VM**，并完成经物理控制台核对主机身份的密钥管理接入。已创建一台控制服务测试 VM、两台租户测试 VM，完成首轮网络隔离和备份恢复实测。这里的 VM 是内部验收环境，尚未部署真实用户的 Agent 服务；公开服务、用户容量和长期稳定性尚未验收。后续执行证据见[宿主与虚拟机验收记录](evidence/pajio-public-readiness-20261009/on-prem-provisioning.md)。
+
+完整脱敏结果见[本机硬件与安装决定](evidence/pajio-public-readiness-20261009/on-prem-hardware.md)。原始盘点、网络参数和登录资料保留在私有安装记录中，不放入公开仓库。
+
+| 已核实项目 | 结果 | 对安装的影响 |
+| --- | --- | --- |
+| CPU / 内存 | i7-12700F，12 核 / 20 线程；32 GiB，2 × 16 GiB DDR4-3200 | 两个内存插槽已占用；尚未进行 VM 容量测试 |
+| 主板 | GIGABYTE B760M D2HX SI DDR4，BIOS F23 | 官方上限 64 GB；升级到 64 GB 需替换为 2 × 32 GB，不是再加两条 |
+| 系统盘 | 唯一内置 `kimtigo SSD 1TB` NVMe，约 953.87 GiB | **C、D 都在这一块盘上；整盘安装会同时覆盖两者** |
+| 网卡 / GPU | 一块 Realtek 2.5GbE 网卡，当前协商 1 Gbps；RTX 3060，12 GiB 显存 | 上行、办公网隔离、Linux 驱动与 GPU 用途均需另验 |
+| 重装前系统 | Windows 11 Pro，build 26200；当时 Hyper-V 已启用且无现有 VM | 此行保留安装前盘点，不代表当前运行系统 |
+
+内存规格来自[技嘉该型号官方规格](https://www.gigabyte.com/cr/Motherboard/B760M-D2HX-SI-DDR4-rev-1x/sp)。内存升级尚未执行。Linux 下已读取 NVMe SMART：介质错误 0、寿命使用量 2%、历史异常断电 31 次；这不是持续 I/O 或断电恢复验收。UPS 和公网持续上行仍未测。
 
 ## 建议选择
 
-**优先评估裸机 Proxmox VE，在其上为每个租户建立独立 KVM 虚拟机；Ubuntu Server + KVM / libvirt 是可选方案。** 这是为了保持现有[每租户独立 VM 的产品基线](saas-architecture-2026-10-03.md)，不是要求用户购买特定厂商服务器。
+**本机采用裸机 Proxmox VE，在其上为每个租户建立独立的 Ubuntu LTS KVM 虚拟机。** 这保持现有[每租户独立 VM 的产品基线](saas-architecture-2026-10-03.md)。Ubuntu Server + KVM / libvirt 仍是未来可选的宿主方案，但本次不同时维护两套宿主方案。
 
 | 路线 | 适合本次的理由 | 条件与代价 |
 | --- | --- | --- |
 | Proxmox VE 裸机 + KVM VM | VM、磁盘、控制台、备份与启动顺序可集中管理，适合少量物理宿主的操作者 | 安装会改写所选磁盘；需硬件兼容、补丁和备份运维；一台 PC 仍是单点 |
 | Ubuntu Server + KVM / libvirt | 沿用 Ubuntu 运维和自动化，独立 VM 边界不变 | 需自行组织 VM 生命周期、网络、防火墙、备份和监控；采用 system 实例而非个人桌面 session 充当常驻服务 |
+| 现有 Windows 11 Pro + Hyper-V | 可供内部短期 VM 验证 | 本次不作为面向付费租户的长期宿主；Windows 授权来源及适用协议未核定，不承诺商业托管许可、生产支持或并发能力 |
 | 普通 Docker / LXC 容器直接分租户 | 可在某个租户自己的 VM 内组织应用 | 共享宿主内核，不作为本项目跨租户 VM 隔离的替代品 |
 
 Proxmox 官方区分 KVM 完整虚拟化与共享宿主内核的容器；其生产建议包括可靠硬件、客体所需内存、快速冗余存储等。普通 VM 仍信任宿主管理员与 hypervisor，不是对宿主也保密的机密计算，不应叫作每人独占物理机。[虚拟化能力](https://proxmox.com/en/products/proxmox-virtual-environment/features)、[硬件要求](https://proxmox.com/en/products/proxmox-virtual-environment/requirements)
 
 Ubuntu 官方要求先检查硬件虚拟化，并提供 `kvm-ok`、libvirt system VM 和自启动等路径。Windows 读到的标志只用于预判；安装 Linux 后仍需核对 KVM、磁盘 / 网卡驱动、实际 VM 启动与隔离。[Ubuntu libvirt 文档](https://ubuntu.com/server/docs/how-to/virtualisation/libvirt/)
 
-## 现在先做的三件事
+Windows Client Hyper-V 具备虚拟化能力，并不自动赋予 Windows 商业托管权利。Microsoft 的 Windows 11 OEM 条款对服务器用途和商业托管有具体限制；当前机器适用哪种协议尚未核定，因此只将现有 Windows 环境用于内部验证。[Hyper-V 官方说明](https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/overview?pivots=windows)、[Windows 11 OEM 官方条款示例](https://www.microsoft.com/content/dam/microsoft/usetm/documents/windows/11/oem-%28pre-installed%29/Useterms_OEM_Windows_11_EnglishGreatBritain.pdf)
 
-1. 确认是哪台电脑、是否有人现场、已有的可信远程入口；远程连接保留主机密钥校验，不能猜测公司网段或扫描找机器。
-2. 在目标 Windows 上运行下列只读脚本，得到脱敏硬件摘要。普通权限先试；缺项明确记为未知，不自动提权、装依赖或更改 BIOS。
-3. 明确每块盘是否可清空、旧剪辑 / 工作资料的异地备份和恢复抽查结果、USB 启动与断网后本地控制台路径。完成这些后再制作对应硬件的具体重装盘计划。
+## 现场安装步骤
+
+1. **先落实恢复路径。** 目标机与唯一内置盘已核实。确认旧 C / D 资料的异地备份及恢复抽查完成，保留现场显示器、键盘和安装记录。重装会终止现有 Windows SSH；不能指望该连接跨重装继续工作。
+2. **使用已校验的安装 U 盘。** 安装介质的下载、写入、目标外置盘核对及校验由负责介质的操作者完成；拿到完成记录后再启动。本文件不表示 U 盘已完成制作。
+3. **从 UEFI USB 启动。** 在现场启动菜单选择该 U 盘的 UEFI 入口，进入 `Install Proxmox VE (Terminal UI)`。不要仅因安装建议就关闭 Secure Boot；按所选安装版本的支持情况处理。
+4. **核对安装目标。** 安装器中的目标应是唯一内置 `kimtigo SSD 1TB`，约 954 GiB；排除安装 U 盘。若型号、容量或内置盘数量与盘点不一致，先停下核对。**不能把 D 盘当成独立备用盘；C / D 同属这一块 NVMe。** 文件系统及分区按安装记录选择，单盘不具备镜像冗余。
+5. **照私有记录填写参数。** 主机名、管理地址 / 前缀、网关、DNS、管理员联系方式和凭据从私有安装记录取；不在现场猜地址或照抄示例密码。管理员密码直接在本地设置并放入受控密码库，不放进公开证据。
+6. **确认摘要后安装。** 再次核对整盘覆盖范围、目标型号及管理网络参数。完成后按提示重启、移除 U 盘并从内置盘启动；在现场控制台确认实际管理地址，不能以旧 Windows SSH 可达作为成功依据。
+7. **先恢复私有管理，再建服务。** 从可信管理设备核对新宿主身份及证书 / SSH 主机密钥。重装后密钥变化需独立核实，不能直接绕过校验。验证 KVM、存储、驱动、补丁来源和备份恢复，再创建 Ubuntu LTS 模板及租户 VM。
+
+Terminal UI 与图形安装器使用相同安装逻辑，适合减少图形兼容性问题；所选目标盘会被重新分区。具体版本的安装行为以[Proxmox 官方安装文档](https://github.com/proxmox/pve-docs/blob/master/pve-installation.adoc)为准。
+
+## 保留的只读盘点方法
+
+以下方法用于盘点复核或后续新增主机，不自动执行安装。普通权限先试；缺项明确记为未知，不自动提权、装依赖或更改 BIOS。
 
 ### 只读检测
 
@@ -30,7 +55,7 @@ Ubuntu 官方要求先检查硬件虚拟化，并提供 `kvm-ok`、libvirt syste
 powershell.exe -NoProfile -File .\inspect-windows.ps1
 
 # 已知目标的远程运行可加守卫；不匹配在硬件查询前立即拒绝。
-powershell.exe -NoProfile -File .\inspect-windows.ps1 -ExpectedComputerName LUCKYLOADING111
+powershell.exe -NoProfile -File .\inspect-windows.ps1 -ExpectedComputerName EXPECTED-HOST
 ```
 
 不要为运行脚本永久修改执行策略。如果公司策略阻止它，由操作者按现有软件 / 脚本管理流程处理。脚本默认只写标准输出；如需文件，由操作者明确保存到自己的受控目录，并先检查内容再分享。
@@ -61,7 +86,7 @@ if ($pajioParseErrors.Count -gt 0) {
 'Syntax parsed; hardware inspection has not run.'
 ```
 
-初次编写时当前 Mac 没有 `pwsh` / `powershell` / `dotnet`，尚未通过 PowerShell 运行时解析或目标 Windows 执行。静态检查不能替代该验证；远程返回真实结果后另存验收记录。
+2026-10-09 已在目标机的 Windows PowerShell 5.1 中通过原生 `ParseFile` 解析及传输前后 SHA 校验，随后使用仅进程级执行策略成功完成只读运行；未永久更改 Machine / User 执行策略。硬件结果及证据分层见[硬件记录](evidence/pajio-public-readiness-20261009/on-prem-hardware.md)。这证明脚本能在该目标环境运行，不代表 Linux 安装或磁盘健康验收已经通过。
 
 ## 上行与稳定性怎么测
 
@@ -97,4 +122,8 @@ if ($pajioParseErrors.Count -gt 0) {
 
 接入后按顺序验收：宿主与盘确认 → 备份恢复 → Linux / KVM → 两个租户 VM 和双向越权检查 → 有鉴权公网入口 → 关闭开发 Mac 后任务继续 → 物理手机结果通知 → 断网 / 重启恢复 → 单租户导出和删除不影响另一租户。公开之前同时验证 tenant VM 无法访问公司网 / hypervisor；部署没有通过这些步骤时只称“主机已准备”或“局部链路通过”。
 
-本轮未执行重装、购买硬件、设置地址 / VLAN、防火墙、隧道或备份；具体盘和网络计划等实时检测与现场条件明确后落实。官方资料于 2026-10-09 查阅，部署时重新核对选择版本的支持与升级路径。
+本文保留安装前的操作指南；当前执行进度以[独立验收记录](evidence/pajio-public-readiness-20261009/on-prem-provisioning.md)为准，不能把内部 VM 基础环境验收当作真实租户服务验收。官方资料于 2026-10-09 查阅，后续部署仍需核对选择版本的支持与升级路径。
+
+## 核心服务部署进度（2026-10-09 晚）
+
+真实 OIDC、PostgreSQL、HTTPS 和两个租户 Agent Core 已部署；真实模型与文件任务、跨账号拒绝、服务重启和应用备份恢复已通过，详见[业务服务验收](evidence/pajio-public-readiness-20261009/core-service-deployment.md)。公开注册尚未开放；这不替代 App 分发、物理设备接入、通知及长期运营验收。

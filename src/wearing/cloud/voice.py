@@ -13,7 +13,7 @@ from .session_guard import checked_wait
 PATH = "/api/voice/stream"
 
 
-def voice_endpoint(origin, store, credentials, *, connector=connect):
+def voice_endpoint(origin, store, credentials, *, connector=connect, ssl_context=None):
     async def relay(socket):
         if socket.url.query or socket.headers.getlist("origin") not in ([], [origin]):
             await socket.close(code=1008)
@@ -44,7 +44,10 @@ def voice_endpoint(origin, store, credentials, *, connector=connect):
                 raise ValueError()
             upstream = route["upstream"].replace("https://", "wss://", 1).replace("http://", "ws://", 1)
             async with asyncio.timeout(210):
+                if ssl_context is not None and not upstream.startswith('wss://'):
+                    raise ValueError('Private TLS requires a secure upstream.')
                 async with connector(upstream + PATH, origin=origin,
+                                     **({'ssl': ssl_context} if ssl_context is not None else {}),
                                      additional_headers={"Authorization": "Bearer " + key, "X-Wearing-Tenant": current.tenant_id},
                                      proxy=None, open_timeout=5, close_timeout=1, max_size=65536, max_queue=8,
                                      logger=logging.Logger("pajio.voice.gateway", logging.WARNING)) as remote:

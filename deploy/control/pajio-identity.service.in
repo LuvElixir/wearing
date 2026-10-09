@@ -1,0 +1,26 @@
+# Render KEYCLOAK_ROOT to a verified, pinned distribution before installation.
+[Unit]
+Description=Pajio OIDC identity service
+After=network-online.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=pajio-idp
+Group=pajio-idp
+EnvironmentFile=/etc/pajio/identity.env
+WorkingDirectory=KEYCLOAK_ROOT
+ExecStart=KEYCLOAK_ROOT/bin/kc.sh start --optimized
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=KEYCLOAK_ROOT/data
+MemoryMax=1200M
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

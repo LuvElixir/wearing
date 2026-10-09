@@ -1,0 +1,15 @@
+[Unit]
+Description=Pajio internal VM network boundaries
+After=local-fs.target
+Before=pve-guests.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pajio-apply-lab-network
+ExecReload=/usr/local/sbin/pajio-apply-lab-network
+RemainAfterExit=yes
+# Stopping this unit deliberately leaves filtering in place. To remove the
+# lab, stop all its VMs before explicitly removing its named nft tables.
+
+[Install]
+WantedBy=multi-user.target

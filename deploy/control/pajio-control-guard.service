@@ -1,0 +1,9 @@
+[Unit]
+Description=Pajio application tunnel boundary
+Before=wg-quick@wgpajioctl.service
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/pajio-control-guard
+[Install]
+WantedBy=multi-user.target

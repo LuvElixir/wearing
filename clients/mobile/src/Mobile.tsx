@@ -224,7 +224,7 @@ function Mobile() {
   function setMessage(text: string) {setFeedback({text, source: 'action'});}
   const [connected, setConnected] = useState(false);
   const [busy, setBusy] = useState(false); const syncBusy = useRef(false); const [saving, setSaving] = useState(false); const [ready, setReady] = useState(false);
-  const [address, setAddress] = useState(''); const [identity, setIdentity] = useState('daily');
+  const [address, setAddress] = useState('https://pajio.luckyloading.com'); const [identity, setIdentity] = useState('daily');
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [chatRecord, setChatRecord] = useState<RecordItem | null>(null);
   const [detail, setDetail] = useState<RecordItem | null>(null);

@@ -32,6 +32,7 @@ from .deletion_gateway import ReceiptCodec, deletion_routes, fresh_auth, small_j
 from .session_guard import SessionRevoked, checked_wait
 from .request_body import RequestBodyBoundary, RequestBodyError, gateway_body_limit, rejected_body
 from .mobile_auth import mobile_request, issue_handoff, exchange_handoff, session_storage_scope
+from .upstream_tls import upstream_tls_context
 from .instance import TenantInstance, checked_root, load_instance, read_private
 from .postgres import same_database, validate_database_url
 from ..config import private_directory, write_private_json
@@ -247,7 +248,9 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
                                   **({"transport": oidc_transport} if oidc_transport else {})})
     oidc = oauth.create_client("wearing")
     oidc.framework.expires_in = 600
+    upstream_tls = upstream_tls_context()
     wire = httpx.AsyncClient(transport=worker_transport, trust_env=False, follow_redirects=False,
+                            verify=upstream_tls if upstream_tls is not None else True,
                             timeout=httpx.Timeout(30), limits=httpx.Limits(max_connections=40))
 
     @asynccontextmanager
@@ -491,7 +494,8 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
     from .account_deletion_control import AccountDeletionControl
     deletion = AccountDeletionControl(store)
     receipt_codec = ReceiptCodec(config.session_key.get_secret_value())
-    voice = voice_endpoint(config.public_origin, store, credentials, **({"connector": voice_connector} if voice_connector else {}))
+    voice = voice_endpoint(config.public_origin, store, credentials, ssl_context=upstream_tls,
+                           **({"connector": voice_connector} if voice_connector else {}))
     app = Starlette(routes=[*deletion_routes(deletion, receipt_codec, session, unsafe_allowed, reauth=deletion_reauth),
                            Route(PREFIX + '/reauth/start', deletion_reauth_start), WebSocketRoute(VOICE_PATH, voice), Route("/auth/login", login), Route("/auth/callback", callback),
                            Route("/auth/mobile/start", mobile_start), Route("/auth/mobile/exchange", mobile_exchange, methods=["POST"]),

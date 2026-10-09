@@ -1,0 +1,17 @@
+# Replace MANAGEMENT_CIDR with the verified private administrator subnet.
+# Single node only: cluster/migration/SPICE ports are intentionally not opened.
+table inet pajio_host_guard {
+    chain host_input {
+        type filter hook input priority -5; policy drop;
+        iifname "lo" accept
+        ct state invalid drop
+        ct state established,related accept
+        iifname "vmbr0" ip saddr MANAGEMENT_CIDR tcp dport { 22, 8006 } accept
+        ip protocol icmp icmp type { destination-unreachable, time-exceeded, parameter-problem } accept
+        iifname "vmbr0" ip saddr MANAGEMENT_CIDR ip protocol icmp icmp type echo-request accept
+        # IPv6 neighbor discovery only. No IPv6 management or guest ingress.
+        iifname "vmbr0" ip6 hoplimit 255 icmpv6 type { nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
+        meta l4proto ipv6-icmp icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem } accept
+        counter drop
+    }
+}

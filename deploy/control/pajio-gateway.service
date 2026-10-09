@@ -1,0 +1,27 @@
+[Unit]
+Description=Pajio authenticated account gateway
+After=network-online.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=wearing
+Group=wearing
+WorkingDirectory=/var/lib/wearing
+ExecStart=/opt/wearing/venv/bin/wearing gateway serve --root /var/lib/wearing/gateway --port 8780
+Environment=PAJIO_UPSTREAM_CA_FILE=/etc/pajio/tls/ca.crt
+Environment=PAJIO_UPSTREAM_CERT_FILE=/etc/pajio/tls/control-client.crt
+Environment=PAJIO_UPSTREAM_KEY_FILE=/etc/pajio/tls/control-client.key
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/wearing
+MemoryMax=768M
+CPUQuota=150%
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

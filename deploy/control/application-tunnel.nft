@@ -1,0 +1,13 @@
+table inet pajio_control_tunnel {
+ chain input {
+  type filter hook input priority -20; policy accept;
+  iifname "wgpajioctl" ct state established,related accept
+  iifname "wgpajioctl" ip saddr 10.66.66.1 tcp dport 8443 accept
+  iifname "wgpajioctl" drop
+ }
+ chain forward {
+  type filter hook forward priority -20; policy accept;
+  iifname "wgpajioctl" drop
+  oifname "wgpajioctl" drop
+ }
+}

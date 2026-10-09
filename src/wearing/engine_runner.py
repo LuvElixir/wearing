@@ -6,6 +6,7 @@ No GatewayRunner, platform bots, cron ticker or kanban workers are started.
 """
 
 import asyncio
+import importlib.util
 import json
 import logging
 import os
@@ -301,10 +302,26 @@ async def serve():
         await asyncio.to_thread(shutdown_mcp_servers, timeout=3.0)
 
 
+def load_host_package():
+    """Expose our Python bridge without importing the host interpreter's libraries.
+
+    A wheel lives beside ABI-specific dependencies in site-packages. Adding its
+    parent to the managed interpreter's path can select incompatible extensions.
+    Only the wearing package itself is shared across these environments.
+    """
+    if "wearing" not in sys.modules:
+        package = Path(__file__).resolve().parent
+        spec = importlib.util.spec_from_file_location(
+            "wearing", package / "__init__.py", submodule_search_locations=[str(package)])
+        module = importlib.util.module_from_spec(spec)
+        sys.modules["wearing"] = module
+        spec.loader.exec_module(module)
+
+
 def main():
     source = Path(sys.argv[1]).resolve()
     sys.path.insert(0, str(source))
-    sys.path.insert(1, str(Path(__file__).resolve().parents[1]))
+    load_host_package()
     # Capture host authority before loading editable provider dotenv settings.
     from wearing.usage_guard import UsageGuardConfig, install_usage_guard
     usage_config = UsageGuardConfig.from_env()

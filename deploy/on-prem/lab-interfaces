@@ -1,0 +1,25 @@
+# Internal acceptance only. Each bridge has exactly one tenant/control VM.
+# Never add a physical bridge-port here or attach a second VM to one bridge.
+auto pj100
+iface pj100 inet static
+    address 10.77.100.1/30
+    bridge-ports none
+    bridge-stp off
+    bridge-fd 0
+    post-up /sbin/sysctl -w net.ipv6.conf.pj100.disable_ipv6=1
+
+auto pj101
+iface pj101 inet static
+    address 10.77.101.1/30
+    bridge-ports none
+    bridge-stp off
+    bridge-fd 0
+    post-up /sbin/sysctl -w net.ipv6.conf.pj101.disable_ipv6=1
+
+auto pj102
+iface pj102 inet static
+    address 10.77.102.1/30
+    bridge-ports none
+    bridge-stp off
+    bridge-fd 0
+    post-up /sbin/sysctl -w net.ipv6.conf.pj102.disable_ipv6=1
