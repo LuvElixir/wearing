@@ -27,6 +27,7 @@ from . import computer
 from .filesystem import PACKAGE, VERSION as FILESYSTEM_VERSION, configuration as filesystem_configuration
 from . import android, mobile
 from .store import DEFAULT_IDENTITY
+from .usage_guard import UsageGuardConfig
 
 HERMES_REVISION = "367441274c48a03d12ee9f8d3d9ccd9bc1585392"
 SOURCE_SHA256 = "2edfd027b3c76489dd9e4324ba67237b5883914408f795472da5aac4dcb032f9"
@@ -105,6 +106,8 @@ class HermesRuntime:
         self.data_dir = data_dir.resolve()
         self.identity_id = identity_id
         self.local_devices = local_devices
+        self.usage_config = UsageGuardConfig(os.environ.get("PAJIO_TRIAL_LIMITS") == "1",
+                                             self.data_dir, identity_id)
         self.root = self.data_dir / "runtime"
         self.source = self.root / f"hermes-agent-{HERMES_REVISION}"
         self.identity_dir = self.data_dir if identity_id == DEFAULT_IDENTITY else self.data_dir / "identities" / identity_id
@@ -142,7 +145,12 @@ class HermesRuntime:
         for name in ("VIRTUAL_ENV", "PYTHONPATH", "PYTHONHOME"):
             env.pop(name, None)
         env.update(HERMES_HOME=str(self.home), HERMES_RUNTIME_DIR=str(self.root / "tools"),
-                   PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8")
+                   PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8",
+                   PAJIO_TRIAL_LIMITS="1" if self.usage_config.enabled else "0",
+                   PAJIO_USAGE_DATA_DIR=str(self.usage_config.data_dir), PAJIO_USAGE_IDENTITY=self.usage_config.identity,
+                   PAJIO_CONFIRMATION_DATA_DIR=str(self.data_dir.resolve()), PAJIO_CONFIRMATION_IDENTITY=self.identity_id,
+                   PAJIO_RECALL_DATA_DIR=str(self.data_dir.resolve()), PAJIO_RECALL_IDENTITY=self.identity_id,
+                   PAJIO_RECALL_LOCAL='1' if self.local_devices else '0')
         if self.identity_id != DEFAULT_IDENTITY:
             env["WEARING_MODEL_ENV"] = str(self.data_dir / "hermes" / ".env")
         else:
@@ -157,7 +165,7 @@ class HermesRuntime:
         return {"installed": self.python.is_file(),
                 "running": alive and self.phase == "running", "phase": self.phase,
                 "error": self.error, "revision": HERMES_REVISION[:12],
-                "product": {"name": "Wearing", "profile_version": PROFILE_VERSION,
+                "product": {"name": "Pajio", "profile_version": PROFILE_VERSION,
                             "mode": ENGINE_MODE, "applied": self.profile is not None},
                 "model": self.model_state,
                 "files": {"installed": filesystem_configuration(self.root, self.workspace) is not None,
@@ -176,7 +184,7 @@ class HermesRuntime:
 
     async def computer_command(self, action, timeout=35):
         if not self.python.is_file():
-            raise RuntimeError("请先准备 Wearing 的本地引擎。")
+            raise RuntimeError("请先准备 Pajio 的本地引擎。")
         process = None
         try:
             process = await asyncio.create_subprocess_exec(
@@ -253,7 +261,7 @@ class HermesRuntime:
 
     async def model_settings(self, body=None):
         if not self.python.is_file():
-            raise RuntimeError("请先准备 Wearing，再设置模型。")
+            raise RuntimeError("请先准备 Pajio，再设置模型。")
         async with self.lock:
             try:
                 result = await asyncio.to_thread(subprocess.run,
@@ -292,7 +300,7 @@ class HermesRuntime:
                             raise RuntimeError("未找到文件能力所需的运行环境。")
                         write_private_json(self.root / "installed.json", {"revision": HERMES_REVISION, "source_sha256": SOURCE_SHA256, "python": str(interpreter)})
                         if not paths["node"] or not paths["npm"]:
-                            raise RuntimeError("未找到 Node.js，请先重新准备 Wearing 运行环境。")
+                            raise RuntimeError("未找到 Node.js，请先重新准备 Pajio 运行环境。")
                         # npm's JS entry point is portable; no cmd.exe/shell argument interpolation.
                         npm = Path(paths["npm"]).resolve()
                         if npm.suffix == ".cmd":
@@ -333,7 +341,7 @@ class HermesRuntime:
                         env=self.env(), capture_output=True, text=True, timeout=20, check=True)
                     paths = json.loads(result.stdout)
                     if not all(paths.values()):
-                        raise RuntimeError("请先准备 Wearing 的运行环境，再安装手机连接器。")
+                        raise RuntimeError("请先准备 Pajio 的运行环境，再安装手机连接器。")
                     npm = Path(paths["npm"]).resolve()
                     if npm.suffix == ".cmd":
                         npm = npm.parent / "node_modules/npm/bin/npm-cli.js"
@@ -525,12 +533,26 @@ class HermesRuntime:
             self.prepare_home()
             model = await self.inspect_model(force=True)
             if model["state"] == "needs_login":
-                raise RuntimeError("请先在模型设置向导中选择服务并完成登录，再启动 Wearing。")
+                raise RuntimeError("请先在模型设置向导中选择服务并完成登录，再启动 Pajio。")
             self.prepare_home()
             try:
+                remote = None
+                if not self.local_devices and (self.data_dir / "remote-devices.json").exists():
+                    from .cloud.instance import load_instance, read_private
+                    enabled = json.loads(read_private(self.data_dir / "remote-devices.json"))
+                    if enabled == {"schema_version": 1, "enabled": True}:
+                        load_instance(self.data_dir.parent)
+                        # This outbox client runs in Pajio's environment, rather than mixing
+                        # its SDK/dependencies into the separately managed Hermes interpreter.
+                        remote = {"command": sys.executable, "args": [str(Path(__file__).with_name("remote_proxy.py")),
+                                  str(self.data_dir.parent), self.identity_id], "timeout": 180,
+                                  "elicitation": {"enabled": True, "timeout": 90}}
                 self.profile = prepare_profile(self.home, self.source, filesystem_configuration(self.root, self.workspace),
                                                mobile.configuration(self.root, self.python) if self.local_devices and self.identity_id == DEFAULT_IDENTITY else None,
-                                               self.local_devices and self.identity_id == DEFAULT_IDENTITY and computer.enrolled(self.data_dir))
+                                               self.local_devices and self.identity_id == DEFAULT_IDENTITY and computer.enrolled(self.data_dir), remote,
+                                               life={"command": sys.executable,
+                                                     "args": [str(Path(__file__).with_name("life_proxy.py")), str(self.data_dir), self.identity_id],
+                                                     "timeout": 30})
             except ProfileError as error:
                 raise RuntimeError(str(error)) from error
             self.phase, self.error = "starting", None

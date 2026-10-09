@@ -1,0 +1,9 @@
+{
+  "selected": "A",
+  "concept": "../20261004/symbol-concepts.png",
+  "user_answer": "A：折带 W，名字与翻袖口结合",
+  "date": "2026-10-05",
+  "master": "wearing-symbol.svg",
+  "master_sha256": "4e5f056ea31b740cd68a4cae34524ecf114f8c3680f404a09d1ef1023dd34907",
+  "implementation": "Two-color filled SVG; original companion retained in UI"
+}

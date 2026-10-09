@@ -1,0 +1,40 @@
+{
+  "files": [
+    {
+      "path": "src/wearing/web/chat-import.js",
+      "sha256": "474fd74303ba03661bb0b978c105f6174acec6f59b4f47b9b8f1324272acd320"
+    },
+    {
+      "path": "src/wearing/web/scoped-store.js",
+      "sha256": "1007e59a5f8d9167aa00fd40be5b1ccaf3d5ca8f879f53b42d94cc0590ee4845"
+    },
+    {
+      "path": "src/wearing/web/pajio.css",
+      "sha256": "e35e2bf7b57a704a83a7e7e559ee76f603d324ddfec2b02817cf190eb9b5fb9e"
+    },
+    {
+      "path": "src/wearing/web/index.html",
+      "sha256": "7d4ce2f5b6295502e9bbf6ce3f58b276f0d869453d66970244c764504301e044"
+    },
+    {
+      "path": "src/wearing/device_gateway.py",
+      "sha256": "812a2054a02f65e04228d07d71754ef9cccafaa7bd27fe3d1c57318b4f6544c1"
+    },
+    {
+      "path": "src/wearing/engine_runner.py",
+      "sha256": "d3ce653c8aa2e8d424d040f64e56e000a38af3a72ea4ccecba64e5f0c9919bfb"
+    },
+    {
+      "path": "tests/test_device_access_gateway.py",
+      "sha256": "9cbdb38059d6297101daaa0f5491a4618aa3207788e0d46cef654d0eae6f874c"
+    },
+    {
+      "path": "tests/test_engine_integration.py",
+      "sha256": "5dc990c6739ab51389d79daefe355bfbec9bc80872370105ef786cd8d0d4c306"
+    },
+    {
+      "path": "tests/chat-import-ui.test.cjs",
+      "sha256": "ea9a8a850216efe2edeec9bffca0cbf5e43d6f9c47b77b79debea114792ecb4a"
+    }
+  ]
+}

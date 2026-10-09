@@ -1,10 +1,25 @@
 """Initial private control metadata, privileges and row scope."""
 
 from alembic import op
-from sqlalchemy import text
+from sqlalchemy import Boolean, Column, ForeignKey, ForeignKeyConstraint, Integer, MetaData, String, Table, Text, UniqueConstraint, text
 
-from wearing.cloud.control import metadata
-from wearing.cloud.postgres import OPERATOR_ROLE, SCHEMA, TABLES, WEB_ROLE
+from wearing.cloud.postgres import OPERATOR_ROLE, SCHEMA, WEB_ROLE
+
+# Frozen initial schema: importing current application metadata here would make
+# fresh installs accidentally create future revisions before their migrations.
+TABLES = ("wearing_users", "wearing_tenants", "wearing_memberships", "wearing_routes", "wearing_sessions", "wearing_oidc_states")
+metadata = MetaData()
+Table("wearing_users", metadata, Column("id", String(128), primary_key=True),
+      Column("issuer", Text, nullable=False), Column("subject", String(512), nullable=False), UniqueConstraint("issuer", "subject"))
+Table("wearing_tenants", metadata, Column("id", String(128), primary_key=True))
+Table("wearing_memberships", metadata, Column("user_id", ForeignKey("wearing_users.id"), primary_key=True),
+      Column("tenant_id", ForeignKey("wearing_tenants.id"), primary_key=True), Column("active", Boolean, nullable=False))
+Table("wearing_routes", metadata, Column("tenant_id", ForeignKey("wearing_tenants.id"), primary_key=True),
+      Column("instance_id", String(128), nullable=False, unique=True), Column("upstream", Text, nullable=False), Column("credential_ref", String(128), nullable=False))
+Table("wearing_sessions", metadata, Column("id_hash", String(64), primary_key=True), Column("user_id", String(128), nullable=False),
+      Column("tenant_id", String(128), nullable=False), Column("csrf", String(64), nullable=False), Column("expires", Integer, nullable=False),
+      ForeignKeyConstraint(["user_id", "tenant_id"], ["wearing_memberships.user_id", "wearing_memberships.tenant_id"]))
+Table("wearing_oidc_states", metadata, Column("id_hash", String(64), primary_key=True), Column("value", Text, nullable=False), Column("expires", Integer, nullable=False))
 
 revision = "wearing_control_0001"
 down_revision = None

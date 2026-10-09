@@ -1,0 +1,8 @@
+ssssssssssssssssss.........                                              [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/authlib/integrations/httpx_client/assertion_client.py:5
+  /Users/archieliew/Documents/facet/.venv/lib/python3.12/site-packages/authlib/integrations/httpx_client/assertion_client.py:5: AuthlibDeprecationWarning: The httpx module is deprecated; please use httpx2 instead.
+    from ._compat import httpx2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 18 skipped, 1 warning in 1.51s

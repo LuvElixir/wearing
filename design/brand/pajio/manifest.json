@@ -1,0 +1,24 @@
+{
+  "brand": "Pajio",
+  "typeface": "Original Pajio geometric lettering; no font dependency",
+  "wordmark_master": "wordmark-custom-v2.svg",
+  "wordmark_master_sha256": "0b7345517ef8fdb299e609e099f76b90f24893bf636cd9e807d04c8e8e074b38",
+  "wordmark_viewBox": "12 20 574 240",
+  "wordmark_glyphs": [
+    "P",
+    "a",
+    "j",
+    "i",
+    "o"
+  ],
+  "wordmark_construction": "Five individually drawn filled SVG paths; even-odd counters",
+  "historical_font_license": "OFL-Nunito.txt retained for archived work only; not used by current lettering",
+  "symbol": "Existing approved single four-point star; separate from app-icon selection",
+  "app_icon": {
+    "selection": "icon-selection.json",
+    "state": "pending redesign; existing icon exports are candidates and must not be released"
+  },
+  "character": "../../character/pajama-bear-20261007/selected-character-base.png",
+  "outfits": "../../../clients/mobile/assets/bear/",
+  "scope": "Digital identity and mobile assets; protocol and storage identifiers preserved"
+}

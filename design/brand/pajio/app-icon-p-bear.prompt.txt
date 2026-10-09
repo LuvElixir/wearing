@@ -1,0 +1,6 @@
+Built-in image_gen / logo-brand / 2026-10-07
+Reference: clients/mobile/assets/bear/mist-blue.png (approved character identity)
+
+Create one opaque square Pajio mobile app icon. A dominant clearly readable uppercase P, softly padded mist-blue pajama cotton, sparse ivory pinstripes and piping. Nestle a small cream plush teddy head and blue pajama collar under the P bowl, preserving round ears, dark bead eyes, triangular nose and tiny stitched mouth. One coherent compact sculptural monogram; generous margin; deep graphite #202630 background; diffuse warm studio lighting. Only the letter P, no extra text, ornaments, frame, pre-rounded canvas or device mockup. The OS applies the corner mask.
+
+Generated source: /Users/archieliew/.codex/generated_images/01a0ee05-4561-73e3-8587-49c9ac376cad/exec-1686fd8f-cbb9-4b84-be9b-31e017b2b68f.png

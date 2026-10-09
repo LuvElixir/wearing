@@ -1,0 +1,22 @@
+{
+  "status": "rejected",
+  "images": [
+    {
+      "candidate": "A",
+      "file": "icon-redesign-a-round-plush.png",
+      "source": "/Users/archieliew/.codex/generated_images/01a0ee05-4561-73e3-8587-49c9ac376cad/exec-9783c98f-8276-48e3-ac60-87e06aca0b1a.png",
+      "sha256": "23719987ffe094c3dffbcf88a29210fbccfc700ddc8a4532397c90247c710834",
+      "status": "rejected",
+      "image_processing": "none; byte-for-byte copy"
+    },
+    {
+      "candidate": "B",
+      "file": "icon-redesign-b-soft-sculpture.png",
+      "source": "/Users/archieliew/.codex/generated_images/01a0ee05-4561-73e3-8587-49c9ac376cad/exec-37b72ce9-9cf4-4eec-8f72-23016c64a27f.png",
+      "sha256": "7d6025a2b65064997d1b1083260eb03da7b80f559dcd949ce911ba77400148a3",
+      "status": "rejected",
+      "image_processing": "none; byte-for-byte copy"
+    }
+  ],
+  "note": "Both icon candidates were rejected by the user; archive only, no app/build integration."
+}

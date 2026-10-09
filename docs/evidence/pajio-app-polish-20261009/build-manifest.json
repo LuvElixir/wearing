@@ -1,0 +1,94 @@
+{
+  "recordedAt": "2026-10-09T06:50:38.916566+00:00",
+  "scope": "App UX polish; no web or desktop implementation",
+  "simulator": "FC25D76C-DF85-4CB5-A862-DB33E302BA07",
+  "qaService": "http://127.0.0.1:8892",
+  "candidateRoot": "/var/folders/32/vzdw9zp96ps4lgrqy7rz55cw0000gn/T/pajio-context-native-qjd5pahb",
+  "files": [
+    {
+      "path": "src/Mobile.tsx",
+      "sourceSha256": "e4e167af0846eb309da4324a3b5c746b4f03d8091114dcea04327d1a494af3c1",
+      "candidateSha256": "e4e167af0846eb309da4324a3b5c746b4f03d8091114dcea04327d1a494af3c1"
+    },
+    {
+      "path": "src/AgentTaskList.tsx",
+      "sourceSha256": "f7289cb6ae046becb1f06b75da9c9a7544de5051d8c81a3612f16f8519e556e3",
+      "candidateSha256": "f7289cb6ae046becb1f06b75da9c9a7544de5051d8c81a3612f16f8519e556e3"
+    },
+    {
+      "path": "src/TaskDetailPanel.tsx",
+      "sourceSha256": "12646450f2cd25fff1517db746f3eb3354b49f07ec83e177c3177455d15bfe88",
+      "candidateSha256": "12646450f2cd25fff1517db746f3eb3354b49f07ec83e177c3177455d15bfe88"
+    },
+    {
+      "path": "src/task-request-queue.ts",
+      "sourceSha256": "d0cd5e9ed1f91f2c55e2da0a4420f6a3f072517bc138e85eaf240496e7f3635b",
+      "candidateSha256": "d0cd5e9ed1f91f2c55e2da0a4420f6a3f072517bc138e85eaf240496e7f3635b"
+    },
+    {
+      "path": "src/task-request-queue.test.ts",
+      "sourceSha256": "23b839c8abce9926f1a1972ee2e322062cc5d6684df626e43cab76185f7fdfd4",
+      "candidateSha256": "23b839c8abce9926f1a1972ee2e322062cc5d6684df626e43cab76185f7fdfd4"
+    },
+    {
+      "path": "src/tab-scroll-memory.ts",
+      "sourceSha256": "9f2f9b8315443e25573ee7d393d0b33fb8d33b65b0ff5c392f07a4d9afcc7b28",
+      "candidateSha256": "9f2f9b8315443e25573ee7d393d0b33fb8d33b65b0ff5c392f07a4d9afcc7b28"
+    },
+    {
+      "path": "src/tab-scroll-memory.test.ts",
+      "sourceSha256": "ac0547e86256957c33036cc938d0a7c51d591a74247ffd3e59995859d0f9b8bc",
+      "candidateSha256": "ac0547e86256957c33036cc938d0a7c51d591a74247ffd3e59995859d0f9b8bc"
+    },
+    {
+      "path": "src/WardrobeStage.tsx",
+      "sourceSha256": "18345f4d5e4b5f63bd28eafa798b4bb1bffcba428de27ba9aae6b3541f996122",
+      "candidateSha256": "18345f4d5e4b5f63bd28eafa798b4bb1bffcba428de27ba9aae6b3541f996122"
+    },
+    {
+      "path": "src/WardrobePanel.tsx",
+      "sourceSha256": "21ff39afd3c24efc90696f3639256cbe17b325d2d069b2621362ac6c0ec08cf6",
+      "candidateSha256": "21ff39afd3c24efc90696f3639256cbe17b325d2d069b2621362ac6c0ec08cf6"
+    },
+    {
+      "path": "src/wardrobe-transition.ts",
+      "sourceSha256": "f94d8b422fa43bfea1afbb57276aba5cc3579e233ea1b564a9d4aa48a1b76681",
+      "candidateSha256": "f94d8b422fa43bfea1afbb57276aba5cc3579e233ea1b564a9d4aa48a1b76681"
+    },
+    {
+      "path": "src/wardrobe-transition.test.ts",
+      "sourceSha256": "5674c2ec126fd786e7a31c0cec66349665c9849846fa9451afad7a24724803ca",
+      "candidateSha256": "5674c2ec126fd786e7a31c0cec66349665c9849846fa9451afad7a24724803ca"
+    },
+    {
+      "path": "src/experience/IntentComposer.tsx",
+      "sourceSha256": "9f903fa8fa4375bf8fb8dea973d23dbc62e053663d0d96548438f15bc9eaec16",
+      "candidateSha256": "9f903fa8fa4375bf8fb8dea973d23dbc62e053663d0d96548438f15bc9eaec16"
+    },
+    {
+      "path": "src/experience/primitives.tsx",
+      "sourceSha256": "e87e4c8fd897f5b031a69d19c5ab11d8577f0725aabea3c4154c407a99dcbc4a",
+      "candidateSha256": "e87e4c8fd897f5b031a69d19c5ab11d8577f0725aabea3c4154c407a99dcbc4a"
+    },
+    {
+      "path": "src/VoiceComposer.tsx",
+      "sourceSha256": "a196ff50a19f41d22a639bad0ef6ddc3e30d530ba0c6e5a991f4e4dba26c6cc3",
+      "candidateSha256": "a196ff50a19f41d22a639bad0ef6ddc3e30d530ba0c6e5a991f4e4dba26c6cc3"
+    },
+    {
+      "path": "src/LivingPajamaBear.tsx",
+      "sourceSha256": "f335899341f7448e57eeb973a0906db4cd6a3350d358bf61742efef25b339211",
+      "candidateSha256": "f335899341f7448e57eeb973a0906db4cd6a3350d358bf61742efef25b339211"
+    }
+  ],
+  "checks": {
+    "testsPassed": 740,
+    "typecheck": true,
+    "sourceLint": true,
+    "iosSimulatorReleaseBuild": true,
+    "androidJSExport": true,
+    "androidNativeBuildThisTurn": false,
+    "physicalDeviceQAThisTurn": false
+  },
+  "iosBundleSha256": "1e9429a77c825e7ea5270f2999f9b0570b6e7d41b99624379d179c0ed7e4bbba"
+}

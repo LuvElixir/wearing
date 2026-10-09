@@ -1,0 +1,12 @@
+{
+  "status": "selected",
+  "selected": "C — quilt bear",
+  "selected_by": "user",
+  "date": "2026-10-07",
+  "master": "app-icon-c-master.png",
+  "production_icon": "app-icon.png",
+  "generation": "built-in image_gen",
+  "prompt": "app-icon-c.prompt.txt",
+  "wordmark": "wordmark-custom-v2.svg",
+  "note": "User selected C. Earlier P+bear and abstract concepts are superseded."
+}

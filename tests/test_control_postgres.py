@@ -18,7 +18,7 @@ from wearing.cloud.control import (ControlError, ControlStore, OIDCStateCache, d
 from wearing.cloud.gateway import (GatewayConfig, GatewayError, create_gateway_app,
                                    initialize_gateway, operator_store, register_route)
 from wearing.cloud.instance import initialize_instance
-from wearing.cloud.postgres import DatabaseBoundaryError, TABLES, migrate_database, validate_database_url
+from wearing.cloud.postgres import DatabaseBoundaryError, REVISION, TABLES, migrate_database, validate_database_url
 from wearing.cloud.worker import create_tenant_app
 
 
@@ -200,7 +200,7 @@ def test_startup_rejects_missing_force_rls_policy_and_revision(pg):
     mutations = [
         ("ALTER TABLE wearing_control.wearing_routes NO FORCE ROW LEVEL SECURITY", "ALTER TABLE wearing_control.wearing_routes FORCE ROW LEVEL SECURITY"),
         ("CREATE POLICY unsafe_extra ON wearing_control.wearing_routes TO wearing_web USING (true)", "DROP POLICY unsafe_extra ON wearing_control.wearing_routes"),
-        ("UPDATE wearing_control.alembic_version SET version_num = 'wrong'", "UPDATE wearing_control.alembic_version SET version_num = 'wearing_control_0001'"),
+        ("UPDATE wearing_control.alembic_version SET version_num = 'wrong'", f"UPDATE wearing_control.alembic_version SET version_num = '{REVISION}'"),
     ]
     for change, repair in mutations:
         try:
@@ -251,6 +251,7 @@ def test_operator_credential_is_separate_and_target_bound(pg, tmp_path, monkeypa
 
 
 async def test_gateway_uses_real_pg_through_oidc_and_private_workers(pg, tmp_path, monkeypatch):
+    monkeypatch.setenv("PAJIO_TRIAL_LIMITS", "1")
     from test_gateway import ORIGIN, ISSUER, Provider, Workers, login
     root, a, b = tmp_path / "entry", tmp_path / "A", tmp_path / "B"
     initialize_gateway(root, ORIGIN, ISSUER, "wearing-test", development=True, database_url=pg["app"])

@@ -85,6 +85,24 @@ class HermesClient:
                 raise HermesError("记忆记录格式无法识别；原记录未改动。")
         return result
 
+    async def change_memory(self, body):
+        # Preserve mutation conflicts and user-actionable errors without exposing
+        # generic upstream diagnostics or any connection credentials.
+        if not self.configured:
+            raise HermesError("当前身份的执行引擎尚未连接。")
+        try:
+            response = await self.http.patch("/v1/wearing/memory", json=body)
+            data = response.json()
+        except (httpx.HTTPError, ValueError) as cause:
+            raise HermesError("尚未确认记忆保存结果，请刷新后核对。", uncertain=True) from cause
+        if response.status_code >= 300:
+            error = HermesError(data.get("error", "记忆未修改，请刷新后重试。") if isinstance(data, dict) else "记忆未修改，请刷新后重试。")
+            error.status = response.status_code if response.status_code in {409,422} else 503
+            raise error
+        if not isinstance(data, dict) or not data.get("available"):
+            raise HermesError("记忆回执无法识别，请刷新核对。", uncertain=True)
+        return data
+
     async def stop(self, run_id: str):
         return await self.request("POST", f"/v1/runs/{quote(run_id, safe='')}/stop", body={})
 

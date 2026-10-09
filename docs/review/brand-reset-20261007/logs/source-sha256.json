@@ -1,0 +1,16 @@
+{
+  "clients/mobile/src/appearance.ts": "cef1b07564de7a5ef55d9be89e22867fa90ceb68c0fc34b2a44a1dcb8e910ae0",
+  "clients/mobile/src/BrandStar.tsx": "3ad5254f9be1f72cab630666f05cc2f5c04dffb303ab00b2a96c761deb9a2dc5",
+  "clients/mobile/src/app-theme.tsx": "22584eb6e26ce4a5642eab26ef3b22866ad11b1d13e5619586f1e78b4b0c5b91",
+  "clients/mobile/src/Mobile.tsx": "711a6ce28e8e3173eb9c91543385810095ff28a94089848fcaed808ffe3ff519",
+  "clients/mobile/src/ActivityReview.tsx": "e3a8dfccaece0ce83af9a6f0d3198cf806ed08a3606a9be49e5a78519e20d5d8",
+  "clients/mobile/src/TodayPanel.tsx": "87bb9e6477d622de5335dc3b9a8c5c394762efaa03504be170ab311ac75a639a",
+  "clients/mobile/src/AgentTaskList.tsx": "ae106d0ac3b18069bd0bd3919dffa5469185cb88f4baf7a394147e5409840aad",
+  "clients/mobile/src/activity-presentation.ts": "f86efef4ffc56b733c4a68ab9d9be4151fcf4909778ea8a7b79639af45e9c7e7",
+  "clients/mobile/src/PersonalHub.tsx": "0cca612256d6ebfcadd8dd388b540283d3c99a377ec05eddbfefe0858c9b10d1",
+  "clients/mobile/src/AppearancePanel.tsx": "1174beb3819311d222f45b8491f4e5b5af81ebe927a15d6010ed7fc0d22d7647",
+  "clients/mobile/src/CompanionPreferencePanel.tsx": "8f6468a368a60080c327c846210b155ab9d097ee4540bd2339a2bbf32d75bd0c",
+  "clients/mobile/src/wardrobe.ts": "e94a10ff63683357b57f3d7dcaba4a773f638d75dd9887c6167c6401feeadfae",
+  "clients/mobile/src/experience/primitives.tsx": "61a5887ffd2b2b2bbb4016ea3044d3d6323225703fd9b6c61e983501e7257669",
+  "src/wearing/web/mobile-host.css": "a731d6497641df3048189e4db71f31da22b796569dd3c8da5340e947668ad454"
+}

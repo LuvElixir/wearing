@@ -24,7 +24,7 @@ def main():
         print(json.dumps(value))
     elif action in ("takeover", "resume", "control"):
         if action == "takeover":
-            current = lease.acquire("wearing-local-user", reason="用户已在 Wearing 接管电脑")
+            current = lease.acquire("wearing-local-user", reason="用户已在 Pajio 接管电脑")
         elif action == "resume":
             current = lease.release("wearing-local-user")
         else:

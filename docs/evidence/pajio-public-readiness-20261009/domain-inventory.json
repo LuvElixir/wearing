@@ -1,0 +1,99 @@
+{
+  "checked_at": "2026-10-09T07:12:25.566077+00:00",
+  "domain": "luckyloading.com",
+  "records": [
+    {
+      "name": "@",
+      "type": "NS",
+      "status": "ENABLE"
+    },
+    {
+      "name": "@",
+      "type": "NS",
+      "status": "ENABLE"
+    },
+    {
+      "name": "@",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "www",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "hermes",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "@",
+      "type": "TXT",
+      "status": "ENABLE"
+    },
+    {
+      "name": "@",
+      "type": "MX",
+      "status": "ENABLE"
+    },
+    {
+      "name": "@",
+      "type": "MX",
+      "status": "ENABLE"
+    },
+    {
+      "name": "qqmail541072e3",
+      "type": "CNAME",
+      "status": "ENABLE"
+    },
+    {
+      "name": "admin",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "adforge",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "cutlineai",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "openframe",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "review",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "mindex",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "studio",
+      "type": "A",
+      "status": "ENABLE"
+    },
+    {
+      "name": "samedesk",
+      "type": "A",
+      "status": "ENABLE"
+    }
+  ],
+  "info": {
+    "SubdomainCount": 17,
+    "ListCount": 17,
+    "TotalCount": 17
+  },
+  "candidate": "pajio.luckyloading.com",
+  "candidate_present": false,
+  "writes": false
+}

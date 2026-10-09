@@ -1,0 +1,13 @@
+{
+  "source": "synthetic macOS Tingting; paced PCM; no user recording",
+  "provider": "doubao-seedasr-2",
+  "path": "LAN bridge -> Wearing -> Doubao",
+  "duration_seconds": 8.0033125,
+  "after_finish_ms": 691,
+  "total_ms": 8790,
+  "text": "明天下午3点提醒我拿快递。周末想找一个人少一点的地方走走，预算500块。",
+  "file_fallback_ms": 1489,
+  "file_fallback_text": "明天下午3点提醒我拿快递。周末想找一个人少一点的地方走走，预算500块。",
+  "original_hash_preserved": true,
+  "cached_retry_ms": 4
+}

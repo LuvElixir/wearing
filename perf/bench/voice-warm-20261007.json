@@ -1,0 +1,304 @@
+{
+  "created_at": "2026-10-06T19:37:39.589161+00:00",
+  "fixture_sha256": "79064012768940aab839b95b9927f642249910f586a6933c3b7ee15f1e6d5a16",
+  "fixture_name": "sample.aiff",
+  "fixture_origin": "macOS say, Tingting (中文（中国大陆）), synthetic Mandarin",
+  "fixture_script": "明天下午三点提醒我拿快递，周末想找一个人少一点的地方走走，预算五百块。",
+  "hardware": {
+    "machine": "arm64",
+    "system": "macOS-27.0.1-arm64-arm-64bit"
+  },
+  "packages": {
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.8.2",
+    "av": "16.1.0"
+  },
+  "model_manifest_sha256": "b51674e80d0c4b495175b5630ec7e29f38c92345497bd64a1f0288a10fd6f5f2",
+  "sources": {
+    "perf/bench/voice-cold-baseline.py": "9c7b8bd6f460dbc287b53e0fe918145068bd30125c34011a4fccce25aaa8cd67",
+    "src/wearing/capture_stt.py": "05341dfff4415dafd93eabaa9fe1afb8ecee187ad21d16037457365704437658",
+    "src/wearing/capture_worker.py": "d351b961d12c5ccabbd5b218d3c8c806e2b4a30b9a8343550ecc3662bb2fc5a6"
+  },
+  "method": "10 sequential pairs, alternating order. First warm-worker request reported separately; p95 is nearest-rank. Same local small/int8, 4 threads, beam=5, VAD and prompt. No remote provider, no accuracy claim.",
+  "first_warm_worker_request": {
+    "seconds": 3.0237,
+    "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+    "audio_seconds": 8.0033125,
+    "timings": {
+      "decode_ms": 6,
+      "model_load_ms": 302,
+      "recognition_ms": 2572,
+      "model_reused": false
+    }
+  },
+  "cold": {
+    "count": 10,
+    "p50_seconds": 3.2213,
+    "p95_seconds": 3.2799,
+    "min_seconds": 3.0882,
+    "max_seconds": 3.2799,
+    "p75_seconds": 3.252
+  },
+  "warm": {
+    "count": 10,
+    "p50_seconds": 2.6735,
+    "p95_seconds": 2.7153,
+    "min_seconds": 2.5866,
+    "max_seconds": 2.7153,
+    "p75_seconds": 2.6828
+  },
+  "p50_reduction_percent": 17.0,
+  "all_pair_transcripts_equal": true,
+  "pairs": [
+    {
+      "pair": 1,
+      "order": [
+        "cold",
+        "warm"
+      ],
+      "cold": {
+        "seconds": 3.1701,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "warm": {
+        "seconds": 2.6758,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 7,
+          "model_load_ms": 0,
+          "recognition_ms": 2668,
+          "model_reused": true
+        }
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 2,
+      "order": [
+        "warm",
+        "cold"
+      ],
+      "warm": {
+        "seconds": 2.5866,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 5,
+          "model_load_ms": 0,
+          "recognition_ms": 2581,
+          "model_reused": true
+        }
+      },
+      "cold": {
+        "seconds": 3.1656,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 3,
+      "order": [
+        "cold",
+        "warm"
+      ],
+      "cold": {
+        "seconds": 3.0882,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "warm": {
+        "seconds": 2.6394,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 6,
+          "model_load_ms": 0,
+          "recognition_ms": 2633,
+          "model_reused": true
+        }
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 4,
+      "order": [
+        "warm",
+        "cold"
+      ],
+      "warm": {
+        "seconds": 2.6511,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 5,
+          "model_load_ms": 0,
+          "recognition_ms": 2645,
+          "model_reused": true
+        }
+      },
+      "cold": {
+        "seconds": 3.2181,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 5,
+      "order": [
+        "cold",
+        "warm"
+      ],
+      "cold": {
+        "seconds": 3.1699,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "warm": {
+        "seconds": 2.6593,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 5,
+          "model_load_ms": 0,
+          "recognition_ms": 2653,
+          "model_reused": true
+        }
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 6,
+      "order": [
+        "warm",
+        "cold"
+      ],
+      "warm": {
+        "seconds": 2.6828,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 6,
+          "model_load_ms": 0,
+          "recognition_ms": 2677,
+          "model_reused": true
+        }
+      },
+      "cold": {
+        "seconds": 3.2245,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 7,
+      "order": [
+        "cold",
+        "warm"
+      ],
+      "cold": {
+        "seconds": 3.2505,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "warm": {
+        "seconds": 2.6712,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 5,
+          "model_load_ms": 0,
+          "recognition_ms": 2666,
+          "model_reused": true
+        }
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 8,
+      "order": [
+        "warm",
+        "cold"
+      ],
+      "warm": {
+        "seconds": 2.6856,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 6,
+          "model_load_ms": 0,
+          "recognition_ms": 2679,
+          "model_reused": true
+        }
+      },
+      "cold": {
+        "seconds": 3.2669,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 9,
+      "order": [
+        "cold",
+        "warm"
+      ],
+      "cold": {
+        "seconds": 3.252,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "warm": {
+        "seconds": 2.6808,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 5,
+          "model_load_ms": 0,
+          "recognition_ms": 2676,
+          "model_reused": true
+        }
+      },
+      "transcripts_equal": true
+    },
+    {
+      "pair": 10,
+      "order": [
+        "warm",
+        "cold"
+      ],
+      "warm": {
+        "seconds": 2.7153,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": {
+          "decode_ms": 6,
+          "model_load_ms": 0,
+          "recognition_ms": 2709,
+          "model_reused": true
+        }
+      },
+      "cold": {
+        "seconds": 3.2799,
+        "transcript": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+        "audio_seconds": 8.0033125,
+        "timings": null
+      },
+      "transcripts_equal": true
+    }
+  ]
+}

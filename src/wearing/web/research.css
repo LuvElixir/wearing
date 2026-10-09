@@ -1,0 +1,58 @@
+/* Quiet provenance: compact at rest, exact observations available on demand. */
+.research-receipts{margin:20px 0 6px;border:1px solid var(--line);border-radius:20px;font-size:13px;color:var(--muted);background:var(--surface);overflow:hidden;max-width:600px}
+.research-receipts summary{cursor:pointer;list-style:none;box-sizing:border-box}
+.research-receipts summary::-webkit-details-marker{display:none}
+.research-receipts svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.research-receipts>summary{display:flex;align-items:center;gap:10px;min-height:52px;padding:12px 16px;transition:background-color 140ms}
+.research-receipts>summary:hover{background:#f6f7fb}
+.research-summary-title{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap}
+.research-preview{margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;max-width:50%}
+.research-disclosure{display:flex;margin-left:2px}
+.research-disclosure svg{width:12px;height:12px;transition:transform 180ms ease}
+.research-receipts[open]>summary .research-disclosure svg{transform:rotate(90deg)}
+.research-receipts[open]>summary{border-bottom:1px solid var(--line)}
+.research-body{padding:4px 16px 14px}
+.research-body ul{list-style:none;padding:0;margin:0}
+.research-sources>li{padding:14px 0;overflow-wrap:anywhere}
+.research-sources>li+li{border-top:1px solid var(--line)}
+.research-source-heading{display:flex;gap:10px;align-items:center;margin-bottom:6px}
+.research-source-heading>div{display:grid;gap:2px}
+.research-source-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:var(--blue-light);color:var(--blue-deep);flex-shrink:0}
+.research-state{display:block;font-size:11px;line-height:1.7;color:var(--muted)}
+.research-body a,.research-title{font-size:13px;line-height:1.6;font-weight:500;color:var(--ink)}
+.research-body a:hover{color:var(--blue-deep)}
+.research-body small{display:block;font-size:11px;line-height:1.8;font-variant-numeric:tabular-nums}
+.research-observations{margin:6px 0 0 44px}
+.research-observations>details+details{border-top:1px solid #eef0f4}
+.research-observations summary{display:flex;align-items:center;gap:10px;min-height:44px;color:var(--muted);font-size:12px}
+.research-observations summary>span{color:var(--ink)}
+.research-observations summary>time{margin-left:auto}
+.research-observations summary>svg{width:11px;height:11px;transition:transform 180ms ease}
+.research-observations details[open]>summary>svg{transform:rotate(90deg)}
+.research-observations time,.research-observation-note time{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.research-screen{padding:12px 14px;margin:0 0 10px;background:#f5f6fa;border-radius:12px;max-height:300px;overflow:auto;overscroll-behavior:contain}
+.research-screen p{font-size:11px;line-height:1.8;color:var(--muted);margin:0 0 8px}
+.research-screen p:last-child{margin-bottom:0}
+.research-screen li{font-size:12px;line-height:1.85;padding:3px 0;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)}
+.research-screen:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.research-observation-note{padding:11px 0;border-top:1px solid var(--line)}
+.research-observation-note>div{display:flex;gap:12px;align-items:baseline;justify-content:space-between;flex-wrap:wrap}
+.research-observation-note strong{font-size:12px;font-weight:500;color:var(--ink)}
+.research-observation-note p,.research-body>p,.research-queries p{font-size:11px;line-height:1.8;margin:5px 0 0}
+.research-caption{color:var(--muted);padding-top:8px}
+.research-queries{border-top:1px solid var(--line);overflow-wrap:anywhere}
+.research-queries summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;font-size:12px}
+.research-queries summary svg{width:11px;height:11px}
+.research-queries[open] summary svg{transform:rotate(90deg)}
+.research-receipts summary:focus-visible{outline:2px solid var(--blue);outline-offset:-3px;border-radius:12px}
+@media(max-width:600px){
+ .research-receipts{margin-top:16px;border-radius:16px}
+ .research-receipts>summary{padding:11px 12px;gap:8px;min-height:48px}
+ .research-body{padding:2px 12px 12px}
+ .research-observations{margin-left:0}
+ .research-source-heading{margin-bottom:10px}
+ .research-preview{max-width:40%}
+ .research-observations summary{gap:6px}
+ .research-observations time{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){.research-receipts *{transition:none!important}}

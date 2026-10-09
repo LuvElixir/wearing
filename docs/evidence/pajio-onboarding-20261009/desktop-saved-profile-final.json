@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "identity_id": "qa",
+  "revision": 15,
+  "status": "completed",
+  "step": 5,
+  "values": {
+    "roles": [
+      "employed",
+      "business"
+    ],
+    "apps": [
+      "wechat",
+      "feishu"
+    ],
+    "interests": [
+      "design",
+      "reading"
+    ],
+    "reply_detail": "brief",
+    "reply_tone": "warm"
+  },
+  "source": "self_selected",
+  "confirmed_at": "2026-10-08T18:48:36.102368+00:00",
+  "updated_at": "2026-10-08T18:48:36.102368+00:00",
+  "recommend_onboarding": false
+}

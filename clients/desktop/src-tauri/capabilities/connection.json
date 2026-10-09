@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "connection-panel",
+  "description": "Only the bundled connection page can invoke native settings. Remote Wearing pages have no native capability.",
+  "windows": ["main", "connection"],
+  "local": true,
+  "permissions": ["core:default"]
+}

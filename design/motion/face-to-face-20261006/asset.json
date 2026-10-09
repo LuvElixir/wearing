@@ -1,0 +1,31 @@
+{
+  "created": "2026-10-06",
+  "reference": "design/character/3d-20261005/companion-portrait-master.png",
+  "portrait": "portrait-master.png",
+  "accepted_build": "bld_20261005T171358624Z_FBC56B2F7F",
+  "rejected_build": "bld_20261005T171057985Z_9FAFC1387F",
+  "rejection_reason": "Generated an unwanted mouth; not shipped",
+  "generation_request": {
+    "model": "seedance-2-mini",
+    "resolution_band": "720p",
+    "duration_seconds": 6,
+    "audio": false
+  },
+  "runtime": {
+    "size": "320x320",
+    "duration_seconds": 5.5,
+    "fps": 24,
+    "audio": false,
+    "decoder_limit": 1
+  },
+  "assets": {
+    "src/wearing/web/face-poster.jpg": {
+      "bytes": 14607,
+      "sha256": "7bfa566205ef2664e0b514f29f8a6f8ff33534f6a212e7e48ebb19395a4b3064"
+    },
+    "src/wearing/web/motion/face-loop.mp4": {
+      "bytes": 110635,
+      "sha256": "831405bfceefcebe8dd507b21666bea8c5b0830cf5204e91bcafc9469d70b55c"
+    }
+  }
+}

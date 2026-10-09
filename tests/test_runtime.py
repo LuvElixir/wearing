@@ -15,6 +15,20 @@ from wearing.config import Settings
 from wearing.runtime import HermesRuntime, RuntimeError, stop_owned_process, unpack_source
 
 
+@pytest.mark.parametrize("enabled", [True, False])
+def test_runtime_child_usage_authority_is_fixed_at_construction(tmp_path, monkeypatch, enabled):
+    monkeypatch.setenv("PAJIO_TRIAL_LIMITS", "1" if enabled else "0")
+    identity = "id_" + "a" * 32
+    runtime = HermesRuntime(tmp_path, identity)
+    monkeypatch.setenv("PAJIO_TRIAL_LIMITS", "0" if enabled else "1")
+    monkeypatch.setenv("PAJIO_USAGE_DATA_DIR", str(tmp_path / "other-tenant"))
+    monkeypatch.setenv("PAJIO_USAGE_IDENTITY", "daily")
+    child = runtime.env()
+    assert child["PAJIO_TRIAL_LIMITS"] == ("1" if enabled else "0")
+    assert child["PAJIO_USAGE_DATA_DIR"] == str(tmp_path.resolve())
+    assert child["PAJIO_USAGE_IDENTITY"] == identity
+
+
 def test_source_must_match_digest_before_extraction(tmp_path):
     archive = tmp_path / "bad.tar.gz"
     archive.write_bytes(b"not the official archive")

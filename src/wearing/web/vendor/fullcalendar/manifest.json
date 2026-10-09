@@ -1,0 +1,23 @@
+{
+  "name": "FullCalendar",
+  "version": "7.1.0",
+  "source": "https://fullcalendar.io/docs/vanilla-js",
+  "files": {
+    "all/global.js": {
+      "url": "https://cdn.jsdelivr.net/npm/fullcalendar@7.1.0/all/global.js",
+      "sha256": "b8445e965df13ce85ad40aea0b75b9807ef4a425fdda0ebc81b2d1dc30da0d08"
+    },
+    "themes/monarch/global.js": {
+      "url": "https://cdn.jsdelivr.net/npm/fullcalendar@7.1.0/themes/monarch/global.js",
+      "sha256": "0667d295fd26e36c7fe6836afe95fa2e3a1df5234080fe323654e816aa3a82a5"
+    },
+    "skeleton.css": {
+      "url": "https://cdn.jsdelivr.net/npm/fullcalendar@7.1.0/skeleton.css",
+      "sha256": "971504b6743173387939bca2c6ee8969ce0babc6c8b34032f65dc2c42604e783"
+    },
+    "themes/monarch/theme.css": {
+      "url": "https://cdn.jsdelivr.net/npm/fullcalendar@7.1.0/themes/monarch/theme.css",
+      "sha256": "26069600025671df4fb01049f9bb17728fa0a62567ab88511f93fc4e1a7f3902"
+    }
+  }
+}

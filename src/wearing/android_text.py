@@ -7,6 +7,7 @@ import json
 import re
 import signal
 import sys
+import time
 from xml.etree import ElementTree as ET
 
 
@@ -44,7 +45,16 @@ def replace_text(request):
         returned = _jsonrpc_call(device._dev, 19008, "setText", [field.selector, request["text"]], 10, False)
         value = field.get_text(timeout=1)
         if not returned or value != request["text"]:
-            return {"ok": False, "unknown": True, "message": "输入后的内容未通过读回核对，请重新观察，不要自动重试。"}
+            result = {"ok": False, "unknown": True, "input_readback_verified": False,
+                      "message": "已尝试填写一次，但读回与目标文字不完全一致。请重新观察界面或截图；可能含控件装饰文字，不要自动重复输入或提交。"}
+            # Revalidate the same non-password field before disclosing its value.
+            try:
+                current = focused_field(device.dump_hierarchy(), value)
+                if all(current.get(k) == node.get(k) for k in ("resource-id", "package", "class")):
+                    result["observed_text"] = value[:12000]
+            except ValueError:
+                pass
+            return result
         return {"ok": True, "input_readback_verified": True, "message": "已填写输入框并读回确认文字完全一致；没有点击提交。",
                 "element_id": node["resource-id"], "package": node["package"]}
     except ValueError as error:
@@ -70,7 +80,8 @@ def describe_hierarchy(xml):
         if x2 <= x1 or y2 <= y1:
             continue
         row = {"type": a.get("class", ""), "text": "[password]" if a.get("password") == "true" else a.get("text", ""),
-               "label": a.get("content-desc", ""), "id": a.get("resource-id", ""), "package": a.get("package", ""),
+               "label": "" if a.get("password") == "true" else a.get("content-desc", ""),
+               "password": a.get("password") == "true", "id": a.get("resource-id", ""), "package": a.get("package", ""),
                "x": (x1+x2)//2, "y": (y1+y2)//2,
                "focused": a.get("focused") == "true", "clickable": a.get("clickable") == "true", "enabled": a.get("enabled") == "true"}
         rows.append(row)
@@ -88,10 +99,25 @@ def observe(request):
         # Dynamic pages may never become idle. The public helper can retry a
         # failed read several times; bound this observation and request a
         # screenshot instead of holding the device indefinitely.
-        xml = _jsonrpc_call(device._dev, 19008, "dumpWindowHierarchy", [False, 50], 8, False)
-        data = describe_hierarchy(xml)
-        limited = all(row["package"] == "com.android.systemui" for row in data["elements"])
+        deadline = time.monotonic() + 10
+        data = None
+        for attempt in range(3):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            xml = _jsonrpc_call(device._dev, 19008, "dumpWindowHierarchy", [False, 50], min(8, remaining), False)
+            try:
+                data = describe_hierarchy(xml)
+            except ValueError:
+                data = None
+            limited = not data or all(row["package"] == "com.android.systemui" for row in data["elements"])
+            if not limited or attempt == 2:
+                break
+            time.sleep(min(.35, max(0, deadline - time.monotonic())))
+        if data is None:
+            raise ValueError("empty screen")
         return {"ok": True, "source": "uiautomator2", **data, "limited": limited,
+                "observation_attempts": attempt + 1,
                 **({"message": "只读到系统控件，未确认应用内容。请使用截图观察当前页面，再决定下一步。"} if limited else {})}
     except Exception:
         return {"ok": False, "message": "界面读取未取得结果，请使用截图观察；不要重复之前的点击或输入。"}

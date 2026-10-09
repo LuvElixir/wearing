@@ -1,0 +1,18 @@
+{
+  "source": "physical iPhone user confirmation and Metro stage diagnostics",
+  "date": "2026-10-07",
+  "provider": "doubao-seedasr-2",
+  "mode": "streaming input, final utterance output",
+  "prepare_ms": 14,
+  "stop_ms": 281,
+  "copy_ms": 6,
+  "transcribe_ms": 310,
+  "release_to_draft_ms": 944,
+  "voice_stages_outcome": "ok",
+  "user_confirmed_recognition": true,
+  "subsequent_send_error": "crypto.randomUUID unavailable in HTTP WebView",
+  "send_fix": "Web Crypto getRandomValues UUID v4 compatibility layer",
+  "physical_send_retry_verified": false,
+  "samples": 1,
+  "notes": "No recorded audio or user transcript retained in this evidence; not an accuracy benchmark or percentile measurement."
+}

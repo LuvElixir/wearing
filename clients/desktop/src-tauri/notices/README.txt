@@ -1,0 +1,1 @@
+Wearing Desktop 0.2 technical preview. Tauri 2.12.1, global-shortcut 2.4.0, single-instance 2.5.2 are reused unmodified under MIT OR Apache-2.0. See DEPENDENCIES.txt for included upstream texts and Cargo.lock for locked versions. The application UI and existing personal-agent server are separate. This bundle contains no user records or API keys.

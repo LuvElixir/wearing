@@ -1,0 +1,22 @@
+/* A dedicated head-and-collar portrait, distinct from the full-body companion. */
+.wearing-face{--face-size:44px;display:block;position:relative;width:var(--face-size);height:var(--face-size);flex:0 0 var(--face-size);border-radius:50%;background:var(--blue-light)}
+.wearing-face-picture{display:block;width:100%;height:100%;border-radius:inherit;overflow:hidden}
+.wearing-face-picture img{width:100%;height:100%;object-fit:cover;display:block}
+.message-assistant{gap:16px;align-items:flex-start}
+.message-assistant>.wearing-face{position:sticky;top:24px}
+.message-assistant .assistant-content{padding-top:2px;min-width:0}
+.assistant-copy{font-size:15px;line-height:1.9;overflow-wrap:anywhere;letter-spacing:.005em}
+.turn-tools{gap:4px 10px;margin-top:14px}
+.turn-tools button{display:inline-flex;gap:6px;align-items:center;padding:8px 9px;min-height:36px;border-radius:12px;font-size:12px;color:var(--muted)}
+.turn-tools button:first-child{margin-left:-9px}
+.turn-tools button:hover{background:#eff2f9;color:var(--blue-deep)}
+.turn-tools button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.response-wait{gap:16px;min-height:44px}
+@media(max-width:600px){
+ .wearing-face{--face-size:36px}
+ .message-assistant,.response-wait{gap:12px}
+ .assistant-copy{font-size:14px;line-height:1.85}
+ .turn-tools{gap:2px 4px;margin-top:10px}
+ .turn-tools button{min-height:44px;font-size:11px;padding-inline:7px}
+ .turn-tools button:first-child{margin-left:-7px}
+}

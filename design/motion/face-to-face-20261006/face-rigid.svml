@@ -1,0 +1,18 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="media" from="@hypit/media@1"/>
+  <import as="text" from="@hypit/text@1"/>
+  <import as="seedance" from="@hypit/seedance@1"/>
+  <import as="kit" source="@hypit/seedance-kits/broll"/>
+  <media:Image id="portrait" src="./portrait-master.png"/>
+  <text:Value id="direction">Animate this exact designer plush collectible toy in one locked camera six-second shot. The cream head is a RIGID, UNCHANGING sculpted object with TWO BLACK OVAL INLAYS as eyes. Its surface below the two eyes is COMPLETELY BLANK at all times, smooth uninterrupted cream fabric. Treat it as a product object, never as a human face. Do not animate or deform the face surface. Zero mouth, smile, lips, nose, eyebrows, dents, facial lines or new dark marks in any frame. Keep the two oval eyes exactly shaped and OPEN throughout. Move only the whole rigid head and blue shoulders: the toy tilts its head a few degrees to one side, leans toward the viewer a tiny amount and returns to its exact initial pose, like a curious tiny friend listening patiently. The gentleness and charm come entirely from that interested head tilt and the soft blue fabric shoulders. Maintain exact reference proportions, the blue collar and square cream head, stable texture and lighting. Preserve framing, camera, pale blue background color and exposure from the first frame throughout. No hands, text, cuts, camera movement or sound. The final half second settles on the same reference pose as the first half second for a quiet seamless loop. This is a toy product animation with an immutable two-eye, NO-MOUTH head.</text:Value>
+  <text:Render id="prompt" template={kit.broll-v1}>
+    <text:Param name="material-mode" value="product-beauty"/>
+    <text:Param name="story-shape" value="single-moment"/>
+    <text:Param name="edit-language" value="continuous-shot"/>
+    <text:Param name="camera-language" value="reference-locked"/>
+    <text:Param name="motion-intensity" value="micro"/>
+    <text:Set name="story" text={direction}/>
+  </text:Render>
+  <seedance:FrameVideo id="face" model="mini" prompt={prompt} duration="6" resolution="720p" aspect-ratio="1:1" generate-audio="false" first-frame={portrait} last-frame={portrait} first-frame-person-reference="false" last-frame-person-reference="false"/>
+</svml>

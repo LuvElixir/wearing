@@ -1,0 +1,12 @@
+{
+  "reference": "src/wearing/web/character-poster.png",
+  "runtime_paths": [
+    "src/wearing/web/companion-portrait.png",
+    "clients/mobile/assets/companion-portrait.png",
+    "clients/desktop/frontend/companion-portrait.png"
+  ],
+  "user_direction": "仅使用3DIP形象",
+  "master": "companion-portrait-master.png",
+  "render_asset": "transparent512pxPNG",
+  "motion": "existing3Dloopsunchanged"
+}

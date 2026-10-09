@@ -11,6 +11,7 @@ function setup(reduced=false){
     requestVideoFrameCallback(cb){this.frame=cb;}}));
   const context={document,Date,IntersectionObserver:class{constructor(cb){visibility=cb;}observe(){}},
     clearTimeout:id=>timers.delete(id),setTimeout:cb=>{timers.set(++timerId,cb);return timerId;}};
+  context.window=context;
   vm.createContext(context);vm.runInContext(source+'\nthis.Player=WearingPresence;',context);
   const player=new context.Player({stage,poster,videos,preference});
   player.configure({poster:'/anchor.png',states:Object.fromEntries(['idle','attention','thinking','listening','working','waiting'].map(n=>[n,{src:`/${n}.mp4`}]))});

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="day">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Pajio · 动作样片</title>
+  <style>
+    :root{color-scheme:light;--bg:#f4f2ee;--surface:#fbfaf7;--ink:#2a2c2b;--muted:#666b68;--line:#dcded8;--accent:#546c65;--soft:#e8ece6;--video:#e9e8e3;--focus:#46675f}
+    :root[data-theme="night"]{color-scheme:dark;--bg:#191e20;--surface:#23292b;--ink:#edf0e9;--muted:#afb9b5;--line:#3a4545;--accent:#b4cec2;--soft:#303f3b;--video:#151a1c;--focus:#c0dbcd}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+    button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer}a{color:inherit;text-underline-offset:4px}button:focus-visible,a:focus-visible,video:focus-visible{outline:3px solid var(--focus);outline-offset:5px}
+    .wrap{max-width:1240px;margin:auto;padding:28px 40px 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding-bottom:20px}.wordmark{font-size:28px;font-weight:700;letter-spacing:-1.2px}.top-right{display:flex;align-items:center;gap:20px}.edition{font-size:12px;color:var(--muted);letter-spacing:.09em}.theme{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:8px 15px;min-height:44px;font-size:13px}
+    .hero{padding:56px 0 36px;display:grid;grid-template-columns:1.5fr 1fr;gap:32px;align-items:end}.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--accent);margin:0 0 12px}.hero h1{font-size:clamp(28px,4vw,52px);font-weight:550;letter-spacing:-1.4px;line-height:1.24;margin:0 0 17px}.hero p{color:var(--muted);font-size:15px;max-width:600px;margin:0}.status{font-size:13px;color:var(--accent);display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px 13px;border-radius:14px;margin-bottom:12px}.status:before{content:"";height:6px;width:6px;border-radius:50%;background:currentColor}.review-note{border-left:1px solid var(--line);padding-left:24px}.review-note strong{font-size:15px;font-weight:550;display:block;margin-bottom:6px}.review-note p{font-size:13px;line-height:1.8}
+    .films{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.film{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden}.video-frame{aspect-ratio:1;background:var(--video);position:relative}.video-frame video{display:block;width:100%;height:100%;object-fit:contain;background:var(--video)}.film-body{padding:20px 22px 22px}.film-label{display:flex;align-items:baseline;gap:12px}.index{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}.film h2{font-size:22px;letter-spacing:-.4px;line-height:1.3;margin:0;font-weight:550}.film .desc{margin:9px 0 17px;color:var(--muted);font-size:13px;min-height:44px}.trigger{font-size:12px;color:var(--muted);padding-top:12px;border-top:1px solid var(--line);margin:0}.trigger b{font-weight:550;color:var(--ink);margin-right:7px}.file-state{font-size:11px;color:var(--muted);margin:10px 0 0;min-height:18px;overflow-wrap:anywhere}.file-state[data-state="error"]{color:var(--accent)}
+    .sections{display:grid;grid-template-columns:1.25fr 1fr;gap:48px;margin-top:48px;border-top:1px solid var(--line);padding-top:32px}.section-title{font-size:17px;font-weight:550;margin:0 0 16px;letter-spacing:-.3px}.priority{display:grid;grid-template-columns:32px 1fr;gap:10px;padding:13px 0;border-top:1px solid var(--line)}.priority:first-of-type{border-top:0;padding-top:0}.priority .level{font-size:11px;color:var(--accent);padding-top:3px;font-variant-numeric:tabular-nums}.priority h3{font-size:14px;font-weight:550;margin:0 0 2px}.priority p,.wardrobe p{font-size:12px;color:var(--muted);margin:0;line-height:1.85}.steps{display:flex;flex-wrap:wrap;align-items:center;gap:9px;list-style:none;padding:0;margin:2px 0 17px}.steps li{font-size:12px;background:var(--soft);border-radius:8px;padding:8px 10px}.steps li.arrow{padding:0;background:none;color:var(--muted)}.wardrobe .quiet{margin-top:13px}.footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-top:24px;margin-top:34px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}.footer a{font-size:12px}.noscript{font-size:13px;padding:15px;border:1px solid var(--line);border-radius:12px}
+    @media(max-width:900px){.wrap{padding:22px 24px 40px}.hero{grid-template-columns:1fr;padding-top:38px;gap:23px}.review-note{border-left:0;padding-left:0;max-width:620px}.films{gap:12px}.film-body{padding:16px}.film h2{font-size:17px}.sections{gap:28px}.film .desc{min-height:65px}}
+    @media(max-width:650px){.wrap{padding:18px 18px 32px}.edition{display:none}.hero{padding-top:30px;padding-bottom:26px}.hero h1{letter-spacing:-.8px}.films{grid-template-columns:1fr;gap:22px}.film .desc{min-height:0}.film-body{padding:19px 21px}.sections{grid-template-columns:1fr;gap:30px;margin-top:35px}.top-right{gap:10px}.video-frame{max-height:440px}.footer{margin-top:25px}}
+    @media(prefers-reduced-motion:no-preference){.theme{transition:background-color .15s ease,border-color .15s ease}.theme:hover{border-color:var(--accent)}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="wordmark" aria-label="Pajio">Pajio</div>
+      <div class="top-right"><span class="edition">MOTION STUDIES · 09 OCT 2026</span><button type="button" class="theme" id="theme" aria-pressed="false">切换到夜间</button></div>
+    </header>
+    <section class="hero" aria-labelledby="title">
+      <div><p class="eyebrow">小熊的三个回应</p><h1 id="title">有回应，也留一点安静。</h1><p>听你说，接住交代，把结果带回来。先把这些经常发生的小瞬间做好，再扩展更多动作。</p></div>
+      <aside class="review-note"><div class="status">候选素材，未接入 App</div><strong>点播放，逐段看。</strong><p>视频不会自动播放。同一时间只播放一段。含平台生成标记；源片背景不透明，尚未完成深色适配与角色衔接验收。</p></aside>
+    </section>
+    <noscript><p class="noscript">可直接使用视频原生播放按钮；昼夜切换和素材状态提示需要启用 JavaScript。</p></noscript>
+    <section class="films" aria-label="三段候选视频">
+      <article class="film">
+        <div class="video-frame"><video controls playsinline muted preload="metadata" poster="workbuddy/output/pajio-first-frame-blue-v1.png" aria-label="认真听，候选动画" aria-describedby="listen-state"><source src="workbuddy/output/pajio-listen-blue-v1.mp4" type="video/mp4">浏览器暂不支持播放视频。</video></div>
+        <div class="film-body"><div class="film-label"><span class="index">01</span><h2>认真听</h2></div><p class="desc">轻轻倾头，留意你的声音。动作克制，让说话仍然是主角。</p><p class="trigger"><b>使用时机</b>语音输入开始后，播放一次。</p><p class="file-state" id="listen-state" aria-live="polite">正在检查素材…</p></div>
+      </article>
+      <article class="film">
+        <div class="video-frame"><video controls playsinline muted preload="metadata" poster="workbuddy/output/pajio-first-frame-blue-v1.png" aria-label="交给我，候选动画" aria-describedby="received-state"><source src="workbuddy/output/pajio-received-blue-v1.mp4" type="video/mp4">浏览器暂不支持播放视频。</video></div>
+        <div class="film-body"><div class="film-label"><span class="index">02</span><h2>交给我</h2></div><p class="desc">一个小小的点头，让交代被接住。随后安静下来，留出阅读空间。</p><p class="trigger"><b>使用时机</b>服务确认收到任务后，播放一次。</p><p class="file-state" id="received-state" aria-live="polite">正在检查素材…</p></div>
+      </article>
+      <article class="film">
+        <div class="video-frame"><video controls playsinline muted preload="metadata" poster="workbuddy/output/pajio-first-frame-blue-v1.png" aria-label="有结果了，候选动画" aria-describedby="result-state"><source src="workbuddy/output/pajio-result-blue-v1.mp4" type="video/mp4">浏览器暂不支持播放视频。</video></div>
+        <div class="film-body"><div class="film-label"><span class="index">03</span><h2>有结果了</h2></div><p class="desc">轻轻示意一下，把注意力交还给结果。完成的消息清楚可见就好。</p><p class="trigger"><b>使用时机</b>真实结果已可查看时，播放一次。</p><p class="file-state" id="result-state" aria-live="polite">正在检查素材…</p></div>
+      </article>
+    </section>
+    <aside class="review-note" style="margin-top:24px"><strong>接入前，继续检查这些细节</strong><p>三段源片均约 5 秒，还要裁出简短、可打断的有效动作。小尺寸头像下的可辨认度、开始与结束的姿态衔接、深色背景、连续触发，以及减少动态效果和后台暂停，均需在 App 中验收。平台生成标记保留在源片内；当前页面的播放不代表产品验收通过。</p></aside>
+    <section class="sections" aria-label="动效实施顺序">
+      <div><h2 class="section-title">先把手感补齐</h2>
+        <div class="priority"><span class="level">P0</span><div><h3>按下、滑动、打开，都跟手</h3><p>按钮立即反馈，页面和浮层连续过渡。交互由原生动画完成，视频不阻挡操作。</p></div></div>
+        <div class="priority"><span class="level">P0</span><div><h3>发送、处理中、有结果，状态清楚</h3><p>状态与实际服务一致。等待和失败能恢复，小熊只在关键时刻回应。</p></div></div>
+        <div class="priority"><span class="level">P0</span><div><h3>换衣顺畅，陪伴适量</h3><p>统一脚底与头部位置，快速选择跟随最后一次操作。离开页面暂停，减少动态效果时保留静态状态。</p></div></div>
+      </div>
+      <div class="wardrobe"><h2 class="section-title">八套睡衣，一套换装规则</h2><ol class="steps" aria-label="换装状态顺序"><li>选择睡衣</li><li class="arrow" aria-hidden="true">→</li><li>短暂遮挡</li><li class="arrow" aria-hidden="true">→</li><li>换装呈现</li><li class="arrow" aria-hidden="true">→</li><li>确认穿上</li></ol><p>统一熊的构图和动作，在遮挡时切换服装，出来后整理一下袖口。每套复用自己的进入与出现片段，无须逐对制作换装视频。</p><p class="quiet">预览不会保存；确认后才应用。连续点选可以打断，切换不排队。此处为实施方案，仍需素材与设备验收。</p></div>
+    </section>
+    <footer class="footer"><span>本地候选审阅 · 默认静音 · 手动播放 · 不自动循环</span><span><a href="workbuddy/BRIEF.md">制作说明 ↗</a> · <a href="workbuddy/output/GENERATION-RECORD.md">生成记录与已知问题 ↗</a></span></footer>
+  </main>
+  <script>
+    (()=>{
+      const root=document.documentElement, toggle=document.getElementById('theme');
+      let theme='day';
+      try{theme=localStorage.getItem('pajio-motion-review-theme')||'day';}catch{}
+      function apply(value){theme=value==='night'?'night':'day';root.dataset.theme=theme;toggle.textContent=theme==='night'?'切换到日间':'切换到夜间';toggle.setAttribute('aria-pressed',String(theme==='night'));try{localStorage.setItem('pajio-motion-review-theme',theme);}catch{}}
+      apply(theme);toggle.addEventListener('click',()=>apply(theme==='night'?'day':'night'));
+      const videos=[...document.querySelectorAll('video')];
+      videos.forEach(video=>{
+        const status=document.getElementById(video.getAttribute('aria-describedby'));
+        const missing=()=>{status.dataset.state='error';status.textContent='素材还未就绪。文件到位后，刷新页面即可查看。';};
+        video.addEventListener('error',missing);video.querySelector('source').addEventListener('error',missing);
+        video.addEventListener('loadedmetadata',()=>{status.dataset.state='ready';status.textContent=`${video.videoWidth} × ${video.videoHeight} · ${Number.isFinite(video.duration)?video.duration.toFixed(1)+' 秒':'时长待确认'} · 候选素材`;});
+        video.addEventListener('play',()=>videos.forEach(other=>{if(other!==video)other.pause();}));
+      });
+      document.addEventListener('visibilitychange',()=>{if(document.hidden)videos.forEach(video=>video.pause());});
+    })();
+  </script>
+</body>
+</html>

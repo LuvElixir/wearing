@@ -15,12 +15,46 @@ from wearing.hermes import HermesClient
 ORIGIN = "https://wearing.example"
 
 
+@pytest.fixture(autouse=True)
+def trial_limits(monkeypatch):
+    monkeypatch.setenv("PAJIO_TRIAL_LIMITS", "1")
+
+
+@pytest.mark.parametrize("enabled", [None, "", "0", "true"])
+@pytest.mark.parametrize("origin", [ORIGIN, "https://192.168.1.5", "https://localhost.example"])
+def test_public_tenant_without_limits_fails_before_app_or_engine(tmp_path, monkeypatch, enabled, origin):
+    root = tmp_path / "instance"
+    initialize_instance(root, "tenant_A", origin)
+    if enabled is None:
+        monkeypatch.delenv("PAJIO_TRIAL_LIMITS", raising=False)
+    else:
+        monkeypatch.setenv("PAJIO_TRIAL_LIMITS", enabled)
+    def forbidden(*args, **kwargs):
+        pytest.fail("Unprotected tenant reached app/engine construction")
+    monkeypatch.setattr("wearing.cloud.worker.create_app", forbidden)
+    with pytest.raises(InstanceError, match="PAJIO_TRIAL_LIMITS=1"):
+        create_tenant_app(root, engine_autostart=False, hermes=object())
+    assert not (root / "data/wearing.sqlite3").exists()
+    assert not (root / "data/tenant-worker.lock").exists()
+
+
+@pytest.mark.parametrize("origin", ["http://localhost", "http://127.0.0.1", "http://[::1]",
+                                   "https://localhost", "https://127.0.0.2", "https://[::1]"])
+async def test_loopback_development_does_not_require_trial_limits(tmp_path, monkeypatch, origin):
+    monkeypatch.delenv("PAJIO_TRIAL_LIMITS", raising=False)
+    root = tmp_path / "instance"
+    initialize_instance(root, "tenant_A", origin)
+    app = create_tenant_app(root, engine_autostart=False)
+    async with app.router.lifespan_context(app):
+        assert app.state.runtime.env()["PAJIO_TRIAL_LIMITS"] == "0"
+
+
 def initialize(path, tenant="tenant_A"):
     return initialize_instance(path, tenant, ORIGIN)
 
 
 def headers(root, tenant="tenant_A"):
-    return {"Authorization": "Bearer " + (root / "gateway.key").read_text().strip(), "X-Wearing-Tenant": tenant}
+    return {"Authorization": "Bearer " + (root / "gateway.key").read_text().strip(), "X-Wearing-Tenant": tenant, "X-Pajio-Storage-Scope": "a" * 64}
 
 
 def test_initialized_instance_is_private_idempotent_and_cannot_change_owner(tmp_path):
@@ -114,6 +148,26 @@ async def test_every_route_requires_key_and_bound_tenant_and_origin(tmp_path):
             assert status["engine_state"] == "not_configured"
             duplicate = [("Authorization", headers(root)["Authorization"]), ("Authorization", headers(root)["Authorization"]), ("X-Wearing-Tenant", "tenant_A")]
             assert (await client.get("/api/bootstrap", headers=duplicate)).status_code == 401
+
+
+async def test_cloud_device_controls_require_page_token_and_current_identity(tmp_path):
+    from wearing.cloud.relay import instance_relay, PairRequest
+    root=tmp_path/'instance';initialize(root)
+    relay=instance_relay(root)
+    bundle=relay.pair_code('daily',[{'resource_id':'phone_test','name':'Test phone','kind':'android','methods':['phone.mobile_click_on_screen']}],[])
+    relay.pair(PairRequest(code=bundle['code'],token='a'*64))
+    app=create_tenant_app(root,engine_autostart=False)
+    async with app.router.lifespan_context(app), httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url=ORIGIN,headers=headers(root)) as c:
+        boot=(await c.get('/api/bootstrap')).json();assert boot['deployment']=='cloud'
+        body={'resource_id':'phone_test','paused':True,'expected_generation':0}
+        assert (await c.post('/api/devices/control',json=body)).status_code==403
+        c.headers.update({'X-Wearing-Token':boot['token'],'Origin':ORIGIN})
+        other=(await c.post('/api/identities',json={'name':'出海','region':'international','description':''})).json()
+        assert (await c.post('/api/devices/control',json=body,headers={'X-Wearing-Identity':other['id']})).status_code==404
+        assert (await c.get('/api/devices',headers={'X-Wearing-Identity':other['id']})).json()=={'devices':[]}
+        assert (await c.post('/api/devices/control',json=body)).status_code==200
+        assert (await c.get('/api/devices')).json()['devices'][0]['paused']
+        assert (await c.post('/api/devices/control',json=body)).status_code==409
 
 
 async def test_private_records_files_and_restart_do_not_cross_tenants(tmp_path, monkeypatch):

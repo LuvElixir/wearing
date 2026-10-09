@@ -45,3 +45,23 @@ __pycache__/
 .impeccable/
 hypit.runtime.json
 docs/research-evidence/
+
+# Local browser sessions and generated mobile previews
+.playwright-cli/
+clients/mobile/.claude/
+clients/mobile/dist-*/
+
+# Raw device acceptance captures can contain real accounts or pairing links.
+# Keep the written acceptance records; reproduce captures locally when needed.
+docs/evidence/**/*.png
+docs/evidence/**/*.jpg
+docs/evidence/**/*.jpeg
+docs/evidence/**/*.mp4
+docs/evidence/**/*.webm
+docs/qa-web-desktop-*/
+clients/mobile/docs/qa-*/
+docs/review/**/*.png
+docs/evidence/pajio-context-20261009/engine-contract-logs/
+
+# Reproducible design delivery archives
+design/brand/*.zip

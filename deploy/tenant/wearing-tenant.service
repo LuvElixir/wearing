@@ -11,6 +11,12 @@ Group=wearing
 WorkingDirectory=/var/lib/wearing
 StateDirectory=wearing
 StateDirectoryMode=0700
+Environment=PAJIO_TRIAL_LIMITS=1
+# Bound the service cgroup inside its tenant VM; these are not VM isolation.
+CPUQuota=150%
+MemoryHigh=2G
+MemoryMax=3G
+TasksMax=256
 ExecStart=/opt/wearing/venv/bin/wearing tenant serve --root /var/lib/wearing/instance --port 8765
 Restart=on-failure
 RestartSec=5

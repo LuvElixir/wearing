@@ -1,0 +1,35 @@
+{
+  "master": "app-icon-p-bear-master.png",
+  "master_sha256": "e8ebcf342eaeb5fc97f0a5c32929c811bc13ddf2c548a541d903527c5d1cdaf0",
+  "method": "Pillow Lanczos resizing, no cropping or character redraw",
+  "app_icon_svg": "Embedded PNG wrapper, not a vector recreation",
+  "android_adaptive": {
+    "foreground": "Full generated image scaled to 608px, centered on opaque graphite 1024px canvas",
+    "monochrome_master": "app-icon-monochrome-master.svg",
+    "monochrome_max_radius_px": 308.423,
+    "safe_circle_radius_px": 312.889
+  },
+  "sha256": {
+    "design/brand/pajio/app-icon-p-bear-master.png": "e8ebcf342eaeb5fc97f0a5c32929c811bc13ddf2c548a541d903527c5d1cdaf0",
+    "design/brand/pajio/app-icon-monochrome-master.svg": "150d657ade54441d003506ae3d873cefe8be6ca9842b2ea72885250305471555",
+    "design/brand/pajio/app-icon.png": "9ea5a71b0eea2edfca99ede847a8889a96f97c881bb0de1d9a2673fd3ec2246e",
+    "design/brand/pajio/app-icon.svg": "1464f0620a3c2a040458f610b632c60b32538db48014bb0e71f4f59b6393e6c9",
+    "design/brand/pajio/adaptive-foreground.png": "19cb2ad3896263d00be39c9c908f8626e62feb3012beee1a8be5d890946bd348",
+    "design/brand/pajio/adaptive-foreground.svg": "e9307a6f85b4ea4dd9e4a9402f52c9359f478fa77420d986fb9519be38c957a3",
+    "design/brand/pajio/adaptive-monochrome.png": "def9594a575cc44fa20eb0a0a3e68630645af14441c79f7a53dc42770784f307",
+    "design/brand/pajio/adaptive-monochrome.svg": "5074e1f1ff21cb188b74765c1aec1b2c9169a16a9e8c2540e13ce0fc20abf058",
+    "design/brand/pajio/icon-16.png": "d42df83e6fb9a9e70562478aa70929feb086ba79b99e2044e217b17fe5aaa1f9",
+    "design/brand/pajio/icon-32.png": "4c61a7b1f069a6bc79384b2c25fe61fbf90a9bda64f3d8aa19889aaab3ce566c",
+    "design/brand/pajio/icon-48.png": "d3b99af5600cebddecfd67676589c44cd304a66cddad9a6deb26eb791ec5653a",
+    "design/brand/pajio/icon-64.png": "2db9070d9c457f614666e30b627731665cebceaa025f758fd80b7bdfa5a65d2c",
+    "design/brand/pajio/icon-128.png": "af11f89629c3fcc7e3dd8d6847bf687afd1cb698f39bdc5cdcba294215258101",
+    "design/brand/pajio/icon-256.png": "b8862c52d6291a6ec868119978dc016c1c6e2c0334eca262e4059273c7f69664",
+    "design/brand/pajio/icon-512.png": "85377dd95c225d8175cdb58c74370171e93086935990dc74dce9382ae92c3948",
+    "clients/mobile/assets/icon.png": "9ea5a71b0eea2edfca99ede847a8889a96f97c881bb0de1d9a2673fd3ec2246e",
+    "clients/mobile/assets/favicon.png": "d3b99af5600cebddecfd67676589c44cd304a66cddad9a6deb26eb791ec5653a",
+    "clients/mobile/assets/android-icon-foreground.png": "19cb2ad3896263d00be39c9c908f8626e62feb3012beee1a8be5d890946bd348",
+    "clients/mobile/assets/android-icon-monochrome.png": "def9594a575cc44fa20eb0a0a3e68630645af14441c79f7a53dc42770784f307"
+  },
+  "status": "candidate_only_do_not_release",
+  "selection": "icon-selection.json"
+}

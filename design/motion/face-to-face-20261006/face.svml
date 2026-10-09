@@ -1,0 +1,18 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="media" from="@hypit/media@1"/>
+  <import as="text" from="@hypit/text@1"/>
+  <import as="seedance" from="@hypit/seedance@1"/>
+  <import as="kit" source="@hypit/seedance-kits/broll"/>
+  <media:Image id="portrait" src="./portrait-master.png"/>
+  <text:Value id="direction">The supplied image is the exact Wearing character identity and framing. A premium tactile 3D cream plush rounded-square face with ONLY TWO espresso oval eyes, cobalt blue cloth collar, no mouth, nose, eyebrows or additional facial marks. One fixed-camera six-second silent portrait, like a warm face-to-face call with a tiny companion. Start calmly looking straight at the viewer. Give one gentle natural blink of the two existing eyes, then a small interested head tilt and a tiny lean closer, as if quietly listening to a friend, before settling back into the exact starting head pose and gaze. It feels cute and alert, never exaggerated. Keep the shoulders, textured collar, head proportions, face shape, lighting, framing and pale cool blue background consistent. Keep every part comfortably within the frame. Do not add hands, props, text, glass, border or scene. The only facial animation is the blink; no mouth or smile appears. One continuous shot with a locked camera, no exposure changes, zoom, cuts or audio. First and last reference images are identical; settle smoothly to the same starting pose for the last half second so this can loop seamlessly.</text:Value>
+  <text:Render id="prompt" template={kit.broll-v1}>
+    <text:Param name="material-mode" value="product-beauty"/>
+    <text:Param name="story-shape" value="single-moment"/>
+    <text:Param name="edit-language" value="continuous-shot"/>
+    <text:Param name="camera-language" value="reference-locked"/>
+    <text:Param name="motion-intensity" value="micro"/>
+    <text:Set name="story" text={direction}/>
+  </text:Render>
+  <seedance:FrameVideo id="face" model="mini" prompt={prompt} duration="6" resolution="720p" aspect-ratio="1:1" generate-audio="false" first-frame={portrait} last-frame={portrait} first-frame-person-reference="false" last-frame-person-reference="false"/>
+</svml>

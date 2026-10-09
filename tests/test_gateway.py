@@ -75,6 +75,16 @@ class Workers(httpx.AsyncBaseTransport):
 
 @asynccontextmanager
 async def lab(tmp_path):
+    # This helper is also imported by native/deletion/voice suites. Keep its
+    # HTTPS tenant startup contract explicit and restore the caller's setting.
+    with pytest.MonkeyPatch.context() as environment:
+        environment.setenv('PAJIO_TRIAL_LIMITS', '1')
+        async with _lab(tmp_path) as state:
+            yield state
+
+
+@asynccontextmanager
+async def _lab(tmp_path):
     gateway_root, a, b = tmp_path / "entry", tmp_path / "A", tmp_path / "B"
     initialize_gateway(gateway_root, ORIGIN, ISSUER, "wearing-test", development=True)
     initialize_instance(a, "tenant_A", ORIGIN)
@@ -101,6 +111,18 @@ async def login(client, provider, subject="alice", **kwargs):
     return await client.get("/auth/callback", params=callback)
 
 
+async def test_portal_tenant_body_is_bounded_and_invalid_json_is_not_service_failure(tmp_path):
+    async with lab(tmp_path) as (_, _, _, _, _, provider, app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url=ORIGIN) as client:
+            assert (await login(client, provider)).status_code == 303
+            current = (await client.get('/auth/session')).json()
+            headers = {'Origin': ORIGIN, 'X-Wearing-CSRF': current['csrf'], 'Content-Type': 'application/json'}
+            assert (await client.post('/auth/tenant', content=b'x' * 4097, headers=headers)).status_code == 413
+            assert (await client.post('/auth/tenant', content=b'{', headers=headers)).status_code == 422
+            assert (await client.post('/auth/tenant', json={'tenant_id': 'tenant_A'}, headers=headers)).status_code == 200
+            assert (await client.get('/api/bootstrap')).status_code == 200
+
+
 async def test_oidc_login_routes_only_own_worker_and_drops_untrusted_credentials(tmp_path):
     async with lab(tmp_path) as (_, a, b, control, workers, provider, app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN) as alice, httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN) as bob:
@@ -117,13 +139,16 @@ async def test_oidc_login_routes_only_own_worker_and_drops_untrusted_credentials
             assert (await alice.get("/auth/session")).json()["tenant_id"] == "tenant_A"
             assert (await bob.get("/auth/session")).json()["tenant_id"] == "tenant_B"
             bootstrap = (await alice.get("/api/bootstrap")).json()
-            for path in ("/", "/assets/avatar.png", "/api/bootstrap", "/api/memory"):
+            for path in ("/", "/assets/chat-portrait.png", "/api/bootstrap", "/api/memory"):
                 response = await alice.get(path)
                 assert response.status_code == 200
                 assert response.headers["cache-control"] == "private, no-store"
                 assert (a / "gateway.key").read_text().strip() not in response.text
+            # Native bearer auth is authoritative: an invalid bearer never falls
+            # back to a different account's browser cookie.
+            assert (await alice.get("/api/bootstrap", headers={"Authorization": "Bearer attacker"})).status_code == 401
             posted = await alice.post("/api/conversation", headers={"Origin": ORIGIN, "X-Wearing-Token": bootstrap["token"],
-                                                                    "X-Wearing-Tenant": "tenant_B", "Authorization": "Bearer attacker"},
+                                                                    "X-Wearing-Tenant": "tenant_B"},
                                       json={"content": "Alice-only idea"})
             assert posted.status_code == 201
             assert "Alice-only idea" in (await alice.get("/api/conversation")).text

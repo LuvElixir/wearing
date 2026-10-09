@@ -1,0 +1,42 @@
+/* Quiet extension of Wearing's existing keeps surface; no additional navigation. */
+.schedules-section{padding:8px 0 24px;margin-bottom:26px;border-bottom:1px solid var(--line)}
+.schedule-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.schedule-heading h3{margin:0;font-size:17px;font-weight:600}
+.schedule-heading p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+.schedule-service-note{font-size:12px;color:var(--muted);line-height:1.8;margin:18px 0 0}
+.schedule-row{display:flex;align-items:center;gap:16px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);padding:18px 4px;background:transparent;color:var(--ink)}
+.schedule-row:last-child{border-bottom:0}
+.schedule-row:hover{background:var(--blue-light)}
+.schedule-row div{flex:1;min-width:0}
+.schedule-row strong{font-size:15px;font-weight:500;display:block;overflow-wrap:anywhere}
+.schedule-row small{display:block;color:var(--muted);font-size:12px;margin-top:7px;line-height:1.6}
+.schedule-row svg{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.7}
+.schedule-empty{font-size:14px;line-height:1.9;color:var(--muted);margin:0;padding:8px 0 12px;max-width:36ch}
+.schedule-form{padding:22px;background:#f2f4fa;border-radius:24px}
+.schedule-form label{display:block;font-size:13px;margin:18px 0 8px;line-height:1.6}
+.schedule-form>label:first-child{margin-top:0}
+.schedule-form input,.schedule-form select,.schedule-form textarea{display:block;width:100%;min-width:0;max-width:100%;margin-top:7px;padding:12px 14px;border:1px solid var(--line);background:var(--surface);border-radius:14px;color:var(--ink);font:inherit;font-size:15px;line-height:1.6}
+.schedule-form textarea{resize:vertical;min-height:100px}
+.schedule-form ::placeholder{color:#696f7e}
+.schedule-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.schedule-fields:has(#schedule-time-label[hidden]){grid-template-columns:1fr}
+.schedule-changes{border:0;margin:18px 0 0;padding:0;min-width:0}
+.schedule-changes legend{font-size:13px;line-height:1.6}
+.schedule-kind-options{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.schedule-kind-options label{display:flex;align-items:center;gap:7px;min-height:44px;padding:0 13px;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;cursor:pointer}
+.schedule-kind-options label:has(input:checked){color:var(--blue-deep);background:var(--blue-light);border-color:var(--blue)}
+.schedule-kind-options input{width:16px;height:16px;padding:0;margin:0;accent-color:var(--blue)}
+.schedule-form .button-row{margin-top:22px}
+.schedule-form .primary{min-height:44px;border-radius:14px}
+.schedule-detail{padding:20px 0 0}
+.schedule-detail h4{font-size:20px;line-height:1.6;margin:14px 0 6px}
+.schedule-detail p{font-size:14px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+.schedule-detail .schedule-meta{font-size:12px;color:var(--muted)}
+.schedule-history{margin-top:24px}
+.schedule-history summary{font-size:13px;color:var(--muted);cursor:pointer;padding:10px 0}
+.schedule-history li{margin:0;padding:14px 0;border-bottom:1px solid var(--line);list-style:none}
+.schedule-history ul{padding:0;margin:0}
+.schedule-history p{margin:8px 0;font-size:13px}
+.schedule-history time{color:var(--muted);font-size:12px}
+.schedule-detail .text-button{min-height:44px}
+@media(max-width:540px){.schedule-form{padding:18px}.schedule-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.schedule-heading{gap:10px}.schedule-heading .text-button{flex-shrink:0}.schedule-form input,.schedule-form select,.schedule-form textarea{font-size:16px}}

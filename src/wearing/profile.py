@@ -1,4 +1,4 @@
-"""Versioned Wearing product profile, separate from the pinned upstream source."""
+"""Versioned Pajio product profile, separate from the pinned upstream source."""
 
 import ast
 import hashlib
@@ -10,7 +10,7 @@ import yaml
 
 from .config import private_directory, write_private_json
 
-PROFILE_VERSION = 6
+PROFILE_VERSION = 24
 ENGINE_MODE = "wearing-personal"
 IDENTITY_PATH = Path(__file__).with_name("identity.md")
 
@@ -48,7 +48,7 @@ def upstream_default_identity(source):
     return None
 
 
-def prepare_profile(home: Path, source: Path, filesystem=None, phone=None, computer=False):
+def prepare_profile(home: Path, source: Path, filesystem=None, phone=None, computer=False, remote=None, life=None):
     """Migrate only owned product fields, preserving credentials and custom config.
 
     Existing custom SOUL files are never silently replaced. Backups contain private
@@ -58,7 +58,7 @@ def prepare_profile(home: Path, source: Path, filesystem=None, phone=None, compu
     config_path, soul_path, manifest_path = (home / n for n in ("config.yaml", "SOUL.md", "wearing-profile.json"))
     for path in (config_path, soul_path, manifest_path):
         if path.is_symlink():
-            raise ProfileError("Wearing 配置不能指向其他目录；原配置未改动。")
+            raise ProfileError("Pajio 配置不能指向其他目录；原配置未改动。")
     original = config_path.read_text(encoding="utf-8") if config_path.exists() else "{}"
     try:
         config = yaml.safe_load(original) or {}
@@ -71,10 +71,10 @@ def prepare_profile(home: Path, source: Path, filesystem=None, phone=None, compu
     wanted = identity_text() + "\n"
     owned = not soul.strip() or soul.strip() in (identity_text(), upstream_default_identity(source)) or digest(soul) == manifest.get("identity_sha256")
     if not owned:
-        raise ProfileError("发现你自定义的 SOUL.md，未覆盖。请先合并 Wearing 身份设定后再启动。")
+        raise ProfileError("发现你自定义的 SOUL.md，未覆盖。请先合并 Pajio 身份设定后再启动。")
 
     # These fields belong to this product release, not to provider/model setup.
-    toolsets = ["memory", "session_search"] + (["wearing_files"] if filesystem else []) + (["wearing_phone"] if phone else []) + (["computer_use"] if computer else [])
+    toolsets = ["memory", "session_search", "web", "todo", "skills", "vision"] + (["wearing_files"] if filesystem else []) + (["wearing_phone"] if phone else []) + (["computer_use"] if computer else []) + (["wearing_devices"] if remote else []) + (["wearing_life"] if life else [])
     changes = {
         "platform_toolsets": {"api_server": toolsets or ["no_mcp"], "cli": ["no_mcp"]},
         "auxiliary": {"background_review": {"enabled": False}, "title_generation": {"enabled": False, "model_upgrade_enabled": False}},
@@ -99,8 +99,12 @@ def prepare_profile(home: Path, source: Path, filesystem=None, phone=None, compu
             else:
                 dst[key] = value
 
+    # A new installation starts on the upstream anonymous tier. Preserve an
+    # explicitly selected provider, tier or key configuration on migration.
+    if "web" not in config:
+        config["web"] = {"backend": "exa", "provider_tier": {"exa": "free"}}
     merge(config, changes)
-    if filesystem or phone:
+    if filesystem or phone or remote or life:
         servers = config.setdefault("mcp_servers", {})
         if not isinstance(servers, dict):
             raise ProfileError("文件连接器配置格式不正确，原配置已保留。")
@@ -108,6 +112,13 @@ def prepare_profile(home: Path, source: Path, filesystem=None, phone=None, compu
             servers["wearing_files"] = filesystem
         if phone:
             servers["wearing_phone"] = phone
+        if remote:
+            servers["wearing_devices"] = remote
+        if life:
+            servers["wearing_life"] = {**life, "timeout": 360,
+                                       "elicitation": {"enabled": True, "timeout": 300}}
+    if not remote and isinstance(config.get("mcp_servers"), dict):
+        config["mcp_servers"].pop("wearing_devices", None)
     rendered = yaml.safe_dump(config, allow_unicode=True, sort_keys=False)
     backup_dir = home / "wearing-backups"
     for path, before, after in ((config_path, original, rendered), (soul_path, soul, wanted)):

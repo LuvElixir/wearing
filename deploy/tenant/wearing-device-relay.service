@@ -1,0 +1,25 @@
+[Unit]
+Description=Wearing authenticated device relay
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/lib/wearing
+
+[Service]
+Type=exec
+User=wearing
+Group=wearing
+WorkingDirectory=/var/lib/wearing
+ExecStart=/opt/wearing/venv/bin/wearing tenant relay --root /var/lib/wearing/instance --port 443 --cert /var/lib/wearing/relay-tls/relay-cert.pem --key /var/lib/wearing/relay-tls/relay-key.pem
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/wearing
+
+[Install]
+WantedBy=multi-user.target

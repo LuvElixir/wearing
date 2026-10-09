@@ -1,0 +1,340 @@
+[
+  {
+    "at": "2026-10-09T03:35:57.219349+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T03:53:50.667439+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:10:16.651226+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:13:34.670376+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports/receipts/401448de-1dd6-476c-befb-ba28769659d9",
+    "identity": "qa",
+    "status": 404
+  },
+  {
+    "at": "2026-10-09T04:13:34.703597+00:00",
+    "method": "POST",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200,
+    "fields": [
+      "authors",
+      "confirmed",
+      "conversation_title",
+      "messages",
+      "platform",
+      "request_key",
+      "self_author",
+      "source_sha256"
+    ]
+  },
+  {
+    "at": "2026-10-09T04:13:34.733388+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:13:48.406315+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports/chi_efd4f3169b654470a6ade6ee3f3da684",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:14:05.045651+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports/chi_efd4f3169b654470a6ade6ee3f3da684",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:14:24.610302+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:14:53.603428+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:14:56.158544+00:00",
+    "method": "DELETE",
+    "path": "/api/chat-imports/chi_efd4f3169b654470a6ade6ee3f3da684",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:14:56.185029+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:15:28.100683+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:15:32.349204+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports/receipts/401448de-1dd6-476c-befb-ba28769659d9",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:15:51.679088+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports/receipts/e0977a1c1db442c3a8c67daee36a64eb",
+    "identity": "qa",
+    "status": 404
+  },
+  {
+    "at": "2026-10-09T04:15:51.695903+00:00",
+    "method": "POST",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200,
+    "fields": [
+      "authors",
+      "confirmed",
+      "conversation_title",
+      "messages",
+      "platform",
+      "request_key",
+      "self_author",
+      "source_sha256"
+    ]
+  },
+  {
+    "at": "2026-10-09T04:15:51.729323+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:15:53.706041+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:10.253312+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:11.266497+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports/chi_943947d8a7f645498ab060ba1b8ed8b9",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:30.894970+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:33.717495+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports/receipts/34d34f740d49424cb9384d8da6d26802",
+    "identity": "qa",
+    "status": 404
+  },
+  {
+    "at": "2026-10-09T04:16:38.919625+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:39.938162+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports/receipts/34d34f740d49424cb9384d8da6d26802",
+    "identity": "qa",
+    "status": 404
+  },
+  {
+    "at": "2026-10-09T04:16:39.948358+00:00",
+    "method": "POST",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200,
+    "fields": [
+      "authors",
+      "confirmed",
+      "conversation_title",
+      "messages",
+      "platform",
+      "request_key",
+      "self_author",
+      "source_sha256"
+    ]
+  },
+  {
+    "at": "2026-10-09T04:16:39.971664+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:41.962620+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:58.262819+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:58.686896+00:00",
+    "method": "DELETE",
+    "path": "/api/chat-imports/chi_77e71d5c037e445abd704780c7641d70",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:16:58.702057+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:17:00.614435+00:00",
+    "method": "DELETE",
+    "path": "/api/chat-imports/chi_943947d8a7f645498ab060ba1b8ed8b9",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:17:00.625269+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:17:02.129537+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:17:10.794153+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:17:10.819646+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:19:18.555026+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:20:47.883510+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T04:21:17.503848+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T05:17:26.627932+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T05:17:28.052686+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T05:18:05.530349+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T05:19:38.559098+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T05:19:40.392650+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  },
+  {
+    "at": "2026-10-09T05:19:42.932746+00:00",
+    "method": "GET",
+    "path": "/api/chat-imports",
+    "identity": "qa",
+    "status": 200
+  }
+]

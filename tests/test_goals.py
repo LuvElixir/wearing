@@ -241,9 +241,13 @@ async def test_no_progress_stops_instead_of_looping(rig):
 async def test_pending_human_message_preempts_background_goal(rig):
     store, book, service, coordinator, wire = rig
     await activate(book, coordinator, create(book))
-    store.create_message("先等等，我还有话说")
+    blocker = store.create("正在处理的测试任务", "computer")
+    store.update(blocker["id"], status="running", run_id="fixture-running")
+    response = await service.submit_message("先等等，我还有话说", "daily")
+    assert response["delivery"] == "queued"
+    store.update(blocker["id"], status="stopped")
     await coordinator.tick()
-    assert wire.runs == []
+    assert len(wire.runs) == 1 and wire.runs[0]["input"] == "先等等，我还有话说"
 
 
 async def test_duplicate_ticks_and_receipts_do_not_duplicate_steps(rig):
@@ -309,7 +313,7 @@ async def test_api_scoping_csrf_and_conversation_receipts(tmp_path):
         assert (await client.post("/api/goals", json=data)).status_code == 403
         client.headers["X-Wearing-Token"] = (await client.get("/api/bootstrap")).json()["token"]
         assert (await client.post("/api/goals", json={**data, "boundaries": " "})).status_code == 422
-        assert (await client.post("/api/goals", json={**data, "max_steps": 100})).status_code == 422
+        assert (await client.post("/api/goals", json={**data, "max_steps": 1001})).status_code == 422
         goal = (await client.post("/api/goals", json=data)).json()
         other = app.state.store.save_identity("别的身份")
         for path in [f'/api/goals/{goal["id"]}', "/api/goals"]:

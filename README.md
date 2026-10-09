@@ -1,11 +1,11 @@
-![Wearing · Your personal agent](.readme-assets/hero.png)
+![Pajio · Your personal agent](design/brand/pajio/signature.png)
 
 <p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
-<p align="center"><a href="docs/getting-started.md">Get started</a> · <a href="docs/progress.md">Current progress</a> · <a href="design/vi/README.md">Brand and character</a></p>
+<p align="center"><a href="docs/getting-started.md">Get started</a> · <a href="docs/progress.md">Current progress</a> · <a href="design/brand/pajio/README.md">Brand and character</a></p>
 
 # A personal agent you can keep working with
 
-Wearing is being built around an ongoing relationship with one person. Conversations retain their context, goals carry their progress forward, and the agent can work with connected files and devices within the access you provide.
+Pajio is being built around an ongoing relationship with one person. Conversations retain their context, goals carry their progress forward, and the agent can work with connected files and devices within the access you provide.
 
 You can return to a conversation, correct a remembered preference, or continue a goal you have already discussed. Separate identities keep their own conversations and file spaces. When a task returns a result, you can review the evidence before marking it verified.
 
@@ -17,18 +17,19 @@ The current release is a **0.2 local development build**. A cloud service with a
 | --- | --- |
 | Conversation | Original messages, shared multi-turn sessions, and recovery after a page refresh. |
 | Memory | Inspectable preferences and memory entries, with correction and retrieval of past conversations. |
+| Daily tools | Built-in calendar, grouped todos and short notes; direct editing and the agent share the same identity-scoped records, with recoverable removal and revision checks. |
 | Goals | Saved scope and progress, bounded continuation, follow-up discussion, pause, and human review. |
 | Identity | Separate conversations and file spaces for each identity. |
 | Action | File access, local Mac control, and Android connections, with device-specific acceptance records. |
 
-## How Wearing works
+## How Pajio works
 
 ```mermaid
 flowchart TB
-  U[You] <--> W[Wearing conversation]
+  U[You] <--> W[Pajio conversation]
   W <--> M[Identity and memory]
   W <--> G[Goals and progress]
-  W --> R[Wearing personal runtime]
+  W --> R[Pajio personal runtime]
   R --> H[Hermes agent components]
   H --> F[Files and connected devices]
   F --> V[Result and human verification]
@@ -38,7 +39,7 @@ flowchart TB
   style V fill:#faf5eb,stroke:#c8bcaa,color:#29313c
 ```
 
-Wearing owns the product identity, personal context, goal lifecycle, and interface. Its personal runtime reuses selected Hermes components. The upstream engine is installed separately at a pinned revision, with its license retained.
+Pajio owns the product identity, personal context, goal lifecycle, and interface. Its personal runtime reuses selected Hermes components. The upstream engine is installed separately at a pinned revision, with its license retained.
 
 ## Run locally
 
@@ -71,10 +72,13 @@ The SaaS foundation includes tenant workers, OIDC routing, and PostgreSQL isolat
 | [Getting started](docs/getting-started.md) | Engine, model, computer, and phone setup. |
 | [Personal continuity](docs/personal-continuity.md) | Goals, continuation, and review. |
 | [Personal memory](docs/personal-memory.md) | Preferences, memory, and conversation search. |
-| [Engine productization](docs/engine-productization.md) | Wearing's runtime and upstream boundaries. |
+| [Daily tools](docs/life-tools.md) | Calendar, todos, notes, shared agent access and current native-input boundaries. |
+| [Native clients](docs/native-clients.md) | Mac desktop preview, shared records and mobile implementation boundaries. |
+| [Mobile client](docs/mobile-client.md) | React Native / Expo capture, offline outbox and device acceptance boundaries. |
+| [Engine productization](docs/engine-productization.md) | Pajio's runtime and upstream boundaries. |
 | [SaaS architecture](docs/saas-architecture-2026-10-03.md) | Tenant isolation and implementation sequence. |
 | [Technical reference](README.reference.md) | Detailed setup and acceptance links. |
 
-Run `uv run pytest -q` for the Python suite. Tests requiring an installed engine or a disposable PostgreSQL test cluster are conditional. The [third-party notices](THIRD_PARTY_NOTICES.md) record upstream components; [SOURCE-SNAPSHOT.json](SOURCE-SNAPSHOT.json) records this private source upload.
+Run `uv run pytest -q` for the Python suite. Tests requiring an installed engine or a disposable PostgreSQL test cluster are conditional. The [third-party notices](THIRD_PARTY_NOTICES.md) record upstream components. [SOURCE-SNAPSHOT.json](SOURCE-SNAPSHOT.json) preserves the initial October 3 source inventory; the current source is identified by its Git commit.
 
 <p align="center">Built at <a href="https://luckyloading.com/">Luckyloading</a></p>

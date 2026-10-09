@@ -1,0 +1,212 @@
+[
+  {
+    "theme": "day",
+    "foreground": "ink",
+    "background": "canvas",
+    "ratio": 14.83,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "ink",
+    "background": "surface",
+    "ratio": 15.9,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "ink",
+    "background": "soft",
+    "ratio": 13.69,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "muted",
+    "background": "canvas",
+    "ratio": 6.27,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "muted",
+    "background": "surface",
+    "ratio": 6.72,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "muted",
+    "background": "soft",
+    "ratio": 5.78,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "faint",
+    "background": "canvas",
+    "ratio": 5.16,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "faint",
+    "background": "surface",
+    "ratio": 5.53,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "faint",
+    "background": "soft",
+    "ratio": 4.76,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "onAction",
+    "background": "action",
+    "ratio": 15.14,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "onAccent",
+    "background": "accent",
+    "ratio": 6.37,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "accentInk",
+    "background": "accentSoft",
+    "ratio": 7.53,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "danger",
+    "background": "dangerSoft",
+    "ratio": 5.76,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "success",
+    "background": "successSoft",
+    "ratio": 6.25,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "day",
+    "foreground": "attention",
+    "background": "attentionSoft",
+    "ratio": 6.19,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "ink",
+    "background": "canvas",
+    "ratio": 16.15,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "ink",
+    "background": "surface",
+    "ratio": 14.72,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "ink",
+    "background": "soft",
+    "ratio": 12.33,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "muted",
+    "background": "canvas",
+    "ratio": 9.7,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "muted",
+    "background": "surface",
+    "ratio": 8.84,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "muted",
+    "background": "soft",
+    "ratio": 7.4,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "faint",
+    "background": "canvas",
+    "ratio": 7.92,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "faint",
+    "background": "surface",
+    "ratio": 7.22,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "faint",
+    "background": "soft",
+    "ratio": 6.04,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "onAction",
+    "background": "action",
+    "ratio": 14.05,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "onAccent",
+    "background": "accent",
+    "ratio": 7.99,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "accentInk",
+    "background": "accentSoft",
+    "ratio": 9.19,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "danger",
+    "background": "dangerSoft",
+    "ratio": 7.48,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "success",
+    "background": "successSoft",
+    "ratio": 7.18,
+    "passes_text_4_5": true
+  },
+  {
+    "theme": "night",
+    "foreground": "attention",
+    "background": "attentionSoft",
+    "ratio": 7.36,
+    "passes_text_4_5": true
+  }
+]

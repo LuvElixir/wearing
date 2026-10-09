@@ -1,0 +1,22 @@
+{
+  "master": "app-icon-c-master.png",
+  "method": "Built-in image_gen preparation; mechanical macOS sips resizing only",
+  "status": "user_selected_C",
+  "app_icon_svg": "Raster PNG wrapper, not pure vector",
+  "android": "Full-color adaptive image; rejected monochrome removed from config, themed monochrome not supplied",
+  "sha256": {
+    "design/brand/pajio/app-icon-c-master.png": "9b430064733a8ec94c577a60ebf1c5994d7cb694fc76f8943a1090b5483551ae",
+    "design/brand/pajio/app-icon.png": "4afacec34b2dfaadfebff17cd8f5e9dbda1c7215bca66925b74a72b0b7fb1b16",
+    "design/brand/pajio/app-icon.svg": "2cd6869b41d10bc38e4d8ee8b9f66c2b3e2457aab070aaab3a5c4c5318859d13",
+    "design/brand/pajio/icon-16.png": "17e9a3f857858772fcae521e37eb595c74d69f079c1cde80ed6e6a3c80f3acc8",
+    "design/brand/pajio/icon-256.png": "c68b09bbbaa8d7e5ed2527bca4a0a2927566b7ff08b7c0b0b0f8848d762ada5c",
+    "design/brand/pajio/icon-48.png": "e0b53b05dc63710cbf863a32fc8cee6119e56fa9c527ba3994f20f2c814070e2",
+    "design/brand/pajio/icon-64.png": "753d10709354af60765db74fe6c85682915542787a85ce7e0cace2e663f9fb25",
+    "design/brand/pajio/icon-export-preview.png": "515c1cab28288c58665808e6fdc6639e06de1d1b712d3c6917dad75cdd2b4bb8",
+    "design/brand/pajio/icon-128.png": "7c23839273476bef98da90a1325c40e2483a010342c3d22dd0134b4a01ed573f",
+    "design/brand/pajio/icon-32.png": "f9a3de5136b1e57cbcab024f744a8c279d59857c5858f6e08e9a7c55cc1ecb0f",
+    "design/brand/pajio/icon-512.png": "684aeb03587853843484116e6acc79294588a03b1fbaf62c327b68afe964d2aa",
+    "clients/mobile/assets/icon.png": "4afacec34b2dfaadfebff17cd8f5e9dbda1c7215bca66925b74a72b0b7fb1b16",
+    "clients/mobile/assets/android-icon-foreground.png": "4afacec34b2dfaadfebff17cd8f5e9dbda1c7215bca66925b74a72b0b7fb1b16"
+  }
+}

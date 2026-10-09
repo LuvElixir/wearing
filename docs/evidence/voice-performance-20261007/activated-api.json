@@ -1,0 +1,22 @@
+{
+  "path": "same authenticated LAN bridge as iPhone",
+  "source": "synthetic macOS Tingting, no user audio",
+  "agent_message_sent": false,
+  "rows": [
+    {
+      "request": 1,
+      "status": 200,
+      "http_seconds": 3.469,
+      "text": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+      "original_digest_matches": true
+    },
+    {
+      "request": 2,
+      "status": 200,
+      "http_seconds": 2.608,
+      "text": "明天下午3点提醒我拿快递,周末想找一个人少一点的地方走走,预算500块。",
+      "original_digest_matches": true
+    }
+  ],
+  "same_text": true
+}

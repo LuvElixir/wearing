@@ -1,0 +1,142 @@
+[
+  {
+    "name": "Kimi",
+    "type": "短专名",
+    "category": "通用工作与个人助手",
+    "naming": "短名称覆盖 Work、Code 等能力，品类由产品层说明。",
+    "visual": "官方 VI 明确区分品牌蓝、版式体系和产品阅读面。",
+    "lesson": "短名字能长大，功能扩展不必重做品牌。",
+    "url": "https://www.kimi.com/en/resources/kimi-brand",
+    "evidence": "当前官方品牌手册"
+  },
+  {
+    "name": "Lindy",
+    "type": "短专名",
+    "category": "AI 工作伙伴",
+    "naming": "人名式的两音节结构，适合被直接呼叫；词源未核实。",
+    "visual": "官网用清楚的工作产物和下一步动作支撑亲近口吻。",
+    "lesson": "有人格感也要交代清楚实际工作。",
+    "url": "https://www.lindy.ai/",
+    "evidence": "当前官网；未实测产品承诺"
+  },
+  {
+    "name": "Granola",
+    "type": "日常词",
+    "category": "AI 会议笔记",
+    "naming": "日常食物词，名称不直接解释 AI 或会议。",
+    "visual": "手绘旋形标记、鲜明传播色与安静产品界面并存。",
+    "lesson": "品牌有性格，工作时给内容留空间。",
+    "url": "https://www.granola.ai/blog/a-new-look-for-granola",
+    "evidence": "当前官方升级说明"
+  },
+  {
+    "name": "Sana",
+    "type": "短专名",
+    "category": "工作 AI 与知识工具",
+    "naming": "简短、可读、可呼叫；本轮未核实取名来源。",
+    "visual": "官方规范由字标承担多数识别，小符号用于紧凑界面。",
+    "lesson": "字标和图标分别设计，统一但不机械重复。",
+    "url": "https://brand.sanalabs.com/",
+    "evidence": "当前官方品牌规范"
+  },
+  {
+    "name": "Manus",
+    "type": "概念词",
+    "category": "通用执行 Agent",
+    "naming": "独立名称，具体能力由网站、演示、文件等入口解释。",
+    "visual": "官方品牌主色是黑、灰、白，组合标与字体建立秩序。",
+    "lesson": "执行感靠真实产物和流程，不靠到处发光。",
+    "url": "https://www.manus.im/brand",
+    "evidence": "官方品牌页文本；本轮浏览器未打开"
+  },
+  {
+    "name": "Cursor",
+    "type": "概念词",
+    "category": "编程 Agent",
+    "naming": "熟悉的计算机词。官方要求名称直接写 Cursor。",
+    "visual": "2D、2.5D 与应用图标按场景分工，字标用法明确。",
+    "lesson": "名字能与操作产生联想，同时容纳新能力。",
+    "url": "https://cursor.com/brand",
+    "evidence": "当前官方规范与公开页面观察"
+  },
+  {
+    "name": "Notion",
+    "type": "概念词",
+    "category": "知识与工作空间",
+    "naming": "主品牌加 AI、Agent、Meeting Notes 等描述。",
+    "visual": "黑白识别加人物线描和彩色点缀，功能仍用直接文字。",
+    "lesson": "亲切插画与严肃工作可以共存。",
+    "url": "https://www.notion.com/product/ai",
+    "evidence": "当前公开产品页"
+  },
+  {
+    "name": "Linear",
+    "type": "概念词",
+    "category": "工作协作与 AI",
+    "naming": "主品牌稳定，Agent、Triage 等名称解释新能力。",
+    "visual": "单色字标、克制颜色、明确间距；符号服务紧凑场景。",
+    "lesson": "成熟感来自一致的规则与信息层级。",
+    "url": "https://linear.app/brand",
+    "evidence": "当前官方规范与公开页面观察"
+  },
+  {
+    "name": "Perplexity",
+    "type": "概念词",
+    "category": "AI 搜索与研究",
+    "naming": "较长的概念词；不是所有名字都靠极短取胜。",
+    "visual": "设计方以几何标记、明暗用法和内容优先建立体系。",
+    "lesson": "长度是取舍，识别和输入成本都要测。",
+    "url": "https://medium.com/smith-diction/branding-perplexity-ai-70eb2cb2ef48",
+    "evidence": "2023 设计方案例；非当前全产品快照"
+  },
+  {
+    "name": "Comet",
+    "type": "日常词",
+    "category": "Agent 浏览器",
+    "naming": "可想象的具体名词，能力层用 Assistant、Agent。",
+    "visual": "本轮仅核实官方能力说明，未越过浏览器安全验证。",
+    "lesson": "一个名字可以组织一个新产品形态。",
+    "url": "https://www.perplexity.ai/comet/resources",
+    "evidence": "官方文字；未完成当前视觉核验"
+  },
+  {
+    "name": "Pi",
+    "type": "短专名",
+    "category": "个人对话助手",
+    "naming": "官方确认来自 personal intelligence，可读的极短缩写。",
+    "visual": "官方定位强调个人对话和支持性；未实测当前 App 视觉。",
+    "lesson": "轻名字也可以有清楚解释，不必复杂词源。",
+    "url": "https://www.linkedin.com/posts/inflectionai_today-we-are-announcing-the-release-of-the-activity-7059242716534108161--i2a",
+    "evidence": "词源来自官方发布帖；当前定位另见报告"
+  },
+  {
+    "name": "Omi",
+    "type": "短专名",
+    "category": "个人记忆与随身 AI",
+    "naming": "三字母短专名，跨 App 与设备；词源未核实。",
+    "visual": "官网通过真实设备和日常场景表达随身感。",
+    "lesson": "让第一次小成功解释产品，比口号更直接。",
+    "url": "https://www.omi.me/",
+    "evidence": "当前官网与官方入门文档"
+  },
+  {
+    "name": "rabbit",
+    "type": "日常词",
+    "category": "跨设备执行系统",
+    "naming": "具体动物词，下设 r1、OS3 等产品层级。",
+    "visual": "r1 原始官方公告确认橙色与 Teenage Engineering 合作。",
+    "lesson": "角色、物件可强识别；仍需独立检验执行质量。",
+    "url": "https://checkout.rabbit.tech/blogs/news/introducing-r1",
+    "evidence": "此链接为 2024 设计公告；当前定位来源另见报告"
+  },
+  {
+    "name": "Dot",
+    "type": "日常词",
+    "category": "历史个人 AI 案例",
+    "naming": "短普通词兼具昵称感，易记；原始词源未核实。",
+    "visual": "本轮只核实官方关停公告及创始人材料。",
+    "lesson": "漂亮叙事与长期可用性必须分开判断。",
+    "url": "https://new.computer/",
+    "evidence": "历史案例：官网已公告关停"
+  }
+]

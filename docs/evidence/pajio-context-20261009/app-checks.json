@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-09T03:52:24.464934+00:00",
+  "scope": "Pajio App selected-chat import; synthetic tests only; no real account data",
+  "checks": [
+    {
+      "name": "app_full_suite",
+      "command": "npm test",
+      "cwd": "clients/mobile",
+      "log": "app-tests-720.log",
+      "exit_code": 0,
+      "tests": 720,
+      "passed": 720,
+      "failed": 0,
+      "evidence": "Copied complete log from final 720-test run; exit code 0 was observed in exec session 22199.",
+      "log_sha256": "c9284039667416c4d45e664e72fe845f52f7227f28a7172046ca76b3fa2077cb"
+    },
+    {
+      "name": "share_plugin",
+      "command": "node --test plugins/share-intake.test.cjs",
+      "cwd": "clients/mobile",
+      "log": "app-share-plugin-tests.log",
+      "exit_code": 0,
+      "log_sha256": "c00aeae16e5f3f6ed3eb23566b2338055f91d7ec7b662bb31a5eb27fb60b6b0c",
+      "tests": 3,
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "cwd": "clients/mobile",
+      "log": "app-typecheck.log",
+      "exit_code": 0,
+      "log_sha256": "8acdab0b1f7ae9d3a2f949a31e45aa7dd8343b4cb762e8cdc9f3232bbbd07b3d"
+    },
+    {
+      "name": "lint",
+      "command": "node node_modules/eslint/bin/eslint.js src",
+      "cwd": "clients/mobile",
+      "log": "app-lint.log",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "lint_note": "npm run lint invokes broken system npx package. Direct ESLint uses the same installed Expo ESLint configuration and src scope. Global npm files were not changed.",
+  "implementation_modified": false,
+  "device_validation_included": false,
+  "account_cleanup_verification": {
+    "command": "node clients/mobile/node_modules/tsx/dist/cli.mjs --test docs/evidence/pajio-context-20261009/app-account-cleanup-verification.ts",
+    "log": "app-account-cleanup-verification.log",
+    "exit_code": 0,
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "log_sha256": "3d36f40523a798e6ba37e60d59a161a4cd143a44d6b381bf4fcf0551978de3b3",
+    "database": ":memory:",
+    "production_data_accessed": false,
+    "coverage": "Both exact import namespaces; two identities owned by one account; foreign-account preservation; durable fence rejects late single and atomic batch writes."
+  },
+  "account_cleanup_review": "app-account-cleanup-review.md"
+}

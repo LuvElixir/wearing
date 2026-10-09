@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-10-09T07:03:14.128498+00:00",
+  "instance_state": "STOPPED",
+  "instance_type": "SA2.MEDIUM4",
+  "charge_type": "POSTPAID_BY_HOUR",
+  "stop_charging_mode": "STOP_CHARGING",
+  "cpu": 2,
+  "memory_gib": 4,
+  "public_address_present": false,
+  "latest_operation": "RenewInstances",
+  "latest_operation_state": "SUCCESS",
+  "region": "ap-hongkong",
+  "system_disk_gib": 40,
+  "data_disk_gib": [
+    40
+  ]
+}

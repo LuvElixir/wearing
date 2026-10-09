@@ -1,0 +1,59 @@
+[
+  {
+    "file": "pajio-listen-blue-v1.mp4",
+    "sha256": "ccdb62e9d21abdc613286e5329b7d3551d7bd37bae68648fc98b565188bac606",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 960,
+        "height": 960,
+        "r_frame_rate": "24/1"
+      }
+    ],
+    "format": {
+      "duration": "5.041667",
+      "size": "3312826"
+    }
+  },
+  {
+    "file": "pajio-received-blue-v1.mp4",
+    "sha256": "7b4c02cf16fc4eb5bba575c7a75fa7dd5810458f3fe4f7e4cd105bfa4ff09c1a",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 960,
+        "height": 960,
+        "r_frame_rate": "24/1"
+      }
+    ],
+    "format": {
+      "duration": "5.041667",
+      "size": "3903165"
+    }
+  },
+  {
+    "file": "pajio-result-blue-v1.mp4",
+    "sha256": "a9c67da9ad6a5962047860919d784e953393371b0cec92a7bf23670637af78a5",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 960,
+        "height": 960,
+        "r_frame_rate": "24/1"
+      }
+    ],
+    "format": {
+      "duration": "5.041667",
+      "size": "4201496"
+    }
+  }
+]

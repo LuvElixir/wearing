@@ -4,12 +4,14 @@
 class WearingPresence {
   constructor({stage,poster,videos,preference,onReduced=()=>{}}) {
     Object.assign(this,{stage,poster,videos,preference,onReduced});
-    this.mode="idle";this.visible=true;this.hidden=document.hidden;this.manifest=null;
+    this.mode="idle";this.visible=true;this.hidden=document.hidden||!!window.WearingHost?.hidden;this.manifest=null;
     this.serial=0;this.current=null;this.pending=null;this.broken=new Set();
     this.lastAttention=0;
     for(const video of videos){video.muted=true;video.loop=true;video.controls=false;video.setAttribute("disablepictureinpicture","");}
     preference.addEventListener("change",()=>this.sync());
-    document.addEventListener("visibilitychange",()=>{this.hidden=document.hidden;this.sync();});
+    const visibility=()=>{this.hidden=document.hidden||!!window.WearingHost?.hidden;this.sync();};
+    document.addEventListener("visibilitychange",visibility);
+    document.addEventListener("wearing-host-visibility",visibility);
     this.observer=new IntersectionObserver(entries=>{this.visible=entries[0].isIntersecting;this.sync();},{threshold:.1});
     this.observer.observe(stage);
   }

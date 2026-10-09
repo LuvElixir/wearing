@@ -1,6 +1,6 @@
 # 独立租户运行入口
 
-2026-10-03。本次是 S1 的租户 Worker 基础：把现有 Wearing 与 Hermes 的状态和生命周期封装进一份独立实例，复用原会话、目标、文件和记忆实现。没有引入第二个 Agent 循环。
+2026-10-03。本次是 S1 的租户 Worker 基础：把现有 Wearing 与 Hermes 的状态和生命周期封装进一份独立实例，复用原会话、目标、文件和记忆实现。没有引入第二个 Agent 循环。随后已完成首台腾讯 VM 的实际运行与 S2 出站设备连接，最新状态见[连接器验收](evidence/remote-device-2026-10-03.md)。
 
 ## 初始化与启动
 
@@ -26,7 +26,7 @@ wearing tenant serve --root ./tenant-A --port 8781
 - 与启动配置相同的 `X-Wearing-Tenant`，重复字段或误路由拒绝。
 - 网页 Origin 必须与初始化记录完全匹配，Host 仍由 TrustedHostMiddleware 检查；产品修改操作继续要求页面 CSRF token。
 
-内部凭据由受信任入口代理添加，不能发送到浏览器、放进 URL 或访问日志。代理必须先用成熟 OIDC 验证用户及 membership，再从可信平台记录决定实例和凭据；不能依据用户提交的 tenant_id 直接转发。当前已新增 [OIDC 入口](gateway-runtime.md)、会员查询、入口路由与会话撤销，平台 PostgreSQL 权限/RLS 已在本机真实数据库及合成 IdP 双用户 HTTP 链路验收；真实 IdP、生产入口、独立 VM 和内部凭据轮换仍待接通。私有 Worker 的服务凭据校验自身不能冒充用户登录。
+内部凭据由受信任入口代理添加，不能发送到浏览器、放进 URL 或访问日志。代理必须先用成熟 OIDC 验证用户及 membership，再从可信平台记录决定实例和凭据；不能依据用户提交的 tenant_id 直接转发。当前已新增 [OIDC 入口](gateway-runtime.md)、会员查询、入口路由与会话撤销，平台 PostgreSQL 权限/RLS 已在本机真实数据库及合成 IdP 双用户 HTTP 链路验收；独立腾讯 VM 已运行；真实 IdP、生产入口和内部凭据轮换仍待接通。私有 Worker 的服务凭据校验自身不能冒充用户登录。
 
 `GET /internal/runtime` 同样鉴权，报告固定归属、引擎状态及 `hardware_isolation_verified: false`。这个值不会因配置写了“VM”或本机启动两个进程而变为已验证。真实提供商实例、guest kernel、磁盘与网络证据需要后续验收。
 
@@ -43,7 +43,7 @@ wearing engine model --data-dir ./tenant-A/data
 
 启动 Worker 时，已安装的受管引擎会自动尝试启动，并保存本实例的连接。未安装或模型未配置时保留产品记录，允许继续配置，不伪造执行成功。停止 Worker 沿用现有生命周期清理自己启动的引擎。未发送草稿不会因重启就自动成为授权任务；原运行恢复沿用 TaskService 的核对规则。
 
-云端运行时关闭本机 computer_use / 手机 MCP 的自动装配，相关设备管理及外部引擎换绑 API 返回未接通。VM 宿主不是用户的电脑；远程设备要走后续连接器。文件工具使用实例私有工作目录。原生记忆和旧会话检索沿用 v6 配置。
+云端运行时关闭本机 computer_use / 手机 MCP 的自动装配，相关设备管理及外部引擎换绑 API 返回未接通。VM 宿主不是用户的电脑；已通过单独 HTTPS 连接器接入真实 Mac/Android，相关旧本地管理 API 仍拒绝。云端 v7 通过远程 MCP 访问设备；文件工具使用实例私有工作目录，原生记忆和旧会话检索继续沿用。见[设备连接器](device-connectors.md)。
 
 `--no-engine-autostart` 仅供独立测试或离线开发。双实例验收用两份原生 Hermes Home 和单独测试引擎，不调用模型或操作设备；这不是生产管理方式。
 
@@ -51,6 +51,6 @@ wearing engine model --data-dir ./tenant-A/data
 
 [wearing-tenant.service](../deploy/tenant/wearing-tenant.service) 供 Linux VM 内使用：一个 `wearing` 用户、一份私有 StateDirectory、失败重启与受管进程关闭。Linux 承载云端 Agent 核心，不替代用户用于 App/账号的 Mac、Windows 或手机。
 
-部署者需先准备独立 VM、具有 `/var/lib/wearing` home 的服务用户、`/opt/wearing/venv` 安装环境和对应实例。模板不下载未知脚本、不携带密钥、不创建付费实例，也不自动安装到本机。systemd 语义以 [官方服务说明](https://raw.githubusercontent.com/systemd/systemd/main/man/systemd.service.xml) 为依据；本机是 macOS，模板尚未经过 Linux VM 的启动与恢复验收。
+部署者需先准备独立 VM、具有 `/var/lib/wearing` home 的服务用户、`/opt/wearing/venv` 安装环境和对应实例。模板不下载未知脚本、不携带密钥、不创建付费实例，也不自动安装到本机。systemd 语义以 [官方服务说明](https://raw.githubusercontent.com/systemd/systemd/main/man/systemd.service.xml) 为依据；本机是 macOS；该模板已在腾讯 Ubuntu VM 经启动和整 VM 重启验收，见[证据](evidence/tencent-vm-2026-10-03.md)。
 
 私有状态需要一致性备份与恢复，不能只把运行中的 SQLite 文件复制走。生产 OIDC、TLS/mTLS 入口、平台 Secret Manager、持久唤醒、VM 网络限制、自动备份和远程设备转发仍是后续工作。本次实际证据见 [租户 Worker 验收](evidence/tenant-worker-2026-10-03.md)。

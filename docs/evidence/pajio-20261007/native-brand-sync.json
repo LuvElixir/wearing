@@ -1,0 +1,225 @@
+{
+  "candidate": "/var/folders/32/vzdw9zp96ps4lgrqy7rz55cw0000gn/T/pajio-native-candidate-veejd0vv",
+  "files": [
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "before": "170cf94d16d6659ca6578cad80ff440bd4047ee5133ce5ea73f32e0bec58a16d",
+      "after": "83497c46286425ce1635935af28d7a3d7fab6a2d09199eb9804e0819a1b0ccca"
+    },
+    {
+      "path": "app/src/main/java/io/luckyloading/wearing/mobile/MainActivity.kt",
+      "before": "3c19db129015e8943d30e7131b65e8974a93fdfa7f38085cc3051218a08892a4",
+      "after": "a2db87c0892296d0669b489789ccb4ae7052bbaf337f7d24d3e8d6eec2692f1b"
+    },
+    {
+      "path": "app/src/main/res/drawable-hdpi/splashscreen_logo.png",
+      "before": "721c895579cb08ec4c9a0fe7dadafe9a97c33ef758d3578ad5e8b540de59f974",
+      "after": "69e1e2987ff40b5660615217aa0f395fd27ab281faf2798c115de16047853c9e"
+    },
+    {
+      "path": "app/src/main/res/drawable-mdpi/splashscreen_logo.png",
+      "before": "f84b9b17a4a1c7d7dd840cd272c07a6c3fd66d5a9826b64bb53facb6f176bc24",
+      "after": "6a0563c147225c9b24aad3fe113e32dd14c5f95ed98c1c6678dd37e686032788"
+    },
+    {
+      "path": "app/src/main/res/drawable-night-hdpi/splashscreen_logo.png",
+      "before": null,
+      "after": "c3b3535f34c74c4421248b56b1a76f6e5e1758ecbd470c0e27dc0af52df14005"
+    },
+    {
+      "path": "app/src/main/res/drawable-night-mdpi/splashscreen_logo.png",
+      "before": null,
+      "after": "8fb4e60a3b496151f6a7d40f7e840e3d50ca089a5b30ec3fea3fe3c9422ead46"
+    },
+    {
+      "path": "app/src/main/res/drawable-night-xhdpi/splashscreen_logo.png",
+      "before": null,
+      "after": "b77c63965b0c4f5d9800dd89fe9faf0cfa73069bcbb70242ea4e1597d7f97cf6"
+    },
+    {
+      "path": "app/src/main/res/drawable-night-xxhdpi/splashscreen_logo.png",
+      "before": null,
+      "after": "84e4a2797ca5ac37b6ecd285b67bf826ba51ef2d126aeb86395bea841fb38fec"
+    },
+    {
+      "path": "app/src/main/res/drawable-night-xxxhdpi/splashscreen_logo.png",
+      "before": null,
+      "after": "301ab27f8be2c31c6816bb71e17397f085c6791ccc18a0d4d01b77ee3da68b56"
+    },
+    {
+      "path": "app/src/main/res/drawable-xhdpi/splashscreen_logo.png",
+      "before": "e1c5250e339add5ed7849cb0859d052edb9781abb91db049e68ae3a4059247d7",
+      "after": "25191ba9560f0bbb26b3e6fccd76401dcc46ed516281448ce24b59c3d833480a"
+    },
+    {
+      "path": "app/src/main/res/drawable-xxhdpi/splashscreen_logo.png",
+      "before": "23d97ccb41a821ee345b2c5bb0c9bdab730a751a9227925acbf0af021dc38a9b",
+      "after": "82abd860c0d47e6f30b80fb9cb5acdfc47c1c9b495c4e32624c6f6a1956c4242"
+    },
+    {
+      "path": "app/src/main/res/drawable-xxxhdpi/splashscreen_logo.png",
+      "before": "be9fac5c4cda48c41dce592288c486524bba3e4ca7fa00c0a04a46928154b5bf",
+      "after": "d1e7c83a70766d2e56bfd36639aaabf16b45b6d1758310e4721ed0ff8fd88014"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "before": "03d70962a0beea2bb6ab1a838b015d90da6c33adb045ff85f7b198aca70df08d",
+      "after": "a5fae7f093230d6752ec5dbabefbec6b93423c0b43f930e6d0aa6c50c2ce8e35"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+      "before": "03d70962a0beea2bb6ab1a838b015d90da6c33adb045ff85f7b198aca70df08d",
+      "after": "a5fae7f093230d6752ec5dbabefbec6b93423c0b43f930e6d0aa6c50c2ce8e35"
+    },
+    {
+      "path": "app/src/main/res/mipmap-hdpi/ic_launcher.webp",
+      "before": "2c4d22cab606add9d26b08221ad8203537de09d8d3bb6bbdc9244152827679ed",
+      "after": "fe5be85261b4c20364bcf289244d878fb9e3fe767f9731bf46005bee7a47adff"
+    },
+    {
+      "path": "app/src/main/res/mipmap-hdpi/ic_launcher_foreground.webp",
+      "before": "fd5fb4c7e8be288cc3d40e8eaad097ccbc346bd3528f010ac02e0256e84f2578",
+      "after": "97e3962f3ab3a8857e9da49b94baaaec380011dd84d95584c4a3c4e158585b5f"
+    },
+    {
+      "path": "app/src/main/res/mipmap-hdpi/ic_launcher_monochrome.webp",
+      "before": null,
+      "after": "2c85e5264e2a7091601cfff9047e5b0c3827d0449bb9b1cd31368257eee64aee"
+    },
+    {
+      "path": "app/src/main/res/mipmap-hdpi/ic_launcher_round.webp",
+      "before": "07bd4cf05e10e5a205a6f687767c55ecfa3624e11e9de17fcfeb66198bbac48c",
+      "after": "68cbf2d95f95d8c5b93295b42ff113843a00d4bcb062796b90841c4c7809f1f1"
+    },
+    {
+      "path": "app/src/main/res/mipmap-mdpi/ic_launcher.webp",
+      "before": "91d8cb5d3204490fe66b4f00c99af9e40d49352a5d7321d281e1bb0f7abb9b8a",
+      "after": "67e2d4af0d334c781b87183a7009294bfd444d77d04fe39a2f268add9addf7e9"
+    },
+    {
+      "path": "app/src/main/res/mipmap-mdpi/ic_launcher_foreground.webp",
+      "before": "b04810bf38c67f2e4475d3b61bf191449038d24e0855df7cb602f96484515ab1",
+      "after": "e1c24eb00a1eef24b335221930b8dc59de5449599796863edb6e97b1834c91db"
+    },
+    {
+      "path": "app/src/main/res/mipmap-mdpi/ic_launcher_monochrome.webp",
+      "before": null,
+      "after": "ffda528d0a53b1f2e56f36a71bca3e5adeb66389fe559ca7b1875888caa73d1f"
+    },
+    {
+      "path": "app/src/main/res/mipmap-mdpi/ic_launcher_round.webp",
+      "before": "fb907c490aa9055532fdae9c8de5e65baae45fd7cc4e22df2d284bf0335a2395",
+      "after": "ee49ccd15e09b8e65651e2e0652af54e1618fef099de6e7901904a9e855ec17e"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xhdpi/ic_launcher.webp",
+      "before": "911280a68dd2aa14f5b063c7f84a58cb34ca681425e79e6b8d49e5ac9d4bb3e5",
+      "after": "96d19188b3869cb75730a187cd7218290cb3548d432cae49fdb6dec8f8b19b6d"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.webp",
+      "before": "9d95edcc5baaa9972f778ec17026b542ed441d0946f6aba96425ae562bc54a14",
+      "after": "680ea923de86f4a1ab1acf9f9012d2851ad64e6a9f7231c7cd54eb31049f9619"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xhdpi/ic_launcher_monochrome.webp",
+      "before": null,
+      "after": "a881aeb411054c04343e97335183dbf1ec390230fb93719d0e7466a110c01dd6"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp",
+      "before": "054781a512261a736faf37a12e7da1513963e403a9bb4f0a2786c141d29a6d0e",
+      "after": "f6245fcd659fb049f6e75188223335ddb010dacd36d86ea6550372d151b68e32"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher.webp",
+      "before": "01bf855b558a2cfa850ffacc5ae9906adec68ae5873ee7806814f1981c04c9df",
+      "after": "181ded22287afe21bc43814440e9685df3aae6d75f061d3add7a546e834e3b86"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.webp",
+      "before": "685249b38f18fded4828f2f8e711f9c8c547e46197396c2e448bd1364df6f05c",
+      "after": "7bc1971b30e1280b7d2ad5dbdc898d9026bf390344a5df46b3959b2b726e76dd"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher_monochrome.webp",
+      "before": null,
+      "after": "b9cc164628d9a25a688ae121892dae01188f982b891f50fa30cdd05ed1ddf139"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp",
+      "before": "f4fe6b773206b6d71a1e59857db991437b0faedf997b813d031651636d855bca",
+      "after": "680ec7171a00f3fc33934b4e9279b63129a2f4cecc4b4efe40c08e8811b2bec8"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp",
+      "before": "e7bcc968dd42dc2e25549a01831a8111b912c52611e8f09104af8b87c78530f5",
+      "after": "9faf1b3eea25406166d2ef57df58aa6ad596e5022039d5ec9086b56c48257d4f"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.webp",
+      "before": "71752c97a0a5ae596d9628d9295c052734636b84da521d386f0c54c4e55a23e8",
+      "after": "0d5112092eeef3c5533165ed6d0a7df4dd4e452d3f9ed62d209fe9c3a9d70101"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher_monochrome.webp",
+      "before": null,
+      "after": "cc49ebbfca9d7a9fb330679257f5911b7f28fd8c09baec9014a4d17a7cad8c65"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp",
+      "before": "b376dc9e037d41b7022dc2b9c9a4836c8453faa80bafa94db0cbb34c8e76d903",
+      "after": "4f395aaef974400c59f5557a0974e12a337e33c35814a31349d5698ddcb0e99b"
+    },
+    {
+      "path": "app/src/main/res/values-night/colors.xml",
+      "before": "c30a9f37e6b34372e1db8c812d64a18719acf7c52c11ff2f7e5e5ed5e05c2072",
+      "after": "8fe1e3e7a5f4dfc4b670317c6ed00a4cece5276384a9c989bf0d067109739717"
+    },
+    {
+      "path": "app/src/main/res/values/colors.xml",
+      "before": "78a8b5978f7169731623d536f9305331e76363386037ce3af5a7f66dc20bdc10",
+      "after": "5920bd05701cad7b2a6c62a570b7417a5a147a02ea582190ea0484a3d597405e"
+    },
+    {
+      "path": "app/src/main/res/values/strings.xml",
+      "before": "d80a1b984225928349aead14ef7a18b1825f93a05687c9afc49346fe6fff483f",
+      "after": "4c4f0e2df1918069bd2c6f40433b9f5420f3f372be452a52c53eedf460c61298"
+    },
+    {
+      "path": "app/src/main/res/values/styles.xml",
+      "before": "e40414258372e05336fde31cd6a59ba286f0735dcc548fec42180b59af12b0f0",
+      "after": "2f5d90f4abc184af9a5ead8e5bf943244daf4e42e8747977266ccb351cd2a537"
+    },
+    {
+      "path": "settings.gradle",
+      "before": "5e2cc6a95c02d97b7a611be0fdc07d811dfe6e60952085f60aa9d8f9239ce767",
+      "after": "1eafed0fe35b34ba24683dfb84684e3f6571557e4f668a6a5119a5522ae8f694"
+    }
+  ],
+  "preserved_network_security_sha256": "4a76eae343d19a39c9cb2abeae646ac2adbc6c02fdd3186a454057b9404e7157",
+  "legacy_application_id": "io.luckyloading.wearing.mobile",
+  "schemes": [
+    "pajio",
+    "wearing"
+  ],
+  "native_build_status": "not_built_no_jdk_android_sdk_or_cocoapods",
+  "checks": {
+    "xml_and_plist": "passed",
+    "resource_densities": "5 launcher/adaptive/monochrome and 5 day+night splash densities verified",
+    "typecheck": "passed",
+    "source_lint": "concurrent AgentTaskList finding reported to owner; owner repaired and final regression recorded in main delivery evidence",
+    "xcode_project_list": "passed: Pajio target and scheme, Debug/Release configurations",
+    "android_gradle": "./gradlew --version exit 1: Unable to locate a Java Runtime; Android SDK absent at configured/default locations",
+    "ios_simulator_build": "xcodebuild build exit 65 at [CP] Check Pods Manifest.lock: missing CocoaPods dependency installation",
+    "android_apk": "not produced",
+    "ios_standalone_app": "not produced",
+    "source_live_ios_directory": "absent; CNG candidate only in temporary directory"
+  },
+  "docs": [
+    "https://docs.expo.dev/versions/v57.0.0/sdk/splash-screen/",
+    "https://docs.expo.dev/versions/v57.0.0/sdk/system-ui/",
+    "https://docs.expo.dev/workflow/continuous-native-generation/"
+  ],
+  "dependency": "expo-system-ui ~57.0.4 installed with Expo version-aware installer; plugin added for automatic Android UI style"
+}

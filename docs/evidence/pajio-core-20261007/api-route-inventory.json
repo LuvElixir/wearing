@@ -1,0 +1,1122 @@
+{
+  "checked_at": "2026-10-08",
+  "mode": "construction_only_temp_store_no_lifespan_no_handler_calls_no_network_no_processes",
+  "installers": [
+    {
+      "module": "src/wearing/activity_api.py",
+      "installer": "install_activity_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/artifact_api.py",
+      "installer": "install_artifact_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/briefing_api.py",
+      "installer": "install_briefing_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/capture_api.py",
+      "installer": "install_capture_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/cloud_apps_api.py",
+      "installer": "install_cloud_app_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/confirmation_api.py",
+      "installer": "install_confirmation_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/diagnostics_api.py",
+      "installer": "install_diagnostic_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/identity_export_api.py",
+      "installer": "install_identity_export_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/life_api.py",
+      "installer": "install_life_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/messaging_api.py",
+      "installer": "install_messaging_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/notifications_api.py",
+      "installer": "install_notification_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/schedule_api.py",
+      "installer": "install_schedule_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/search_api.py",
+      "installer": "install_search_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/skills_api.py",
+      "installer": "install_skill_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/speech_api.py",
+      "installer": "install_speech_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/usage_api.py",
+      "installer": "install_usage_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/workspace_api.py",
+      "installer": "install_workspace_page_routes",
+      "mounted": true
+    },
+    {
+      "module": "src/wearing/workspace_upload.py",
+      "installer": "install_workspace_import_routes",
+      "mounted": true
+    }
+  ],
+  "routes": [
+    {
+      "path": "/api/usage",
+      "methods": [
+        "GET"
+      ],
+      "handler": "snapshot",
+      "kind": "http"
+    },
+    {
+      "path": "/api/voice/stream",
+      "methods": [
+        "WEBSOCKET"
+      ],
+      "handler": "live",
+      "kind": "websocket"
+    },
+    {
+      "path": "/api/artifacts",
+      "methods": [
+        "GET"
+      ],
+      "handler": "listing",
+      "kind": "http"
+    },
+    {
+      "path": "/api/artifacts/{artifact_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "metadata",
+      "kind": "http"
+    },
+    {
+      "path": "/api/artifacts/{artifact_id}/preview",
+      "methods": [
+        "GET"
+      ],
+      "handler": "preview",
+      "kind": "http"
+    },
+    {
+      "path": "/api/artifacts/{artifact_id}/download",
+      "methods": [
+        "GET"
+      ],
+      "handler": "download",
+      "kind": "http"
+    },
+    {
+      "path": "/api/life",
+      "methods": [
+        "GET"
+      ],
+      "handler": "snapshot",
+      "kind": "http"
+    },
+    {
+      "path": "/api/life/{record_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "get_record",
+      "kind": "http"
+    },
+    {
+      "path": "/api/life",
+      "methods": [
+        "POST"
+      ],
+      "handler": "create_record",
+      "kind": "http"
+    },
+    {
+      "path": "/api/life/{record_id}",
+      "methods": [
+        "PATCH"
+      ],
+      "handler": "change_record",
+      "kind": "http"
+    },
+    {
+      "path": "/api/schedules",
+      "methods": [
+        "GET"
+      ],
+      "handler": "list_schedules",
+      "kind": "http"
+    },
+    {
+      "path": "/api/schedules",
+      "methods": [
+        "POST"
+      ],
+      "handler": "create_schedule",
+      "kind": "http"
+    },
+    {
+      "path": "/api/schedules/{schedule_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "get_schedule",
+      "kind": "http"
+    },
+    {
+      "path": "/api/schedules/{schedule_id}",
+      "methods": [
+        "PATCH"
+      ],
+      "handler": "change_schedule",
+      "kind": "http"
+    },
+    {
+      "path": "/api/activity",
+      "methods": [
+        "GET"
+      ],
+      "handler": "activity",
+      "kind": "http"
+    },
+    {
+      "path": "/api/activity/seen",
+      "methods": [
+        "POST"
+      ],
+      "handler": "seen_activity",
+      "kind": "http"
+    },
+    {
+      "path": "/api/capture/capabilities",
+      "methods": [
+        "GET"
+      ],
+      "handler": "capabilities",
+      "kind": "http"
+    },
+    {
+      "path": "/api/life/assets",
+      "methods": [
+        "POST"
+      ],
+      "handler": "upload",
+      "kind": "http"
+    },
+    {
+      "path": "/api/life/assets/{asset_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "original",
+      "kind": "http"
+    },
+    {
+      "path": "/api/captures",
+      "methods": [
+        "POST"
+      ],
+      "handler": "create",
+      "kind": "http"
+    },
+    {
+      "path": "/api/life/assets/{asset_id}/transcribe",
+      "methods": [
+        "POST"
+      ],
+      "handler": "transcribe",
+      "kind": "http"
+    },
+    {
+      "path": "/api/captures/{capture_id}/retry",
+      "methods": [
+        "POST"
+      ],
+      "handler": "retry",
+      "kind": "http"
+    },
+    {
+      "path": "/api/workspace/import",
+      "methods": [
+        "POST"
+      ],
+      "handler": "import_document",
+      "kind": "http"
+    },
+    {
+      "path": "/api/workspace/page",
+      "methods": [
+        "GET"
+      ],
+      "handler": "page",
+      "kind": "http"
+    },
+    {
+      "path": "/api/workspace/metadata",
+      "methods": [
+        "GET"
+      ],
+      "handler": "metadata",
+      "kind": "http"
+    },
+    {
+      "path": "/api/data-exports",
+      "methods": [
+        "GET"
+      ],
+      "handler": "listing",
+      "kind": "http"
+    },
+    {
+      "path": "/api/data-exports",
+      "methods": [
+        "POST"
+      ],
+      "handler": "create",
+      "kind": "http"
+    },
+    {
+      "path": "/api/data-exports/{export_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "metadata",
+      "kind": "http"
+    },
+    {
+      "path": "/api/data-exports/{export_id}/file",
+      "methods": [
+        "GET"
+      ],
+      "handler": "download",
+      "kind": "http"
+    },
+    {
+      "path": "/api/skills",
+      "methods": [
+        "GET"
+      ],
+      "handler": "skills",
+      "kind": "http"
+    },
+    {
+      "path": "/api/skills/detail",
+      "methods": [
+        "GET"
+      ],
+      "handler": "detail",
+      "kind": "http"
+    },
+    {
+      "path": "/api/skills/enabled",
+      "methods": [
+        "PATCH"
+      ],
+      "handler": "enabled",
+      "kind": "http"
+    },
+    {
+      "path": "/api/skills/install",
+      "methods": [
+        "POST"
+      ],
+      "handler": "install",
+      "kind": "http"
+    },
+    {
+      "path": "/api/briefings",
+      "methods": [
+        "GET"
+      ],
+      "handler": "listing",
+      "kind": "http"
+    },
+    {
+      "path": "/api/briefings/{briefing_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "detail",
+      "kind": "http"
+    },
+    {
+      "path": "/api/briefings",
+      "methods": [
+        "POST"
+      ],
+      "handler": "create",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu",
+      "methods": [
+        "GET"
+      ],
+      "handler": "state",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu",
+      "methods": [
+        "PUT"
+      ],
+      "handler": "configure",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu/authorize",
+      "methods": [
+        "POST"
+      ],
+      "handler": "authorize",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu/poll",
+      "methods": [
+        "POST"
+      ],
+      "handler": "poll",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu/check",
+      "methods": [
+        "POST"
+      ],
+      "handler": "check",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu",
+      "methods": [
+        "DELETE"
+      ],
+      "handler": "disconnect",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu/files",
+      "methods": [
+        "GET"
+      ],
+      "handler": "files",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu/document",
+      "methods": [
+        "GET"
+      ],
+      "handler": "document",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu/calendars",
+      "methods": [
+        "GET"
+      ],
+      "handler": "calendars",
+      "kind": "http"
+    },
+    {
+      "path": "/api/cloud-apps/feishu/events",
+      "methods": [
+        "GET"
+      ],
+      "handler": "events",
+      "kind": "http"
+    },
+    {
+      "path": "/api/messaging",
+      "methods": [
+        "GET"
+      ],
+      "handler": "channels",
+      "kind": "http"
+    },
+    {
+      "path": "/api/messaging/{provider}",
+      "methods": [
+        "PUT"
+      ],
+      "handler": "configure",
+      "kind": "http"
+    },
+    {
+      "path": "/api/messaging/{provider}",
+      "methods": [
+        "PATCH"
+      ],
+      "handler": "enable",
+      "kind": "http"
+    },
+    {
+      "path": "/api/messaging/{provider}",
+      "methods": [
+        "DELETE"
+      ],
+      "handler": "disconnect",
+      "kind": "http"
+    },
+    {
+      "path": "/api/notifications/status",
+      "methods": [
+        "GET"
+      ],
+      "handler": "status",
+      "kind": "http"
+    },
+    {
+      "path": "/api/notifications/register",
+      "methods": [
+        "POST"
+      ],
+      "handler": "register",
+      "kind": "http"
+    },
+    {
+      "path": "/api/notifications/disable",
+      "methods": [
+        "POST"
+      ],
+      "handler": "disable",
+      "kind": "http"
+    },
+    {
+      "path": "/api/notifications/resolve",
+      "methods": [
+        "GET"
+      ],
+      "handler": "resolve",
+      "kind": "http"
+    },
+    {
+      "path": "/api/notifications/disable-installation",
+      "methods": [
+        "POST"
+      ],
+      "handler": "disable_installation",
+      "kind": "http"
+    },
+    {
+      "path": "/api/notifications/preferences",
+      "methods": [
+        "GET"
+      ],
+      "handler": "preferences",
+      "kind": "http"
+    },
+    {
+      "path": "/api/notifications/preferences",
+      "methods": [
+        "POST"
+      ],
+      "handler": "update_preferences",
+      "kind": "http"
+    },
+    {
+      "path": "/api/confirmations",
+      "methods": [
+        "GET"
+      ],
+      "handler": "list_decisions",
+      "kind": "http"
+    },
+    {
+      "path": "/api/confirmations/{action_id}/resume",
+      "methods": [
+        "POST"
+      ],
+      "handler": "resume_decision",
+      "kind": "http"
+    },
+    {
+      "path": "/api/search",
+      "methods": [
+        "GET"
+      ],
+      "handler": "search",
+      "kind": "http"
+    },
+    {
+      "path": "/api/search/messages/{message_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "message",
+      "kind": "http"
+    },
+    {
+      "path": "/api/diagnostics",
+      "methods": [
+        "GET"
+      ],
+      "handler": "snapshot",
+      "kind": "http"
+    },
+    {
+      "path": "/api/bootstrap",
+      "methods": [
+        "GET"
+      ],
+      "handler": "bootstrap",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices",
+      "methods": [
+        "GET"
+      ],
+      "handler": "remote_devices",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/offer",
+      "methods": [
+        "POST"
+      ],
+      "handler": "inspect_device_offer",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/pair",
+      "methods": [
+        "POST"
+      ],
+      "handler": "pair_devices",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/reviews",
+      "methods": [
+        "GET"
+      ],
+      "handler": "device_reviews",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/permissions",
+      "methods": [
+        "POST"
+      ],
+      "handler": "change_device_permission",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/permissions/{request_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "permission_status",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/permissions/{request_id}/download",
+      "methods": [
+        "GET"
+      ],
+      "handler": "permission_download",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/input-approvals",
+      "methods": [
+        "GET"
+      ],
+      "handler": "desktop_approvals",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/input-approvals",
+      "methods": [
+        "POST"
+      ],
+      "handler": "desktop_decision",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/pair/{request_id}/download",
+      "methods": [
+        "GET"
+      ],
+      "handler": "download_device_pairing",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/reviews",
+      "methods": [
+        "POST"
+      ],
+      "handler": "review_device",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/refresh-tools",
+      "methods": [
+        "POST"
+      ],
+      "handler": "refresh_device_tools",
+      "kind": "http"
+    },
+    {
+      "path": "/api/devices/control",
+      "methods": [
+        "POST"
+      ],
+      "handler": "control_remote_device",
+      "kind": "http"
+    },
+    {
+      "path": "/api/identities",
+      "methods": [
+        "GET"
+      ],
+      "handler": "identities",
+      "kind": "http"
+    },
+    {
+      "path": "/api/identities",
+      "methods": [
+        "POST"
+      ],
+      "handler": "new_identity",
+      "kind": "http"
+    },
+    {
+      "path": "/api/identities/{identity_id}",
+      "methods": [
+        "PATCH"
+      ],
+      "handler": "edit_identity",
+      "kind": "http"
+    },
+    {
+      "path": "/api/identity",
+      "methods": [
+        "GET"
+      ],
+      "handler": "identity_detail",
+      "kind": "http"
+    },
+    {
+      "path": "/api/status",
+      "methods": [
+        "GET"
+      ],
+      "handler": "status",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks",
+      "methods": [
+        "GET"
+      ],
+      "handler": "tasks",
+      "kind": "http"
+    },
+    {
+      "path": "/api/goals",
+      "methods": [
+        "GET"
+      ],
+      "handler": "list_goals",
+      "kind": "http"
+    },
+    {
+      "path": "/api/goal-updates",
+      "methods": [
+        "GET"
+      ],
+      "handler": "goal_updates",
+      "kind": "http"
+    },
+    {
+      "path": "/api/goal-updates/seen",
+      "methods": [
+        "POST"
+      ],
+      "handler": "seen_goal_updates",
+      "kind": "http"
+    },
+    {
+      "path": "/api/memory",
+      "methods": [
+        "GET"
+      ],
+      "handler": "memory",
+      "kind": "http"
+    },
+    {
+      "path": "/api/memory",
+      "methods": [
+        "PATCH"
+      ],
+      "handler": "change_memory",
+      "kind": "http"
+    },
+    {
+      "path": "/api/goals",
+      "methods": [
+        "POST"
+      ],
+      "handler": "new_goal",
+      "kind": "http"
+    },
+    {
+      "path": "/api/goals/{goal_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "goal_detail",
+      "kind": "http"
+    },
+    {
+      "path": "/api/goals/{goal_id}/control",
+      "methods": [
+        "POST"
+      ],
+      "handler": "goal_control",
+      "kind": "http"
+    },
+    {
+      "path": "/api/runtime",
+      "methods": [
+        "GET"
+      ],
+      "handler": "runtime_status",
+      "kind": "http"
+    },
+    {
+      "path": "/api/runtime/install",
+      "methods": [
+        "POST"
+      ],
+      "handler": "runtime_install",
+      "kind": "http"
+    },
+    {
+      "path": "/api/phone",
+      "methods": [
+        "GET"
+      ],
+      "handler": "phone_status",
+      "kind": "http"
+    },
+    {
+      "path": "/api/computer",
+      "methods": [
+        "GET"
+      ],
+      "handler": "computer_status",
+      "kind": "http"
+    },
+    {
+      "path": "/api/computer/refresh",
+      "methods": [
+        "POST"
+      ],
+      "handler": "refresh_computer",
+      "kind": "http"
+    },
+    {
+      "path": "/api/computer/prepare",
+      "methods": [
+        "POST"
+      ],
+      "handler": "prepare_computer",
+      "kind": "http"
+    },
+    {
+      "path": "/api/computer/permissions",
+      "methods": [
+        "POST"
+      ],
+      "handler": "computer_permissions",
+      "kind": "http"
+    },
+    {
+      "path": "/api/computer/bind",
+      "methods": [
+        "POST"
+      ],
+      "handler": "bind_computer",
+      "kind": "http"
+    },
+    {
+      "path": "/api/computer/pause",
+      "methods": [
+        "POST"
+      ],
+      "handler": "pause_computer",
+      "kind": "http"
+    },
+    {
+      "path": "/api/computer/resume",
+      "methods": [
+        "POST"
+      ],
+      "handler": "resume_computer",
+      "kind": "http"
+    },
+    {
+      "path": "/api/phone/prepare",
+      "methods": [
+        "POST"
+      ],
+      "handler": "prepare_phone",
+      "kind": "http"
+    },
+    {
+      "path": "/api/phone/bind",
+      "methods": [
+        "POST"
+      ],
+      "handler": "bind_phone",
+      "kind": "http"
+    },
+    {
+      "path": "/api/phone/pause",
+      "methods": [
+        "POST"
+      ],
+      "handler": "pause_phone",
+      "kind": "http"
+    },
+    {
+      "path": "/api/phone/resume",
+      "methods": [
+        "POST"
+      ],
+      "handler": "resume_phone",
+      "kind": "http"
+    },
+    {
+      "path": "/api/model",
+      "methods": [
+        "GET"
+      ],
+      "handler": "model_settings",
+      "kind": "http"
+    },
+    {
+      "path": "/api/model",
+      "methods": [
+        "POST"
+      ],
+      "handler": "save_model",
+      "kind": "http"
+    },
+    {
+      "path": "/api/workspace/enable",
+      "methods": [
+        "POST"
+      ],
+      "handler": "enable_workspace",
+      "kind": "http"
+    },
+    {
+      "path": "/api/workspace",
+      "methods": [
+        "GET"
+      ],
+      "handler": "files",
+      "kind": "http"
+    },
+    {
+      "path": "/api/workspace/file",
+      "methods": [
+        "GET"
+      ],
+      "handler": "download_file",
+      "kind": "http"
+    },
+    {
+      "path": "/api/runtime/start",
+      "methods": [
+        "POST"
+      ],
+      "handler": "runtime_start",
+      "kind": "http"
+    },
+    {
+      "path": "/api/runtime/stop",
+      "methods": [
+        "POST"
+      ],
+      "handler": "runtime_stop",
+      "kind": "http"
+    },
+    {
+      "path": "/api/conversation",
+      "methods": [
+        "GET"
+      ],
+      "handler": "conversation",
+      "kind": "http"
+    },
+    {
+      "path": "/api/conversation",
+      "methods": [
+        "POST"
+      ],
+      "handler": "send_message",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks",
+      "methods": [
+        "POST"
+      ],
+      "handler": "create_task",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks/{task_id}",
+      "methods": [
+        "GET"
+      ],
+      "handler": "get_task",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks/{task_id}/start",
+      "methods": [
+        "POST"
+      ],
+      "handler": "start_task",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks/{task_id}/cancel-message",
+      "methods": [
+        "POST"
+      ],
+      "handler": "cancel_message",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks/{task_id}/refresh",
+      "methods": [
+        "POST"
+      ],
+      "handler": "refresh_task",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks/{task_id}/stop",
+      "methods": [
+        "POST"
+      ],
+      "handler": "stop_task",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks/{task_id}/approval",
+      "methods": [
+        "POST"
+      ],
+      "handler": "approval",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks/{task_id}/verify",
+      "methods": [
+        "POST"
+      ],
+      "handler": "verify",
+      "kind": "http"
+    },
+    {
+      "path": "/api/tasks/{task_id}/resolve",
+      "methods": [
+        "POST"
+      ],
+      "handler": "resolve",
+      "kind": "http"
+    },
+    {
+      "path": "/api/connection",
+      "methods": [
+        "POST"
+      ],
+      "handler": "connect",
+      "kind": "http"
+    },
+    {
+      "path": "/api/doctor",
+      "methods": [
+        "GET"
+      ],
+      "handler": "doctor",
+      "kind": "http"
+    },
+    {
+      "path": "/api/device-report",
+      "methods": [
+        "POST"
+      ],
+      "handler": "import_report",
+      "kind": "http"
+    },
+    {
+      "path": "/api/device-doctor.py",
+      "methods": [
+        "GET"
+      ],
+      "handler": "device_doctor",
+      "kind": "http"
+    },
+    {
+      "path": "/assets",
+      "methods": [],
+      "handler": null,
+      "kind": "static_mount"
+    },
+    {
+      "path": "/",
+      "methods": [
+        "GET"
+      ],
+      "handler": "index",
+      "kind": "http"
+    }
+  ],
+  "duplicate_method_paths": [],
+  "static_shadowed_by_dynamic": []
+}

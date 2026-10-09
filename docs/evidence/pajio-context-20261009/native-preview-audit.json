@@ -1,0 +1,34 @@
+{
+  "phase": "native_preview_before_confirmation",
+  "requests": [
+    {
+      "at": "2026-10-09T03:35:57.219349+00:00",
+      "method": "GET",
+      "path": "/api/chat-imports",
+      "identity": "qa",
+      "status": 200
+    },
+    {
+      "at": "2026-10-09T03:53:50.667439+00:00",
+      "method": "GET",
+      "path": "/api/chat-imports",
+      "identity": "qa",
+      "status": 200
+    },
+    {
+      "at": "2026-10-09T04:09:52.094860+00:00",
+      "method": "GET",
+      "path": "/assets/chat-import.js",
+      "identity": "qa",
+      "status": 200
+    },
+    {
+      "at": "2026-10-09T04:10:16.651226+00:00",
+      "method": "GET",
+      "path": "/api/chat-imports",
+      "identity": "qa",
+      "status": 200
+    }
+  ],
+  "post_count": 0
+}

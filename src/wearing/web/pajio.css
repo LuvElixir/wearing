@@ -1,0 +1,354 @@
+/* 2026-10-07 Pajio Web/桌面主题（对齐 clients/mobile/src/appearance.ts 的语义配色）。
+   每条规则都挂在 html:not(.mobile-host) 上：App WebView（?host=mobile）不加载任何新观感，
+   其宿主样式由只读的 mobile-host.css 接管。日夜由 <html data-app-theme> 切换，
+   首帧由 index.html 内联脚本按已保存偏好设定。 */
+html:not(.mobile-host){--page:#F6F7F9;--surface:#FFFFFF;--raised:#FFFFFF;--soft:#ECEEF2;
+  --ink:#202228;--muted:#565C68;--blue:#3156C8;--blue-deep:#2545A5;--blue-light:#EDF1FF;
+  --line:#DDE1E7;--danger:#B42338;--success:#176449;--attention:#6546A2;color-scheme:light}
+html:not(.mobile-host)[data-app-theme="night"]{--page:#14161A;--surface:#1C1F25;--raised:#262A32;--soft:#282D36;
+  --ink:#F0F2F5;--muted:#B8BEC9;--blue:#A3B7FF;--blue-deep:#D1DBFF;--blue-light:#263253;
+  --line:#353B46;--danger:#FFA7B3;--success:#8FD6B0;--attention:#C8B1F2;color-scheme:dark}
+html:not(.mobile-host) body{background:var(--page);color:var(--ink)}
+html:not(.mobile-host) body::before{content:none}
+html:not(.mobile-host) .pajio-wordmark{color:var(--ink);display:inline-block;vertical-align:middle}
+html:not(.mobile-host) .pajio-star{color:var(--ink);flex-shrink:0}
+html:not(.mobile-host) .pajio-bear{position:relative;display:inline-block;overflow:hidden;flex-shrink:0;user-select:none}
+html:not(.mobile-host) .pajio-bear img{position:absolute;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+html:not(.mobile-host) .pajio-bear.is-portrait{border-radius:50%;background:var(--soft)}
+
+/* ---------- 顶栏：字标 · 五入口 · 搜索与设置（长对话中保持可达） ---------- */
+html:not(.mobile-host){--pajio-header:86px}
+html:not(.mobile-host) .app-header{position:sticky;top:0;z-index:6;max-width:1180px;min-height:0;height:auto;margin:0 auto;padding:13px 30px 9px;gap:16px;background:var(--page)}
+html:not(.mobile-host) .now-name{display:none}
+html:not(.mobile-host) .wordmark{gap:10px}
+/* 通用 svg 规则会压成 20×20/fill:none；轮廓字标是实心 glyph path，必须显式恢复尺寸与填充。 */
+html:not(.mobile-host) .pajio-wordmark{fill:currentColor;stroke:none;stroke-width:0}
+html:not(.mobile-host) .app-header .pajio-wordmark{width:72px;height:30px}
+html:not(.mobile-host) .me-account-top .pajio-wordmark{width:76px;height:32px}
+html:not(.mobile-host) .pajio-star{fill:currentColor;stroke:none;stroke-width:0}
+html:not(.mobile-host) .app-header .nav-chip .pajio-star{width:18px;height:18px}
+html:not(.mobile-host) #activity-return .nav-chip .pajio-star{width:22px;height:22px}
+html:not(.mobile-host) .me-account-top .pajio-star{width:22px;height:22px}
+html:not(.mobile-host) .app-header .identity-pill{background:var(--surface);border:1px solid var(--line)}
+html:not(.mobile-host) .app-header .app-nav{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:2px;margin:0 auto;padding:3px;border-radius:999px;
+  background:var(--soft);border:1px solid transparent}
+html:not(.mobile-host) .app-header .app-nav button{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  min-width:64px;min-height:54px;padding:6px 14px;border-radius:16px;font-size:12px;line-height:16px;color:var(--muted)}
+html:not(.mobile-host) .app-header .app-nav button svg{width:22px;height:22px;stroke-width:1.7}
+html:not(.mobile-host) .app-header .app-nav button:hover{color:var(--ink)}
+html:not(.mobile-host) .app-header .app-nav button[aria-current="page"]{background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) .app-header .app-nav .nav-chip{display:grid;place-items:center;width:28px;height:28px}
+html:not(.mobile-host) .app-header .app-nav .nav-day{position:absolute;top:4px;right:15px;font-size:10px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums}
+html:not(.mobile-host) .app-header .app-nav button[aria-current="page"] .nav-day{color:var(--ink)}
+html:not(.mobile-host) .app-header .app-nav .nav-badge{position:absolute;top:5px;left:calc(50% + 10px);min-width:16px;height:16px;padding:0 4px;border-radius:999px;
+  background:var(--attention);color:#fff;font-size:10px;line-height:16px;text-align:center}
+html:not(.mobile-host) .now-icon-button{width:44px;height:44px;min-width:44px;border-radius:14px;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line)}
+html:not(.mobile-host) .now-icon-button:hover{background:var(--soft);color:var(--ink)}
+html:not(.mobile-host) .web-hidden{display:none!important}
+html:not(.mobile-host) .now-review-heading{display:none!important}
+/* 唯一进展入口在长对话里同样保持可达：钉在顶栏下方，不新增第二块进展。 */
+html:not(.mobile-host) #activity-return{position:sticky;top:calc(var(--pajio-header) + 8px);z-index:5}
+
+/* ---------- 聊天：平静正文，单一进展入口 ---------- */
+html:not(.mobile-host) .welcome{flex-direction:column;justify-content:center;gap:14px;min-height:calc(100svh - 330px)}
+html:not(.mobile-host) .welcome .presence{display:none}
+html:not(.mobile-host) .welcome-copy{max-width:600px;text-align:center;padding:0}
+html:not(.mobile-host) .welcome h1{font-size:34px;letter-spacing:-.5px;margin:0 0 10px}
+html:not(.mobile-host) .welcome .welcome-copy>p{font-size:15px}
+html:not(.mobile-host) .welcome-bear{display:block;width:200px;margin:0 auto}
+html:not(.mobile-host) .message-assistant{gap:0}
+html:not(.mobile-host) .wearing-face{display:none}
+html:not(.mobile-host) .assistant-copy{background:transparent;border:0;border-radius:0;padding:2px 0;color:var(--ink)}
+html:not(.mobile-host) .assistant-content{padding-top:0}
+html:not(.mobile-host) .user-bubble{background:var(--soft);color:var(--ink);border-radius:20px 20px 6px 20px}
+html:not(.mobile-host) .message .delivery-note{margin-left:0}
+html:not(.mobile-host) .turn-tools{gap:14px;margin-top:10px}
+html:not(.mobile-host) .companion-seat{display:none}
+html:not(.mobile-host) .companion-bar{min-height:64px}
+html:not(.mobile-host) .goal-updates-summary{display:none!important}
+html:not(.mobile-host) .desktop-input-heading>img{display:none}
+html:not(.mobile-host) .life-heading img{display:none}
+html:not(.mobile-host) #activity-return{align-items:center;gap:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) #activity-return .nav-chip{display:grid;place-items:center;width:52px;height:52px;flex:0 0 auto}
+html:not(.mobile-host) #activity-return>span:not(.nav-chip){min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}
+html:not(.mobile-host) #activity-return strong{font-size:14px;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html:not(.mobile-host) #activity-return .activity-return-detail{font-size:12px;line-height:1.5;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- 输入坞、面板与卡片：实色分层，不依赖重玻璃 ---------- */
+html:not(.mobile-host) .composer-dock{background:linear-gradient(180deg,transparent,var(--page) 34%)}
+html:not(.mobile-host) .composer{background:var(--surface);border:1px solid var(--line);border-radius:24px;backdrop-filter:none}
+html:not(.mobile-host) .composer:focus-within{border-color:var(--blue);box-shadow:0 4px 18px rgb(20 22 26 / .08)}
+html:not(.mobile-host) .send-button{background:var(--ink);color:var(--page)}
+html:not(.mobile-host) .send-button:hover{background:var(--muted)}
+html:not(.mobile-host) .side-panel{background:var(--page);border:1px solid var(--line);backdrop-filter:none}
+html:not(.mobile-host) .side-panel::backdrop{background:rgb(20 22 26 / .32)}
+html:not(.mobile-host) .life-capture{background:var(--surface);border:1px solid var(--line);border-radius:18px}
+html:not(.mobile-host) .primary{background:var(--ink);color:var(--page)}
+html:not(.mobile-host) .primary:hover{background:var(--muted)}
+html:not(.mobile-host) .secondary{border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) .secondary:hover{background:var(--soft)}
+html:not(.mobile-host) input,html:not(.mobile-host) textarea,html:not(.mobile-host) select{background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) pre{background:var(--soft);color:var(--ink)}
+html:not(.mobile-host) .icon-button:hover{background:var(--soft)}
+html:not(.mobile-host) .quiet-button:hover,html:not(.mobile-host) .connection-button:hover{background:var(--soft)}
+html:not(.mobile-host) .newest-message{background:var(--surface);border:1px solid var(--line);color:var(--blue)}
+
+/* ---------- 非聊天页：紧凑输入入口 ---------- */
+/* 文件面板：搜索 + 导入 + 打开/下载/交给 Pajio */
+html:not(.mobile-host) .brief-tools{display:flex;align-items:center;gap:10px;margin:10px 0}
+html:not(.mobile-host) .brief-tools label{font-size:13px;color:var(--muted)}
+html:not(.mobile-host) .brief-tools input{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:6px 10px;background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) .brief-item{display:block;margin-bottom:10px}
+html:not(.mobile-host) .brief-item-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+html:not(.mobile-host) .brief-output,html:not(.mobile-host) .brief-error,html:not(.mobile-host) .brief-sources{display:block;margin-top:4px}
+html:not(.mobile-host) .brief-output{white-space:pre-wrap}
+html:not(.mobile-host) .brief-error{color:var(--danger)}
+html:not(.mobile-host) .brief-sources{color:var(--muted)}
+html:not(.mobile-host) .brief-actions{display:flex;gap:14px;margin-top:6px;flex-wrap:wrap}
+html:not(.mobile-host) .memory-entry-actions{display:flex;gap:12px;flex-wrap:wrap}
+html:not(.mobile-host) .memory-tools{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+html:not(.mobile-host) .memory-confirm-row,html:not(.mobile-host) .memory-editor-row{display:flex;gap:10px;margin-top:8px}
+html:not(.mobile-host) .memory-editor{margin-top:12px}
+html:not(.mobile-host) .me-row-static{cursor:default}
+html:not(.mobile-host) .msg-provider{padding:8px 0}
+html:not(.mobile-host) .msg-submit{margin-top:8px}
+html:not(.mobile-host) .cloud-user-code{font-size:20px;letter-spacing:.2em;font-weight:600;margin:8px 0}
+html:not(.mobile-host) .cloud-caps{margin:8px 0 0 18px;font-size:13px;color:var(--muted)}
+html:not(.mobile-host) .cloud-doc pre{max-height:420px;overflow:auto;white-space:pre-wrap;background:var(--soft);color:var(--ink);padding:14px;border-radius:12px}
+html:not(.mobile-host) .cloud-apps-section .pj-panel{margin-top:10px}
+html:not(.mobile-host) .pj-card-block{display:block}
+html:not(.mobile-host) .diag-actions{margin-top:10px}
+html:not(.mobile-host) #text-editor-area{width:100%;min-height:340px;margin-top:8px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:13px/1.8 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+html:not(.mobile-host) .artifact-choices{margin:14px 0 10px;padding:16px 18px;border:1px solid var(--line);border-radius:20px;background:var(--surface)}
+html:not(.mobile-host) .artifact-choices h3{margin:0 0 8px;font-size:16px;font-weight:500}
+html:not(.mobile-host) .artifact-choice{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+html:not(.mobile-host) .artifact-choice-detail{margin-top:10px}
+html:not(.mobile-host) .cloud-doc-pre{max-height:320px;overflow:auto;white-space:pre-wrap;background:var(--soft);color:var(--ink);padding:12px;border-radius:12px;font-size:11px}
+html:not(.mobile-host) .memory-editor textarea{display:block;width:100%;min-height:96px;margin-top:6px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);resize:vertical}
+html:not(.mobile-host) .files-tools{display:flex;gap:8px;margin:14px 0 4px;flex-wrap:wrap}
+html:not(.mobile-host) .files-tools input[type=search]{flex:1;min-width:160px;min-height:44px;border:1px solid var(--line);border-radius:14px;padding:8px 12px;background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) .file-row{display:flex;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid var(--line)}
+html:not(.mobile-host) .file-row>a:first-child{flex-shrink:0;font-size:12px;color:var(--blue);min-height:44px;display:inline-flex;align-items:center}
+html:not(.mobile-host) .file-row>a[download]{flex:1;min-width:0;text-decoration:none;overflow-wrap:anywhere;font-size:14px;color:var(--ink)}
+html:not(.mobile-host) .file-row>a[download] small{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+html:not(.mobile-host) .file-row .text-button{flex-shrink:0;min-height:44px}
+html:not(.mobile-host) .compact-entry{display:flex;align-items:center;gap:10px;min-height:48px;margin:0 0 18px;padding:8px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);font-size:14px;text-align:left;width:100%}
+html:not(.mobile-host) .compact-entry:hover{background:var(--soft)}
+html:not(.mobile-host) .compact-entry svg{width:18px;height:18px;color:var(--muted)}
+html:not(.mobile-host) .compact-entry span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+html:not(.mobile-host) .compact-entry strong{color:var(--ink);font-weight:500}
+html:not(.mobile-host) body[data-view="chat"] .compact-entry{display:none}
+
+/* ---------- 今天 / 任务 / 记忆的卡片 ---------- */
+html:not(.mobile-host) .life-main{max-width:1080px}
+html:not(.mobile-host) .life-heading h1{font-size:30px;font-weight:500;letter-spacing:-.6px}
+html:not(.mobile-host) .life-today{gap:16px}
+html:not(.mobile-host) .life-today>section,html:not(.mobile-host) .life-notes-recent{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+html:not(.mobile-host) .life-notes-recent{margin-top:16px}
+html:not(.mobile-host) .life-section-heading{border-bottom-color:var(--line)}
+html:not(.mobile-host) .cal-nav{display:flex;gap:8px;align-items:center;margin:8px 0}
+html:not(.mobile-host) .cal-entries .life-row{padding:12px 0}
+html:not(.mobile-host) .cal-entries .life-time{min-width:64px}
+html:not(.mobile-host) .life-task-group{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 18px 4px;margin:14px 0}
+html:not(.mobile-host) .life-row{border-bottom-color:var(--line)}
+html:not(.mobile-host) .life-note-item{border-bottom-color:var(--line)}
+
+/* views.js 渲染的今天任务行/分组 */
+html:not(.mobile-host) .pj-section{margin:0 0 18px}
+html:not(.mobile-host) .pj-section-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;color:var(--ink);margin:0 0 8px}
+html:not(.mobile-host) .pj-section-title .pj-count{color:var(--muted);font-weight:400}
+html:not(.mobile-host) .pj-card{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) .pj-card:hover{background:var(--soft)}
+html:not(.mobile-host) .pj-card+.pj-card{margin-top:8px}
+html:not(.mobile-host) .pj-card>div{flex:1;min-width:0}
+html:not(.mobile-host) .pj-card strong{display:block;font-size:15px;font-weight:500;line-height:1.5;overflow-wrap:anywhere}
+html:not(.mobile-host) .pj-card small{display:block;font-size:12px;line-height:1.7;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+html:not(.mobile-host) .pj-status{font-size:12px;font-weight:600}
+html:not(.mobile-host) .pj-status[data-tone="danger"]{color:var(--danger)}
+html:not(.mobile-host) .pj-status[data-tone="success"]{color:var(--success)}
+html:not(.mobile-host) .pj-status[data-tone="attention"]{color:var(--attention)}
+html:not(.mobile-host) .pj-status[data-tone="active"]{color:var(--blue)}
+html:not(.mobile-host) .pj-status[data-tone="muted"]{color:var(--muted)}
+html:not(.mobile-host) .pj-attention{padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+html:not(.mobile-host) .pj-attention+.pj-attention{margin-top:8px}
+html:not(.mobile-host) .pj-note{font-size:12px;line-height:1.8;color:var(--muted);margin:8px 0 0}
+html:not(.mobile-host) .pj-meta{font-size:12px;color:var(--muted);margin:0 0 14px}
+html:not(.mobile-host) .pj-refresh{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) .pj-load-more{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;width:100%;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--blue);font-size:14px}
+html:not(.mobile-host) .pj-load-more:hover{background:var(--soft)}
+html:not(.mobile-host) .pj-load-more:disabled{color:var(--muted);cursor:wait}
+
+/* ---------- 我的：真实账户摘要与分组 ---------- */
+html:not(.mobile-host) .me-account{padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--surface);margin-bottom:16px}
+html:not(.mobile-host) .me-account-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+html:not(.mobile-host) .me-identity{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+html:not(.mobile-host) .me-identity h2{font-size:22px;font-weight:500;margin:0}
+html:not(.mobile-host) .me-identity small{font-size:12px;color:var(--muted)}
+html:not(.mobile-host) .me-service{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
+html:not(.mobile-host) .me-service .connection-dot{margin-right:6px}
+html:not(.mobile-host) .me-group{border:1px solid var(--line);border-radius:18px;background:var(--surface);margin-bottom:16px;overflow:hidden}
+html:not(.mobile-host) .me-group-label{font-size:14px;font-weight:500;color:var(--ink);margin:14px 4px 6px}
+html:not(.mobile-host) .me-row{display:flex;align-items:center;gap:11px;min-height:56px;width:100%;text-align:left;padding:8px 18px;background:none;color:var(--ink)}
+html:not(.mobile-host) .me-row+ .me-row{border-top:1px solid var(--line)}
+html:not(.mobile-host) .me-row:hover{background:var(--soft)}
+html:not(.mobile-host) .me-row svg{width:20px;height:20px;color:var(--ink);flex-shrink:0}
+html:not(.mobile-host) .me-row>div{flex:1;min-width:0}
+html:not(.mobile-host) .me-row strong{display:block;font-size:15px;font-weight:500}
+html:not(.mobile-host) .me-row small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+html:not(.mobile-host) .me-row .me-state{font-size:11px;color:var(--muted);flex-shrink:0;max-width:76px;text-align:right}
+html:not(.mobile-host) .me-row .chev{color:var(--muted);flex-shrink:0}
+html:not(.mobile-host) .me-privacy{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;color:var(--muted);margin:6px 0 0}
+html:not(.mobile-host) .me-cap{display:none}
+html:not(.mobile-host) .me-wardrobe-entry{border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+
+/* ---------- 外观与个性化 / 衣橱（试衣帘换装） ---------- */
+html:not(.mobile-host) .stage-frame{position:relative;width:218px;height:218px;margin:0 auto;overflow:hidden}
+html:not(.mobile-host) .stage-bear{position:absolute;inset:0;opacity:0}
+/* poster 常驻底层；视频真首帧就绪后淡入，暂停/离屏/隐藏即退回海报。 */
+html:not(.mobile-host) .pajio-bear.living .living-poster{position:absolute;object-fit:contain}
+html:not(.mobile-host) .pajio-bear.living video{position:absolute;object-fit:contain;opacity:0;transition:opacity 140ms ease}
+html:not(.mobile-host) .pajio-bear.living video.is-live{opacity:1}
+@media(prefers-reduced-motion:reduce){html:not(.mobile-host) .pajio-bear.living video{display:none}}
+html:not(.mobile-host) .stage-film{position:absolute;inset:0}
+html:not(.mobile-host) .stage-film .film-under,html:not(.mobile-host) .stage-film .film-cover{position:absolute;inset:0}
+html:not(.mobile-host) .stage-film .film-video{position:absolute;inset:0;transition:opacity 220ms ease}
+html:not(.mobile-host) .stage-film .film-video.is-done{opacity:0}
+@media(prefers-reduced-motion:reduce){html:not(.mobile-host) .stage-film .film-video{transition:none}}
+html:not(.mobile-host) .stage-film video{width:100%;height:100%;object-fit:contain}
+html:not(.mobile-host) .stage-bear.is-shown{opacity:1}
+html:not(.mobile-host) .stage-curtain{position:absolute;top:0;bottom:0;width:50.5%;background:var(--soft);transition:transform 300ms cubic-bezier(.22,1,.36,1)}
+html:not(.mobile-host) .stage-curtain-left{left:0;transform:translateX(-102%)}
+html:not(.mobile-host) .stage-curtain-right{right:0;transform:translateX(102%)}
+html:not(.mobile-host) .stage-curtain.is-closed{transform:translateX(0);transition-duration:180ms;transition-timing-function:cubic-bezier(.4,0,1,1)}
+html:not(.mobile-host) .stage-curtain i{position:absolute;top:0;bottom:0;width:2px;background:var(--line);opacity:.38}
+html:not(.mobile-host) .stage-curtain i:nth-child(1){left:20%}
+html:not(.mobile-host) .stage-curtain i:nth-child(2){left:50%}
+html:not(.mobile-host) .stage-curtain i:nth-child(3){left:80%}
+@media(prefers-reduced-motion:reduce){
+  html:not(.mobile-host) .stage-curtain{display:none}
+}
+/* ---------- 外观与个性化 / 衣橱 ---------- */
+html:not(.mobile-host) .pj-back{display:inline-flex;align-items:center;gap:4px;min-height:44px;color:var(--ink);font-size:14px;margin-bottom:6px}
+html:not(.mobile-host) .pj-panel{border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:18px;margin-bottom:16px}
+html:not(.mobile-host) .pj-panel h3{font-size:17px;font-weight:500;margin:0 0 4px}
+html:not(.mobile-host) .pj-panel .pj-caption{font-size:13px;color:var(--muted);margin:0 0 10px}
+html:not(.mobile-host) .pj-option{display:flex;align-items:center;gap:12px;min-height:52px;width:100%;text-align:left;padding:8px 0;background:none;color:var(--ink);font-size:15px}
+html:not(.mobile-host) .pj-option[data-disabled="true"]{opacity:.55;cursor:wait}
+html:not(.mobile-host) .pj-option+.pj-option{border-top:1px solid var(--line)}
+html:not(.mobile-host) .pj-option svg{width:19px;height:19px;color:var(--muted)}
+html:not(.mobile-host) .pj-option span{flex:1}
+html:not(.mobile-host) .pj-option .pj-check{color:var(--blue-deep)}
+html:not(.mobile-host) .pj-error{font-size:13px;color:var(--danger);margin:8px 0 0}
+html:not(.mobile-host) .wardrobe-stage{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 0 16px;border:1px solid var(--line);border-radius:20px;background:var(--surface);margin-bottom:14px}
+html:not(.mobile-host) .wardrobe-stage h3{font-size:19px;font-weight:500;margin:6px 0 0}
+html:not(.mobile-host) .wardrobe-stage p{font-size:13px;color:var(--muted);margin:0}
+html:not(.mobile-host) .wardrobe-rail-heading{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px}
+html:not(.mobile-host) .wardrobe-rail{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:9px;margin-bottom:14px}
+html:not(.mobile-host) .wardrobe-option{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border:1px solid transparent;border-radius:18px;background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) .wardrobe-option:hover{background:var(--soft)}
+html:not(.mobile-host) .wardrobe-option[aria-pressed="true"]{border-color:var(--blue)}
+html:not(.mobile-host) .wardrobe-option .swatch{width:9px;height:9px;border-radius:5px}
+html:not(.mobile-host) .wardrobe-option .pj-name{display:flex;align-items:center;gap:6px;font-size:12px}
+html:not(.mobile-host) .wardrobe-apply{display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;width:100%;border:0;border-radius:24px;background:var(--soft);color:var(--ink);font-size:15px;font-weight:500}
+html:not(.mobile-host) .wardrobe-apply:hover{background:var(--surface);border:1px solid var(--line)}
+html:not(.mobile-host) .wardrobe-apply:disabled{opacity:.6;cursor:wait}
+html:not(.mobile-host) .wardrobe-footnote{font-size:11px;color:var(--muted);text-align:center;margin:10px 0 0}
+
+/* ---------- 对话搜索浮层 ---------- */
+html:not(.mobile-host) .web-search{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:30;
+  width:min(560px,calc(100% - 28px));display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:18px;
+  background:var(--raised);border:1px solid var(--line);box-shadow:0 10px 32px rgb(20 22 26 / .18)}
+html:not(.mobile-host) .web-search[hidden]{display:none}
+html:not(.mobile-host) .web-search input{flex:1;min-width:0;border:1px solid var(--line);border-radius:14px;padding:10px 12px;height:44px;background:var(--surface)}
+html:not(.mobile-host) .web-search input:focus{outline:0;border-color:var(--blue)}
+html:not(.mobile-host) .web-search span{font-size:12px;color:var(--muted);min-width:72px;text-align:center}
+html:not(.mobile-host) .web-search button{min-height:40px;padding:6px 10px;font-size:13px;color:var(--blue);border-radius:12px}
+html:not(.mobile-host) .web-search button:hover{background:var(--blue-light)}
+html:not(.mobile-host) .web-search button:disabled{color:var(--muted);background:none}
+html:not(.mobile-host) .web-search{flex-wrap:wrap}
+html:not(.mobile-host) .web-search-global{flex-basis:100%;max-height:40vh;overflow:auto;border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+html:not(.mobile-host) .web-search-global:empty{display:none}
+html:not(.mobile-host) .web-search-global-title{margin:0 0 4px;font-size:11px;color:var(--muted)}
+html:not(.mobile-host) .web-search-hit{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:8px 10px;border-radius:14px;color:var(--ink)}
+html:not(.mobile-host) .web-search-hit:hover{background:var(--blue-light)}
+html:not(.mobile-host) .web-search-hit strong{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html:not(.mobile-host) .web-search-hit small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html:not(.mobile-host) .web-search-kind{font-size:10px;color:var(--blue-deep)}
+html:not(.mobile-host) .web-search-match{box-shadow:inset 0 0 0 1.5px rgb(49 86 200 / .45)}
+html:not(.mobile-host) .web-search-current{box-shadow:inset 0 0 0 2px var(--blue);background:var(--blue-light)}
+
+/* ---------- 窄屏：五入口落到底部，输入坞上移 ---------- */
+@media(max-width:600px){
+  html:not(.mobile-host){--pajio-header:104px}
+  html:not(.mobile-host) .app-header{padding:12px 18px 8px;flex-wrap:wrap}
+  html:not(.mobile-host) .now-header-actions{margin-left:auto}
+  html:not(.mobile-host) .app-header .app-nav{position:fixed;left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:8;margin:0;
+    justify-content:space-around;background:var(--page);border:1px solid var(--line);border-radius:20px;padding:6px}
+  html:not(.mobile-host) .app-header .app-nav button{min-width:52px;padding:4px 6px;font-size:11px;border-radius:14px}
+  html:not(.mobile-host) .app-header .app-nav button svg{width:23px;height:23px}
+  html:not(.mobile-host) .app-header .app-nav .nav-day{top:3px;right:12px}
+  html:not(.mobile-host) body{padding-bottom:80px}
+  html:not(.mobile-host) .composer-dock{bottom:78px;padding-bottom:8px}
+  html:not(.mobile-host) .newest-message{bottom:152px}
+  html:not(.mobile-host) .welcome{min-height:calc(100svh - 430px)}
+  html:not(.mobile-host) .welcome-copy .welcome-bear{transform:scale(.85);transform-origin:top center}
+  html:not(.mobile-host) .life-today{grid-template-columns:1fr}
+  html:not(.mobile-host) .me-row .me-state{display:none}
+}
+
+/* ---------- 重复日程系列面板与记录提醒（calendar-series / record-reminders） ---------- */
+html:not(.mobile-host) .se-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+html:not(.mobile-host) .se-week{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+html:not(.mobile-host) .se-week label{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted)}
+html:not(.mobile-host) .se-week label:has(input:checked){border-color:var(--blue);color:var(--ink);background:var(--blue-light)}
+html:not(.mobile-host) .se-week input:disabled{opacity:.45}
+html:not(.mobile-host) .reminder-box{display:grid;gap:8px;margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+html:not(.mobile-host) .reminder-box select{width:max-content}
+html:not(.mobile-host) #series-agenda-section{margin-top:14px}
+
+/* 初始偏好（六步点选，dialog 中心模态，桌面合适阅读宽度） */
+html:not(.mobile-host) .ob-panel[open]{width:min(640px,calc(100vw - 32px));max-height:min(86vh,860px);padding:0;display:flex;flex-direction:column}
+html:not(.mobile-host) .ob-panel .panel-header{padding:18px 22px 10px}
+html:not(.mobile-host) .ob-progress{display:flex;gap:5px;padding:0 22px 12px}
+html:not(.mobile-host) .ob-tick{height:3px;flex:1;border-radius:2px;background:var(--line)}
+html:not(.mobile-host) .ob-tick.on{background:var(--ink)}
+html:not(.mobile-host) #ob-body{overflow-y:auto;padding:6px 22px 12px;display:flex;flex-direction:column;gap:16px}
+html:not(.mobile-host) .ob-footer{display:flex;flex-direction:column;gap:8px;align-items:stretch;padding:12px 22px 18px;border-top:1px solid var(--line)}
+html:not(.mobile-host) .ob-footer .primary{min-height:44px}
+html:not(.mobile-host) .ob-footer .text-button{min-height:40px}
+html:not(.mobile-host) .ob-eyebrow{font-size:12px;color:var(--muted);letter-spacing:.5px;margin:0}
+html:not(.mobile-host) .ob-title{font-size:24px;line-height:1.35;font-weight:600;margin:0}
+html:not(.mobile-host) .ob-lead{font-size:15px;line-height:1.6;color:var(--muted);margin:0}
+html:not(.mobile-host) .ob-copy{font-size:14px;line-height:1.65;color:var(--muted);margin:0}
+html:not(.mobile-host) .ob-caption{font-size:12px;line-height:1.6;color:var(--muted);margin:0}
+html:not(.mobile-host) .ob-label{font-size:15px;font-weight:500;margin:0}
+html:not(.mobile-host) .ob-option{font-size:15px;line-height:1.5;margin:0}
+html:not(.mobile-host) .ob-ok{font-size:14px;line-height:1.6;margin:0;color:#2f7d4f}
+html:not(.mobile-host)[data-app-theme="night"] .ob-ok{color:#6fbf8f}
+html:not(.mobile-host) .ob-hero{display:flex;justify-content:center}
+html:not(.mobile-host) .ob-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+html:not(.mobile-host) .ob-example{display:flex;gap:12px;align-items:flex-start}
+html:not(.mobile-host) .ob-words{display:flex;flex-direction:column;gap:4px}
+html:not(.mobile-host) .ob-stack{display:flex;flex-direction:column;gap:8px}
+html:not(.mobile-host) .ob-grid{display:flex;flex-wrap:wrap;gap:8px}
+html:not(.mobile-host) .ob-chips{display:flex;flex-wrap:wrap;gap:8px}
+html:not(.mobile-host) .ob-choice{min-height:52px;padding:10px 14px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:inherit;font-size:15px;display:flex;align-items:center;gap:8px}
+html:not(.mobile-host) .ob-choice.chip{min-height:42px}
+html:not(.mobile-host) .ob-choice.on{background:var(--soft);border-color:var(--ink);font-weight:500}
+html:not(.mobile-host) .ob-choice:disabled{opacity:.45;cursor:default}
+html:not(.mobile-host) .ob-choice.ob-source-row{text-align:left;justify-content:flex-start}
+html:not(.mobile-host) .ob-choice.ob-source-row small{display:block;color:var(--muted);font-size:13px;font-weight:400}
+html:not(.mobile-host) .ob-sample{font-size:14px;line-height:1.7;margin:0;padding:12px;border-radius:12px;background:var(--soft)}
+html:not(.mobile-host) .ob-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px}
+html:not(.mobile-host) .ob-problem{background:var(--soft);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+html:not(.mobile-host) .ob-error{font-size:14px;line-height:1.6;color:#b3452e;margin:0}
+html:not(.mobile-host)[data-app-theme="night"] .ob-error{color:#e08a75}
+html:not(.mobile-host) .ob-loading{padding:40px 0;text-align:center;color:var(--muted)}
+
+/* 选定聊天导入 */
+html:not(.mobile-host) #ci-body{padding:6px 22px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+html:not(.mobile-host) .ci-message{padding:10px 0;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid var(--line)}
+html:not(.mobile-host) .ci-author{font-size:14px;font-weight:600;margin:0;color:var(--ink)}
+html:not(.mobile-host) [data-ci-batch-card]{padding:14px;display:flex;flex-direction:column;gap:8px}
+html:not(.mobile-host) [data-ci-batch-card]>button:first-child{text-align:left}

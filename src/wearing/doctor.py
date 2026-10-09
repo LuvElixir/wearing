@@ -63,7 +63,7 @@ if __name__ == "__main__":
     import json
     from pathlib import Path
 
-    parser = argparse.ArgumentParser(description="Wearing 设备检测；仅检查运行命令的电脑与 USB 手机")
+    parser = argparse.ArgumentParser(description="Pajio 设备检测；仅检查运行命令的电脑与 USB 手机")
     parser.add_argument("--android", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()

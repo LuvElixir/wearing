@@ -1,0 +1,3 @@
+4c4e34f37d9a3957117a965b3d95e35d057444a5323aa47e7ac3adbfcf90a14a  design/motion/pajio-20261009/workbuddy/references/approved-character-board.png
+1cc54a7c369dc1eb6291cd0494dff96a64dab7185f19144dddf52385f6f99446  design/motion/pajio-20261009/workbuddy/references/pajio-cream-moon.png
+17baf9249a08f929158569fde09dc1eaf07a44d0c8ae6b8a62ee12f8c3f0f0bf  design/motion/pajio-20261009/workbuddy/references/pajio-mist-blue.png

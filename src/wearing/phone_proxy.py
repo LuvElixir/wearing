@@ -1,4 +1,4 @@
-"""Wearing resource routing over Mobile MCP and pinned UiAutomator2.
+"""Pajio resource routing over Mobile MCP and pinned UiAutomator2.
 
 Every device action requires an enrolled resource_id. stdout is MCP-only.
 """
@@ -19,8 +19,10 @@ from mcp.server.stdio import stdio_server
 
 try:
     from .mobile import TOOLS, registry, read_capabilities, u2_python, u2_installed
+    from .device_gateway import DeviceGateway, GatewayError, action_lock_path
 except ImportError:
     from mobile import TOOLS, registry, read_capabilities, u2_python, u2_installed
+    from device_gateway import DeviceGateway, GatewayError, action_lock_path
 
 
 class DeviceBusy(Exception):
@@ -57,8 +59,8 @@ class DeviceLock:
 
 
 def lock_path(rid):
-    # Shared across Wearing profiles: two local instances cannot drive one phone.
-    return Path.home() / ".wearing/phone-locks" / (rid + ".lock")
+    # Shared across Pajio profiles: two local instances cannot drive one phone.
+    return action_lock_path(rid)
 
 
 def current_binding(data_dir, rid):
@@ -67,13 +69,13 @@ def current_binding(data_dir, rid):
         raise ValueError("请从 mobile_list_devices 选择已接入的 resource_id；不能自动改用其他手机。")
     value = records[rid]
     if not value.get("enabled"):
-        raise ValueError("这部手机操作已暂停。请用户在 Wearing 的连接设置中恢复，不能自行绕过。")
+        raise ValueError("这部手机操作已暂停。请用户在 Pajio 的连接设置中恢复，不能自行绕过。")
     return value
 
 
 def prepare_arguments(name, arguments, serial):
     if name not in TOOLS:
-        raise ValueError("Wearing 未开放这项手机操作。")
+        raise ValueError("Pajio 未开放这项手机操作。")
     args = dict(arguments or {})
     if "device" in args:
         raise ValueError("请使用已接入的 resource_id，不能直接指定设备编号。")
@@ -117,6 +119,30 @@ def normalize_result(result):
     return result
 
 
+def stamp_observation(result, name, ids):
+    """Attach connector-owned provenance without adding screen text to action logs."""
+    if name not in {"mobile_list_elements_on_screen", "mobile_take_screenshot"}:
+        return result
+    meta = {"id": ids["action_id"], "resource_id": ids["resource_id"],
+            "observed_at": datetime.now(timezone.utc).isoformat()}
+    if name == "mobile_list_elements_on_screen":
+        for block in result.content:
+            if isinstance(block, types.TextContent):
+                try:
+                    data = json.loads(block.text)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(data, dict) and ("elements" in data or "ok" in data):
+                    data["_wearing_observation"] = meta
+                    block.text = json.dumps(data, ensure_ascii=False)
+                    return result
+    data = {"_wearing_observation": meta, "ok": not result.is_error}
+    if name == "mobile_take_screenshot":
+        data["ok"] = bool(data["ok"] and any(isinstance(c, types.ImageContent) for c in result.content))
+    result.content.insert(0, types.TextContent(type="text", text=json.dumps(data, ensure_ascii=False)))
+    return result
+
+
 def scoped_schema(tool):
     schema = json.loads(json.dumps(tool.input_schema))
     properties = schema.setdefault("properties", {})
@@ -127,12 +153,12 @@ def scoped_schema(tool):
     description = (tool.description or "").replace("list_apps_on_device", "mobile_list_apps")
     if tool.name == "mobile_type_keys":
         description += " 英文和数字输入。中文请读取输入框后使用 mobile_set_text；不要用拼音代替用户指定文字。"
-    return types.Tool(name=tool.name, description="操作指定的 Wearing 手机资源。" + description,
+    return types.Tool(name=tool.name, description="操作指定的 Pajio 手机资源。" + description,
                       input_schema=schema, annotations=tool.annotations)
 
 
 def extra_schemas():
-    return [types.Tool(name="mobile_list_devices", description="列出已接入 Wearing 的手机、在线与暂停状态。先选明确的 resource_id；用户没有指明且存在多台可用手机时，先澄清。离线或暂停不可改用另一台。",
+    return [types.Tool(name="mobile_list_devices", description="列出已接入 Pajio 的手机、在线与暂停状态。先选明确的 resource_id；用户没有指明且存在多台可用手机时，先澄清。离线或暂停不可改用另一台。",
                       input_schema={"type": "object", "properties": {}, "additionalProperties": False}),
             types.Tool(name="mobile_set_text", description="替换当前聚焦的 Android 原生输入框全文，支持中文。先读取当前界面，将刚观察的原文字传入 expected_text；本工具核对旧值、单次填写并读回校验，不点击提交。密码框、无稳定标识的输入框不支持。失败或未知时重新观察，不盲目重试。",
                        input_schema={"type": "object", "properties": {
@@ -195,6 +221,15 @@ async def read_screen(client, args, data_dir, config, env):
         return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text="界面读取超时，请使用截图观察。")])
 
 
+async def guarded_phone_action(resource_id, operation, gateway=None):
+    """Used by the real MCP dispatch while its OS device lock is held."""
+    gateway = gateway or DeviceGateway()
+    permit = gateway.permit_agent(resource_id)
+    result = await operation()
+    gateway.validate_agent(permit)
+    return result
+
+
 async def serve(data_dir):
     installed = json.loads((data_dir / "runtime/mobile/installed.json").read_text())
     registry(data_dir)  # Validate before starting any driver.
@@ -224,7 +259,7 @@ async def serve(data_dir):
             started, guard = time.monotonic(), None
             try:
                 if name not in allowed:
-                    raise ValueError("Wearing 未开放这项手机操作。")
+                    raise ValueError("Pajio 未开放这项手机操作。")
                 if name == "mobile_list_devices":
                     states = await device_states(data_dir, env)
                     records = registry(data_dir)["devices"]
@@ -237,6 +272,8 @@ async def serve(data_dir):
                 ids["resource_id"] = rid
                 guard = DeviceLock(lock_path(rid))
                 guard.acquire()
+                gateway = DeviceGateway()
+                gateway.permit_agent(rid)
                 config = current_binding(data_dir, rid)  # Recheck pause after acquiring.
                 args = None if name == "mobile_set_text" else prepare_arguments(name, arguments, config["serial"])
                 states = await device_states(data_dir, env)
@@ -244,12 +281,16 @@ async def serve(data_dir):
                     raise ValueError("指定手机离线或未授权，尚未执行；请重新连接这部手机，不要换用其他设备。")
                 config = current_binding(data_dir, rid)  # Discovery can take time.
                 receipt(data_dir, name, "started", 0, **ids)
-                if name == "mobile_set_text":
-                    result = await native_input(data_dir, config, arguments, env)
-                elif name == "mobile_list_elements_on_screen":
-                    result = await read_screen(client, args, data_dir, config, env)
-                else:
-                    result = normalize_result(await asyncio.wait_for(client.call_tool(name, args), timeout=40))
+                async def native_action():
+                    if name == "mobile_set_text":
+                        return await native_input(data_dir, config, arguments, env)
+                    if name == "mobile_list_elements_on_screen":
+                        return await read_screen(client, args, data_dir, config, env)
+                    return normalize_result(await asyncio.wait_for(client.call_tool(name, args), timeout=40))
+                result = await guarded_phone_action(rid, native_action, gateway)
+                # A takeover fences even an observation which started before
+                # the handoff. Never return its pixels/text to the model.
+                result = stamp_observation(result, name, ids)
                 receipt(data_dir, name, "tool_error" if result.is_error else "returned_unverified", time.monotonic() - started, **ids)
                 return result
             except asyncio.CancelledError:
@@ -258,6 +299,9 @@ async def serve(data_dir):
             except DeviceBusy:
                 receipt(data_dir, name, "busy", time.monotonic() - started, **ids)
                 return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text="这部手机正由另一项操作使用，请稍后重试。")])
+            except GatewayError:
+                receipt(data_dir, name, "unknown", time.monotonic() - started, **ids)
+                return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text="这部手机已由本人接管或暂停，画面与操作不可继续。请等待本人明确交还；不要重新观察或重试动作。")])
             except ValueError as error:
                 receipt(data_dir, name, "blocked", time.monotonic() - started, **ids)
                 return types.CallToolResult(is_error=True, content=[types.TextContent(type="text", text=str(error))])

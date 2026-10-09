@@ -1,0 +1,24 @@
+{
+  "candidate": "/var/folders/32/vzdw9zp96ps4lgrqy7rz55cw0000gn/T/pajio-context-native-qjd5pahb",
+  "app": "/var/folders/32/vzdw9zp96ps4lgrqy7rz55cw0000gn/T/pajio-context-native-qjd5pahb/ios-context-derived-data/Build/Products/Release-iphonesimulator/Pajio.app",
+  "configuration": "Release iphonesimulator arm64",
+  "codesign_verify_exit": 0,
+  "build_succeeded": true,
+  "source_manifest": "ios-source-manifest.json",
+  "artifacts": [
+    {
+      "path": "Pajio",
+      "sha256": "ce25abea02c563a61241679514669bd1dfe5facef779d007029d3f7c0c55aff6"
+    },
+    {
+      "path": "main.jsbundle",
+      "sha256": "7aa2ee985d6202d8a7cd3c212a3436bdc81a0062f65a26a5c523f045dba9b2c0"
+    },
+    {
+      "path": "PlugIns/expo-sharing-extension.appex/expo-sharing-extension",
+      "sha256": "f3a246972ce57b75214f857684f008615394680257840631b2c5639dc4ae122a"
+    }
+  ],
+  "installed_simulator": "FC25D76C-DF85-4CB5-A862-DB33E302BA07",
+  "distribution_package": false
+}

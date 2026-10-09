@@ -1,0 +1,92 @@
+/* The native shell owns safe areas, identity and tabs. Retain conversation tools. */
+.mobile-host body{padding:0}
+.mobile-host .app-header{position:sticky;inset:0 0 auto;height:52px;min-height:52px;width:100%;max-width:none;padding:4px 12px;display:flex;flex-direction:row;align-items:center;justify-content:flex-end;background:var(--page);border:0}
+.mobile-host .app-header .brand-context,.mobile-host .life-nav,.mobile-host .identity-context{display:none}
+.mobile-host .app-header nav{display:flex;flex-direction:row;align-items:center;gap:4px}
+.mobile-host .app-header nav button{min-height:44px;padding:8px 10px;font-size:12px;justify-content:center}
+.mobile-host .app-header .connection-button{margin:0;background:none}
+.mobile-host #conversation-main{padding-top:0}
+.mobile-host .conversation{margin-top:12px;min-height:calc(100svh - 270px);padding:0 20px}
+.mobile-host .conversation-intro{margin-bottom:28px}
+.mobile-host .composer-dock{bottom:0;margin-bottom:0;padding-bottom:12px;width:calc(100% - 24px)}
+.mobile-host .newest-message{left:50%;bottom:130px}
+.mobile-host .welcome{min-height:calc(100svh - 190px)}
+.mobile-host .artifact-view{width:100%;height:100vh;height:100dvh;border-radius:0}
+
+/* The App owns one input surface; the hidden form still owns its trusted send path. */
+.native-composer-host .composer-dock {display:none!important}
+.native-composer-host .conversation {padding-bottom:28px}
+
+/* Match the native App's shared reading surface, not the desktop header. */
+.native-composer-host{--page:transparent;--ink:#202228;--muted:#565C68;--blue:#3156C8;--blue-deep:#3156C8;--line:#DDE1E7;--host-surface:#FFFFFF;--host-raised:#FFFFFF;--host-soft:#ECEEF2;--host-highlight:#EDF1FF;--host-panel:#F6F7F9;--surface:var(--host-surface);--surface-soft:var(--host-soft);--soft:var(--host-soft);color-scheme:light;touch-action:pan-x pan-y}
+.native-composer-host[data-app-theme="night"]{--ink:#F0F2F5;--muted:#B8BEC9;--blue:#A3B7FF;--blue-deep:#A3B7FF;--line:#353B46;--host-surface:#1C1F25;--host-raised:#262A32;--host-soft:#282D36;--host-highlight:#263253;--host-panel:#14161A;color-scheme:dark}
+.native-composer-host .app-header,.native-composer-host .conversation-intro{display:none}
+.native-composer-host body{background:transparent;padding:0;overflow-x:hidden;touch-action:pan-x pan-y}
+.native-composer-host #conversation-main{max-width:100%;padding:0}
+.native-composer-host .conversation{max-width:720px;min-height:0;margin:0 auto;padding:20px 24px 28px}
+.native-composer-host .conversation-turn{margin-bottom:28px;scroll-margin-top:16px}
+.native-composer-host .message{margin-bottom:12px}
+.native-composer-host .assistant-copy{font-size:calc(17px * var(--app-font-scale,1));line-height:1.65;letter-spacing:0;background:transparent;border:0;border-radius:0;padding:0;color:var(--ink)}
+.native-composer-host .message-assistant{gap:0;margin-bottom:12px;max-width:100%;width:100%}
+.native-composer-host .assistant-content{padding:0}
+.native-composer-host .wearing-face,.native-composer-host .artifact-avatar-space,.native-composer-host .presence,.native-composer-host .desktop-input-heading>img{display:none!important}
+.native-composer-host .message-user{font-size:calc(17px * var(--app-font-scale,1));line-height:1.72;padding:0;margin:18px 0 24px}
+.native-composer-host .user-bubble{max-width:88%;font-size:calc(17px * var(--app-font-scale,1));padding:13px 18px;line-height:1.72;border-radius:20px 20px 6px 20px;background:var(--host-soft);color:var(--ink)}
+.native-composer-host .turn-tools{gap:4px;margin-top:8px}
+.native-composer-host .turn-tools button{font-size:calc(12px * var(--app-font-scale,1));min-height:44px;color:var(--muted)}
+/* The native header owns aggregate progress. Remove only the two ambiguous
+   message shortcuts, never the actual action approval and recovery controls. */
+.native-composer-host #activity-return,.native-composer-host #goal-updates-summary,
+.native-composer-host #messages [data-verify],.native-composer-host #messages [data-goal-source],
+.native-composer-host #messages [id^="verify-"],.native-composer-host #messages .note-saved{display:none!important}
+.native-composer-host #messages .turn-tools:not(:has([data-action])){display:none}
+.native-composer-host .welcome{min-height:70svh;padding:36px 28px;gap:12px;flex-direction:column}
+.native-composer-host .welcome h1{font-family:var(--font);font-size:calc(32px * var(--app-font-scale,1));font-weight:500;line-height:1.4;letter-spacing:0;margin-bottom:12px}
+.native-composer-host .welcome-copy{text-align:center;padding:0}
+.native-composer-host .welcome .welcome-copy>p{font-size:calc(16px * var(--app-font-scale,1));line-height:1.75;color:var(--muted)}
+.native-composer-host .newest-message{bottom:20px}
+.native-composer-host .delivery-note{margin:10px 3px 14px;font-size:calc(13px * var(--app-font-scale,1));line-height:1.7}
+.native-composer-host .response-wait{font-size:calc(14px * var(--app-font-scale,1));min-height:44px;margin:12px 4px 0;color:var(--muted)}
+.native-composer-host .response-wait::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--blue);animation:host-pulse 1400ms ease-in-out infinite}
+.native-composer-host .goal-conversation-label{margin:12px 0;font-size:calc(13px * var(--app-font-scale,1))}
+.native-composer-host .artifact-card{background:var(--host-surface);border-color:var(--line);border-radius:18px}
+.native-composer-host #desktop-input-section{width:auto;max-width:688px;margin:0 16px 20px;padding:0}
+.native-composer-host .decision-card{background:var(--host-surface);border-radius:18px;border-color:var(--line)}
+.native-composer-host .side-panel{inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);border:1px solid var(--line);border-radius:28px;background:var(--host-panel);padding:24px 20px}
+.native-composer-host input,.native-composer-host textarea,.native-composer-host select{font-size:calc(16px * var(--app-font-scale,1))}
+.native-composer-host button:focus-visible,.native-composer-host a:focus-visible,.native-composer-host summary:focus-visible{outline:0;box-shadow:0 0 0 2px var(--blue)}
+.native-composer-host input:focus,.native-composer-host textarea:focus{outline:0;box-shadow:inset 0 0 0 1px var(--blue)}
+.native-composer-host button,.native-composer-host a,.native-composer-host input{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.native-composer-host .host-event-chip{display:flex;width:max-content;max-width:100%;align-items:center;gap:8px;min-height:44px;margin:8px 0 0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--host-surface);font-size:calc(12px * var(--app-font-scale,1));line-height:1.4;color:var(--muted);text-align:left}
+.native-composer-host .host-event-chip>span:last-child{margin-left:4px;opacity:.65;font-size:calc(18px * var(--app-font-scale,1))}
+.native-composer-host .host-event-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0}
+.native-composer-host .host-event-chip[data-active="true"] .host-event-dot{animation:host-pulse 1400ms ease-in-out infinite}
+.native-composer-host .host-new-turn{animation:host-arrive 240ms ease-out}
+.native-composer-host .host-search-panel{position:sticky;top:0;z-index:20;margin:0 12px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:22px;background:var(--host-panel);box-shadow:0 6px 20px var(--line)}
+.native-composer-host.host-search-open .host-search-panel{position:fixed;top:8px;left:0;right:0}
+.native-composer-host.host-search-open #conversation-main{padding-top:calc(112px * max(1,var(--app-font-scale,1)))}
+.native-composer-host .host-search-field{display:flex;align-items:center;gap:10px}
+.native-composer-host .host-search-field input{min-width:0;flex:1;background:var(--host-surface);border:0;border-radius:16px;padding:10px 12px;min-height:44px;height:auto}
+.native-composer-host .host-search-panel button{min-height:44px;padding:5px 8px;font-size:calc(14px * var(--app-font-scale,1));color:var(--blue-deep)}
+.native-composer-host .host-search-navigation{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:calc(12px * var(--app-font-scale,1));min-height:38px}
+.native-composer-host .host-search-navigation>span{flex:1;padding-left:10px;color:var(--muted)}
+.native-composer-host .host-search-navigation button{min-height:44px;font-size:calc(12px * var(--app-font-scale,1))}
+.native-composer-host .host-search-match{box-shadow:inset 0 0 0 1.5px var(--blue)}
+.native-composer-host .host-search-current{box-shadow:inset 0 0 0 2px var(--blue);background:var(--host-highlight)}
+@keyframes host-pulse{50%{opacity:.35}}
+@keyframes host-arrive{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.native-composer-host .host-new-turn,.native-composer-host .host-event-dot,.native-composer-host .response-wait::before{animation:none!important}}
+
+/* App-only appearance; trusted native enum, no reload or draft replacement. */
+.native-composer-host .host-search-field input{background:var(--host-raised);color:var(--ink)}
+.native-composer-host .artifact-view,.native-composer-host .artifact-detail,.native-composer-host .decision-card,.native-composer-host .activity-detail{background:var(--host-panel);color:var(--ink)}
+.native-composer-host pre,.native-composer-host code,.native-composer-host .note-saved{background:var(--host-soft);color:var(--ink)}
+.native-composer-host input,.native-composer-host textarea,.native-composer-host select{background:var(--host-raised);color:var(--ink);border-color:var(--line)}
+.native-composer-host .decision-card button,.native-composer-host .artifact-card button{color:var(--ink);background:var(--host-soft);border-color:var(--line)}
+
+/* System text size is bridged as a controlled number, independent of layout
+   zoom. Long words and status labels reflow inside the native viewport. */
+.native-composer-host .assistant-copy,.native-composer-host .user-bubble,.native-composer-host .host-event-chip{overflow-wrap:anywhere;min-width:0}
+.native-composer-host .host-search-field input{width:0}
+.native-composer-host .host-search-navigation button{min-width:44px}
+.native-composer-host .host-event-chip>span:not(.host-event-dot){min-width:0}

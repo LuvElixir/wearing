@@ -9,10 +9,10 @@ from sqlalchemy.engine import make_url
 
 
 SCHEMA = "wearing_control"
-REVISION = "wearing_control_0001"
+REVISION = "wearing_control_0002"
 WEB_ROLE = "wearing_web"
 OPERATOR_ROLE = "wearing_operator"
-TABLES = ("wearing_users", "wearing_tenants", "wearing_memberships", "wearing_routes", "wearing_sessions", "wearing_oidc_states")
+TABLES = ("wearing_users", "wearing_tenants", "wearing_memberships", "wearing_routes", "wearing_sessions", "wearing_oidc_states", "wearing_tenant_ownership", "wearing_deletion_requests")
 CONTEXT_KEYS = ("user_id", "tenant_id", "session_hash", "issuer", "subject", "state_hash")
 
 
@@ -97,7 +97,18 @@ def assert_database_boundary(engine, *, operator=False):
             for privilege in ("TRUNCATE", "REFERENCES", "TRIGGER"):
                 if db.scalar(text("SELECT pg_catalog.has_table_privilege(current_user, :table, :privilege)"), {"table": SCHEMA + "." + table, "privilege": privilege}):
                     raise DatabaseBoundaryError("网页数据库角色存在额外的表级权限。")
-            if table not in {"wearing_sessions", "wearing_oidc_states"}:
+            if table == "wearing_deletion_requests":
+                for privilege in ("INSERT", "UPDATE", "DELETE"):
+                    if db.scalar(text("SELECT pg_catalog.has_table_privilege(current_user, :table, :privilege)"), {"table": name, "privilege": privilege}):
+                        raise DatabaseBoundaryError("注销请求只能写入指定的申请字段。")
+                allowed_insert = {"id", "user_id", "request_key", "plan_revision", "plan_json", "created_at"}
+                columns = allowed_insert | {"state", "code", "updated_at"}
+                for column in columns:
+                    for privilege in ("INSERT", "UPDATE", "REFERENCES"):
+                        allowed = db.scalar(text("SELECT pg_catalog.has_column_privilege(current_user, :table, :column, :privilege)"), {"table": name, "column": column, "privilege": privilege})
+                        if bool(allowed) != (privilege == "INSERT" and column in allowed_insert):
+                            raise DatabaseBoundaryError("注销请求的字段权限不正确。")
+            elif table not in {"wearing_sessions", "wearing_oidc_states"}:
                 for privilege in ("INSERT", "UPDATE", "DELETE"):
                     if db.scalar(text("SELECT pg_catalog.has_table_privilege(current_user, :table, :privilege)"), {"table": SCHEMA + "." + table, "privilege": privilege}):
                         raise DatabaseBoundaryError("网页数据库角色不能修改会员或路由。")
@@ -108,7 +119,7 @@ def assert_database_boundary(engine, *, operator=False):
                 for privilege in ("INSERT", "DELETE"):
                     if not db.scalar(text("SELECT pg_catalog.has_table_privilege(current_user, :table, :privilege)"), {"table": name, "privilege": privilege}):
                         raise DatabaseBoundaryError("网页数据库角色缺少登录记录权限。")
-                for column in ("id_hash", "user_id", "tenant_id", "csrf", "expires") if table == "wearing_sessions" else ("id_hash", "value", "expires"):
+                for column in ("id_hash", "user_id", "tenant_id", "csrf", "expires", "auth_time") if table == "wearing_sessions" else ("id_hash", "value", "expires"):
                     allowed = db.scalar(text("SELECT pg_catalog.has_column_privilege(current_user, :table, :column, 'UPDATE')"), {"table": name, "column": column})
                     if bool(allowed) != (table == "wearing_sessions" and column == "tenant_id"):
                         raise DatabaseBoundaryError("网页数据库角色只能更新登录记录的租户字段。")

@@ -40,12 +40,12 @@ def test_phone_profile_keeps_only_explicit_connectors_active(tmp_path):
     files, phone = {"command": "files"}, {"command": "phone"}
     result = prepare_profile(home, tmp_path / "source", files, phone)
     config = yaml.safe_load((home / "config.yaml").read_text())
-    assert result["toolsets"] == ["memory", "session_search", "wearing_files", "wearing_phone"]
+    assert result["toolsets"] == ["memory", "session_search", "web", "todo", "skills", "vision", "wearing_files", "wearing_phone"]
     assert config["platform_toolsets"]["api_server"] == result["toolsets"]
     assert config["platform_toolsets"]["cli"] == ["no_mcp"]
     assert config["mcp_servers"]["unrelated"] == {"command": "keep-me"}
     prepare_profile(home, tmp_path / "source", files)
-    assert yaml.safe_load((home / "config.yaml").read_text())["platform_toolsets"]["api_server"] == ["memory", "session_search", "wearing_files"]
+    assert yaml.safe_load((home / "config.yaml").read_text())["platform_toolsets"]["api_server"] == ["memory", "session_search", "web", "todo", "skills", "vision", "wearing_files"]
 
 
 def test_real_mobile_proxy_scopes_schemas_and_blocks_before_device_access(tmp_path):
@@ -248,10 +248,11 @@ def test_observation_is_bounded_single_read_and_reports_incomplete_screen(monkey
     from types import SimpleNamespace
     from wearing.android_text import observe
     calls = []
+    monkeypatch.setattr('wearing.android_text.time.sleep', lambda _: None)
     device = SimpleNamespace(_dev=object(), stop_uiautomator=lambda: calls.append('cleanup'))
     def read(dev, port, method, params, timeout, debug):
         calls.append('read')
-        assert port == 19008 and method == 'dumpWindowHierarchy' and timeout == 8
+        assert port == 19008 and method == 'dumpWindowHierarchy' and 0 < timeout <= 8
         if mode == 'timeout':
             raise TimeoutError()
         package = 'com.android.systemui' if mode == 'system_only' else 'app'
@@ -259,7 +260,7 @@ def test_observation_is_bounded_single_read_and_reports_incomplete_screen(monkey
     monkeypatch.setitem(sys.modules, 'uiautomator2', SimpleNamespace(connect=lambda *a, **k: device))
     monkeypatch.setitem(sys.modules, 'uiautomator2.core', SimpleNamespace(_jsonrpc_call=read))
     result = observe({'serial': 'synthetic'})
-    assert calls == ['read', 'cleanup']
+    assert calls == (['read'] * (3 if mode == 'system_only' else 1)) + ['cleanup']
     assert result['ok'] == (mode != 'timeout')
     if mode == 'system_only':
         assert result['limited'] and '截图' in result['message']
@@ -267,3 +268,44 @@ def test_observation_is_bounded_single_read_and_reports_incomplete_screen(monkey
         assert not result['limited']
     else:
         assert '截图' in result['message']
+
+
+def test_observation_waits_for_empty_transition_without_repeating_actions(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    from wearing.android_text import observe
+    calls = []
+    device = SimpleNamespace(_dev=object(), stop_uiautomator=lambda: calls.append('cleanup'))
+    screens = iter(['<hierarchy/>', '<hierarchy><node text="已加载" package="app" bounds="[0,0][20,20]"/></hierarchy>'])
+    def read(*args): calls.append('read'); return next(screens)
+    monkeypatch.setattr('wearing.android_text.time.sleep', lambda _: None)
+    monkeypatch.setitem(sys.modules, 'uiautomator2', SimpleNamespace(connect=lambda *a, **k: device))
+    monkeypatch.setitem(sys.modules, 'uiautomator2.core', SimpleNamespace(_jsonrpc_call=read))
+    result = observe({'serial': 'synthetic'})
+    assert result['ok'] and result['observation_attempts'] == 2
+    assert calls == ['read', 'read', 'cleanup']
+
+
+@pytest.mark.parametrize('private', [False, True])
+def test_decorated_input_reports_readback_without_claiming_verified_or_retyping(monkeypatch, private):
+    import sys
+    from types import SimpleNamespace
+    from wearing.android_text import replace_text
+    before = '<hierarchy><node class="android.widget.EditText" resource-id="app:id/input" package="app" focused="true" enabled="true" text="搜索, " /></hierarchy>'
+    after = before.replace('搜索, ', '搜索, 泉州').replace('enabled="true"', f'enabled="true" password="{str(private).lower()}"')
+    trees, values = iter([before, after]), iter(['搜索, ', '搜索, 泉州'])
+    calls = []
+    field = SimpleNamespace(selector={}, get_text=lambda **_: next(values))
+    class Device:
+        _dev = object()
+        def dump_hierarchy(self): return next(trees)
+        def __call__(self, **_): return field
+        def stop_uiautomator(self): calls.append('cleanup')
+    def write(*args): calls.append('write'); return True
+    monkeypatch.setitem(sys.modules, 'uiautomator2', SimpleNamespace(connect=lambda *a, **k: Device()))
+    monkeypatch.setitem(sys.modules, 'uiautomator2.core', SimpleNamespace(_jsonrpc_call=write))
+    result = replace_text({'serial': 'synthetic', 'expected_text': '搜索, ', 'text': '泉州'})
+    assert not result['ok'] and not result['input_readback_verified'] and result['unknown']
+    assert ('observed_text' in result) is not private
+    if not private: assert result['observed_text'] == '搜索, 泉州'
+    assert calls == ['write', 'cleanup']

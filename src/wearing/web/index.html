@@ -1,68 +1,202 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-app-theme="day">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#fafafa">
-  <title>Wearing · 你的个人 Agent</title>
-  <link rel="icon" href="/assets/avatar.png?v=1" type="image/png">
-  <link rel="stylesheet" href="/assets/style.css?v=6">
-  <script src="/assets/presence.js?v=4" defer></script>
-  <script src="/assets/app.js?v=9" defer></script>
+  <meta name="theme-color" content="#F6F7F9" id="theme-color-meta">
+  <title>Pajio · 你的个人 AI 助手</title>
+  <script src="/assets/mobile-host.js?v=5"></script>
+  <script>/* 首帧按已保存外观偏好设定日夜；App 宿主的主题由原生壳桥接，不在此覆盖。*/(function(){try{if(new URLSearchParams(location.search).get('host')==='mobile')return;var p=JSON.parse(localStorage.getItem('appearance:v1')||'null');p=p&&p.preference==='day'||p&&p.preference==='night'?p.preference:'system';var night=p==='night'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.appTheme=night?'night':'day';}catch(e){}})();</script>
+  <link rel="icon" href="/assets/pajio-icon.png?v=2" type="image/png">
+  <link rel="stylesheet" href="/assets/style.css?v=10">
+  <link rel="stylesheet" href="/assets/vendor/fullcalendar/skeleton.css">
+  <link rel="stylesheet" href="/assets/vendor/fullcalendar/themes/monarch/theme.css">
+  <link rel="stylesheet" href="/assets/life.css?v=2">
+  <link rel="stylesheet" href="/assets/capture.css?v=1">
+  <link rel="stylesheet" href="/assets/comfort.css?v=1">
+  <link rel="stylesheet" href="/assets/schedules.css?v=1">
+  <script src="/assets/scoped-store.js?v=3" defer></script>
+  <script src="/assets/request-id.js?v=1" defer></script>
+  <script src="/assets/presence.js?v=5" defer></script>
+  <script src="/assets/research.js?v=2" defer></script>
+  <script src="/assets/face.js?v=4" defer></script>
+  <script src="/assets/artifacts.js?v=4" defer></script>
+  <script src="/assets/conversation-drafts.js?v=1" defer></script>
+  <script src="/assets/conversation-submissions.js?v=2" defer></script>
+  <script src="/assets/confirmations.js?v=2" defer></script>
+  <script src="/assets/activity.js?v=4" defer></script>
+  <script src="/assets/app.js?v=52" defer></script>
+  <script src="/assets/vendor/fullcalendar/all/global.js" defer></script>
+  <script src="/assets/vendor/fullcalendar/themes/monarch/global.js" defer></script>
+  <script src="/assets/reminders.js?v=2" defer></script>
+  <script src="/assets/bookmarks.js?v=3" defer></script>
+  <script src="/assets/conversation-sources.js?v=1" defer></script>
+  <script src="/assets/series.js?v=3" defer></script>
+  <script src="/assets/life.js?v=20" defer></script>
+  <script src="/assets/capture.js?v=4" defer></script>
+  <script src="/assets/comfort.js?v=2" defer></script>
+  <script src="/assets/schedules.js?v=4" defer></script>
+  <link rel="stylesheet" href="/assets/research.css?v=2">
+  <link rel="stylesheet" href="/assets/conversation.css?v=3">
+  <link rel="stylesheet" href="/assets/artifacts.css?v=3">
+  <link rel="stylesheet" href="/assets/result-controls.css?v=1">
+  <link rel="stylesheet" href="/assets/mobile-host.css?v=3">
+  <link rel="stylesheet" href="/assets/now.css?v=3">
+  <link rel="stylesheet" href="/assets/pajio.css?v=20">
+  <link rel="stylesheet" href="/assets/confirmations.css?v=2">
+  <link rel="stylesheet" href="/assets/activity.css?v=1">
+  <script src="/assets/now.js?v=6" defer></script>
+  <script src="/assets/pajio.js?v=6" defer></script>
+  <script src="/assets/views.js?v=16" defer></script>
+  <script src="/assets/briefings.js?v=4" defer></script>
+  <script src="/assets/cloud-apps.js?v=1" defer></script>
+  <script src="/assets/decisions.js?v=5" defer></script>\n  <script src="/assets/data-exports.js?v=3" defer></script>
+  <script src="/assets/diagnostics.js?v=9" defer></script>
+  <script src="/assets/quiet-hours.js?v=2" defer></script>
+  <script src="/assets/account-deletion.js?v=8" defer></script>
+  <script src="/assets/vendor/fflate/index.js?v=0.8.3" defer></script>
+  <script src="/assets/onboarding.js?v=7" defer></script>
+  <script src="/assets/chat-import.js?v=6" defer></script>
+  <script src="/assets/workspace-text.js?v=2" defer></script>
+  <script src="/assets/native-composer.js?v=1" defer></script>
 </head>
 <body>
+<!-- COMFORT: Established Wearing world refinement; comp A selected by delegated judgment. A stable side rail, single capture surface, actual day/tasks/notes, thumb navigation on phones. Native chrome, keyboard focus and reduced-motion are functional adaptations. See .impeccable/surfaces/comfort.md. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
 <!-- THESIS: A continuous personal conversation with Wearing, a small living presence that acts with you.
 OWN-WORLD: Full cream and cobalt sleeve character, white space, soft blue conversation, quiet human typography.
 STORY: Arrive, speak freely, continue the same conversation; real actions and results return in context.
 FIRST VIEWPORT: Small wordmark, full character beside a greeting, an open invitation, a bottom conversation field.
 FORM: Presence beside the conversation; grounded structure 3, seed b2a311f4. Approved Wearing IP governs the world.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
-<a class="skip-link" href="#conversation-main">跳转到对话</a>
+<a class="skip-link" href="#life-main">跳转到内容</a>
 <header class="app-header">
-  <div class="brand-context"><a class="wordmark" href="#conversation-main" aria-label="Wearing · 回到对话"><img src="/assets/wordmark.svg?v=1" width="132" height="35" alt="Wearing"></a><button class="identity-pill" id="open-identities" aria-haspopup="dialog" aria-label="切换身份" disabled><span class="identity-pip" aria-hidden="true"></span><span id="identity-name">日常</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button></div>
-  <nav aria-label="Wearing 导航">
-    <button class="quiet-button" id="open-files" aria-label="我们的文件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8V6.5a2 2 0 0 1 2-2h4l2 3H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2V8Zm0 2h17.5"/></svg><span>文件</span></button>
-    <button class="quiet-button" id="open-keeps" aria-label="一起记着的"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3.75h8A2.25 2.25 0 0 1 18.25 6v14.25L12 16.5l-6.25 3.75V6A2.25 2.25 0 0 1 8 3.75Z"/></svg><span>一起记着的</span></button>
-    <button class="connection-button" id="open-settings"><span class="connection-dot" id="connection-dot"></span><span id="connection-label">连接 Wearing</span></button>
+  <div class="brand-context"><a class="wordmark" href="#conversation-main" aria-label="Pajio · 回到聊天"><svg class="pajio-wordmark" viewBox="12 20 574 240" width="72" height="30" role="img" aria-hidden="true" fill="currentColor"><path fill-rule="evenodd" d="M36 32H94C132 32 156 54 156 90C156 125 134 148 96 148H56V196C56 203 51 206 41 206C31 206 26 203 26 196V43C26 36 30 32 36 32ZM56 59V121H94C115 121 128 109 128 90C128 70 115 59 94 59Z"/><path fill-rule="evenodd" d="M219 77C184 77 161 103 161 143C161 182 184 208 219 208C240 208 254 198 262 184V193C262 201 267 206 276 206C285 206 290 201 290 193V93C290 85 285 80 276 80C267 80 262 85 262 93V102C254 87 240 77 219 77ZM224 104C202 104 189 120 189 143C189 166 202 181 224 181C247 181 262 166 262 143C262 120 247 104 224 104Z"/><path fill-rule="evenodd" d="M322 93C322 85 327 81 336 81C345 81 350 85 350 93V202C350 234 331 252 300 252C286 252 277 247 277 237C277 230 282 225 289 225C294 225 296 226 300 226C314 226 322 217 322 202ZM351 47A15 15 0 1 1 321 47A15 15 0 1 1 351 47Z"/><path fill-rule="evenodd" d="M384 93C384 85 389 81 398 81C407 81 412 85 412 93V195C412 203 407 206 398 206C389 206 384 203 384 195ZM413 47A15 15 0 1 1 383 47A15 15 0 1 1 413 47Z"/><path fill-rule="evenodd" d="M508 77C548 77 572 103 572 143C572 183 548 209 508 209C468 209 444 183 444 143C444 103 468 77 508 77ZM508 104C486 104 472 120 472 143C472 167 486 182 508 182C530 182 544 167 544 143C544 120 530 104 508 104Z"/></svg><span class="now-name">Pajio</span></a><button class="identity-pill" id="open-identities" aria-haspopup="dialog" aria-label="切换身份" disabled><span class="identity-pip" aria-hidden="true"></span><span id="identity-name">日常</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button></div>
+  <nav class="app-nav" aria-label="主要导航">
+    <button type="button" data-life-view="chat" aria-current="page"><span class="nav-chip" data-pajio-chip="nav" aria-hidden="true"></span><span>聊天</span></button>
+    <button type="button" data-life-view="today"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3.5v3M16 3.5v3M3.5 9.5h17"/></svg><span class="nav-day" id="nav-today-day" aria-hidden="true"></span><span>今天</span></button>
+    <button type="button" data-life-view="tasks" aria-label="任务与目标进展"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6h11M9.5 12h11M9.5 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg><span>任务</span><span class="nav-badge" id="nav-goal-badge" hidden></span></button>
+    <button type="button" data-life-view="memory"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a3.5 3.5 0 0 0-3.5 3.5c0 .6.15 1.16.4 1.65A3.5 3.5 0 0 0 5.5 13.5 3.5 3.5 0 0 0 9 17c.9 0 1.72-.34 2.34-.9L12 15.5l.66.6c.62.56 1.44.9 2.34.9a3.5 3.5 0 0 0 3.5-3.5 3.5 3.5 0 0 0-3.4-3.35c.25-.5.4-1.05.4-1.65A3.5 3.5 0 0 0 12 5Z"/></svg><span>记忆</span></button>
+    <button type="button" data-life-view="me"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span>我的</span></button>
   </nav>
+  <div class="now-header-actions"><button class="icon-button now-icon-button" id="open-search" aria-label="搜索当前对话"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button><button class="icon-button now-icon-button" id="nav-settings" aria-label="连接与设置" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.2M12 18.3v2.2M4.9 7.8l1.9 1.1M17.2 15.1l1.9 1.1M4.9 16.2l1.9-1.1M17.2 8.9l1.9-1.1"/></svg></button><button class="quiet-button now-review-button web-hidden" id="open-review" aria-controls="life-main"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg><span>回看</span></button><button class="icon-button now-more-button web-hidden" id="open-tools" aria-label="更多：文件、目标与设置" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></div>
 </header>
 <p class="identity-context" id="identity-context" aria-live="polite"></p>
 <button class="identity-running" id="identity-running" hidden></button>
+<!-- THESIS: Everyday records and Wearing share one place; a small useful action begins a calendar habit.
+OWN-WORLD: Existing cobalt sleeve IP, near-white surfaces, rounded controls and quiet system typography.
+STORY: Jot a thought, give a small task a place, see the day; edit directly or ask Wearing to help.
+FIRST VIEWPORT: One chat entry, identity, and a secondary review panel. Calendar, tasks and notes remain review destinations.
+FORM: Extension of the approved Wearing conversation; no new identity or visual-world selection.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
+<dialog id="review-panel" class="side-panel review-panel" aria-labelledby="review-title">
+  <div class="panel-header"><h2 id="review-title">更多</h2><button class="icon-button" data-close="review-panel" aria-label="关闭更多"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+<div class="review-more">  <nav aria-label="Pajio 导航">
+    <button class="quiet-button" id="open-activity" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg><span>事情的进展</span></button>
+    <button class="quiet-button" id="open-files" aria-label="文件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8V6.5a2 2 0 0 1 2-2h4l2 3H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2V8Zm0 2h17.5"/></svg><span>文件</span></button>
+    <button class="quiet-button" id="open-keeps" aria-label="目标与定时任务"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3.75h8A2.25 2.25 0 0 1 18.25 6v14.25L12 16.5l-6.25 3.75V6A2.25 2.25 0 0 1 8 3.75Z"/></svg><span>目标与定时任务</span><span id="goal-updates-badge" class="updates-badge" hidden aria-hidden="true"></span></button>
+    <button class="connection-button" id="open-settings"><span class="connection-dot" id="connection-dot"></span><span id="connection-label">连接 Pajio</span></button>
+  </nav>
+</div>
+  <button class="text-button review-manual" data-life-view="capture">补记一条记录</button>
+</dialog>
+<div class="now-review-heading"><button class="quiet-button" data-life-view="chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>回到聊天</button><nav class="review-switcher" aria-label="回看记录"><button data-life-view="calendar">日历</button><button data-life-view="tasks">任务</button><button data-life-view="notes">笔记</button></nav></div>
+<main id="life-main" class="life-main" tabindex="-1" hidden>
+  <header class="life-heading">
+    <div><h1 id="life-title">补记记录</h1><p id="life-subtitle">也可以直接核对和修改已有内容。</p></div>
+    <img id="life-greeting-avatar" src="/assets/companion-portrait.png?v=1" width="64" height="64" alt="Pajio 在这里">
+    <button id="life-add" class="quiet-button" hidden>新建</button>
+    <button id="life-series-add" class="quiet-button" type="button" data-series-manage hidden>重复日程</button>
+  </header>
+  <button id="compact-entry" class="compact-entry" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg><span id="compact-entry-label"><strong>交代一件事</strong></span></button>
+  <form id="life-capture-form" class="life-capture">
+    <label class="sr-only" for="life-capture-text">随手记一下</label>
+    <textarea id="life-capture-text" rows="2" maxlength="12000" placeholder="一个念头、一件小事，先记在这里。" required></textarea>
+    <div id="capture-files" class="capture-files" aria-label="准备记下的原件" hidden></div>
+    <input id="capture-image-file" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple tabindex="-1" aria-label="添加图片">
+    <input id="capture-audio-file" class="sr-only" type="file" accept="audio/*,.m4a,.webm" tabindex="-1" aria-label="添加录音文件">
+    <div class="life-capture-actions"><div class="capture-secondary"><button id="capture-more-toggle" type="button" class="capture-more-toggle" aria-expanded="false" aria-controls="capture-more" aria-label="添加图片、录音或选择记录类型"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><span id="capture-kind-label">随手记</span></div><button id="life-capture-save" class="primary" type="submit">记下</button></div>
+    <div id="capture-more" class="capture-more" hidden>    <div class="capture-tools">
+      <div class="capture-inputs">
+        <button type="button" id="capture-image" class="capture-tool"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4v13H4Z"/><circle cx="12" cy="13" r="3"/></svg>图片</button>
+        <button type="button" id="capture-record" class="capture-tool"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M9 22h6"/></svg><span id="capture-record-label">说一句</span></button>
+        <button type="button" id="capture-audio" class="capture-tool">录音文件</button>
+      </div>
+      <span id="capture-input-status" class="capture-input-status" role="status"></span>
+    </div>
+<div class="life-kind" aria-label="记录类型"><button type="button" data-life-kind="note" aria-pressed="true">笔记</button><button type="button" data-life-kind="task" aria-pressed="false">任务</button><button type="button" data-life-kind="event" aria-pressed="false">日程</button></div></div>
+    <div id="life-capture-times" class="life-fields" hidden><label>开始<input id="life-capture-start" type="datetime-local"></label><label>结束<input id="life-capture-end" type="datetime-local"></label></div>
+    <p id="life-capture-help" class="life-help">先留住想法，不必马上整理。</p>
+    <label id="capture-organize-label" class="capture-organize" hidden><input id="capture-organize" type="checkbox" checked>记下后，请 Pajio 帮我整理</label>
+  </form>
+  <div id="life-feedback" class="life-feedback" role="status" hidden></div>
+  <div class="life-workspace" id="life-workspace">
+    <section id="life-content" aria-label="生活记录" aria-busy="true"><p class="life-empty">正在打开你的记录……</p></section>
+    <aside id="life-editor" class="life-editor" aria-labelledby="life-editor-heading" hidden>
+      <div class="life-editor-top"><h2 id="life-editor-heading">记一条笔记</h2><button id="life-editor-close" class="icon-button" type="button" aria-label="收起编辑"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+      <form id="life-editor-form">
+        <label for="life-edit-title">标题</label><input id="life-edit-title" maxlength="200" required>
+        <div id="life-event-fields" hidden><label class="life-check-label"><input id="life-edit-all-day" type="checkbox">全天</label><div class="life-fields"><label>开始<input id="life-edit-start" type="datetime-local"></label><label>结束<input id="life-edit-end" type="datetime-local"></label></div></div>
+        <div id="life-task-fields" hidden><label for="life-edit-list">分组</label><input id="life-edit-list" maxlength="80" value="待办" list="life-list-names"><datalist id="life-list-names"></datalist><label for="life-edit-due">截止时间 · 可不填</label><input id="life-edit-due" type="datetime-local"><label class="life-check-label"><input id="life-edit-completed" type="checkbox">已经完成</label></div>
+        <label for="life-edit-content">补充几句</label><textarea id="life-edit-content" rows="6" maxlength="12000" placeholder="细节、想法，或者以后要用的资料。"></textarea>
+        <p id="life-edit-timezone" class="life-help"></p>
+        <div id="life-edit-reminder" aria-label="提醒设置"></div>
+        <p id="life-edit-error" class="life-editor-error" role="status" hidden></p>
+        <button id="life-edit-reload" class="text-button" type="button" hidden>查看最新版本</button>
+        <div id="life-latest" class="life-latest" hidden></div>
+        <div class="life-editor-actions"><button id="life-edit-save" class="primary" type="submit">保存</button><button id="life-edit-agent" class="secondary" type="button" hidden>和 Pajio 聊这条</button></div>
+        <button id="life-edit-archive" class="text-button life-remove" type="button" hidden>移到最近移除</button>
+      </form>
+      <div id="life-originals" class="life-originals" hidden></div>
+    </aside>
+  </div>
+  <footer class="life-footer"><span>你的记录，Pajio 也能接着帮你处理。</span><button id="life-trash" class="text-button">最近移除</button></footer>
+</main>
 <main id="conversation-main" tabindex="-1">
+  <button id="activity-return" class="activity-return" hidden aria-haspopup="dialog"><span class="nav-chip" data-pajio-chip="progress"></span><span><strong id="activity-return-title"></strong><span id="activity-return-detail" class="activity-return-detail"></span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+  <section id="goal-updates-summary" class="updates-summary" hidden aria-label="Pajio 的新进展">
+    <img src="/assets/companion-portrait.png?v=1" width="30" height="30" alt="">
+    <div><p id="goal-updates-greeting"></p><span id="goal-updates-preview"></span></div>
+    <button id="open-goal-updates" class="text-button">看看进展</button>
+  </section>
   <section class="welcome" id="welcome" aria-labelledby="welcome-title">
     <div class="presence" id="presence">
-      <button type="button" class="character-stage" id="character-stage" aria-label="叫一下 Wearing">
+      <button type="button" class="character-stage" id="character-stage" aria-label="叫一下 Pajio">
         
         <video id="character-video" muted playsinline preload="metadata" aria-hidden="true" hidden></video>
         <video id="character-video-next" muted playsinline preload="metadata" aria-hidden="true" hidden></video>
-        <img id="character-poster" src="/assets/character-poster.png?v=4" alt="穿着钴蓝外套的 Wearing">
+        <img id="character-poster" src="/assets/character-poster.png?v=4" alt="Pajio 旧形象（已停用）">
       </button>
     </div>
-    <div class="welcome-copy"><h1 id="welcome-title">这件事，<br>我来。</h1><p>一个刚冒出来的念头，<br>或是一直没空做的事，我们一起往前推。</p><div class="conversation-starters" aria-label="从这里聊起"><button data-suggestion="我有个想法，想和你一起把它做出来。">我有个想法<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12h13m-5-5 5 5-5 5"/></svg></button><button data-suggestion="有件事想请你帮我办。">帮我办件事<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12h13m-5-5 5 5-5 5"/></svg></button></div></div>
+    <div class="welcome-copy"><span class="welcome-bear" data-pajio-bear="200" aria-hidden="true"></span><h1 id="welcome-title">你说，我来做。</h1><p>交代一件事，随时回来看进展。</p></div>
   </section>
-  <section class="conversation" id="conversation" aria-label="你和 Wearing 的对话" hidden>
-    <div class="conversation-intro"><img src="/assets/avatar.png?v=1" alt="" width="32" height="32"><span>接着聊，我在这里。</span></div>
+  <section class="conversation" id="conversation" aria-label="你和 Pajio 的对话" hidden>
+    <div class="conversation-intro"><img src="/assets/chat-portrait.png?v=1" alt="" width="32" height="32"><span>接着聊，我在这里。</span></div>
     <div id="messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
     <button id="newest-message" class="newest-message" hidden>回到最新消息 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6"/></svg></button>
   </section>
+  <section id="desktop-input-section" class="desktop-input-section" hidden aria-label="电脑操作确认"><div id="desktop-input-cards" aria-live="polite"></div><p id="desktop-input-feedback" class="inline-feedback" role="status"></p></section>
   <div class="composer-dock">
     <div class="companion-bar" id="companion-bar" hidden>
       <div id="companion-seat" class="companion-seat"></div>
-      <div class="companion-copy"><p id="companion-line">我在，接着说。</p><span id="companion-detail">想到哪儿，聊到哪儿。</span></div>
+      <div class="companion-copy"><p id="companion-line">说一声，我来做。</p><span id="companion-detail">交代要做的事，有进展会回到这里。</span></div>
       <button type="button" id="companion-stop" class="soft-button" hidden>先停一下</button>
       <button type="button" id="computer-takeover" class="soft-button" hidden>我来接管</button>
     </div>
     <div id="notice" class="notice" role="status" hidden></div>
+    <div id="life-chat-context" class="goal-compose-context" hidden>
+      <div><button type="button" id="life-chat-title" class="text-button"></button><p>这条记录在这里，我们接着聊。</p></div>
+      <button type="button" id="life-chat-clear" class="icon-button" aria-label="回到日常聊天"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+    </div>
     <div id="goal-compose-context" class="goal-compose-context" hidden>
       <div><button type="button" id="goal-compose-title" class="text-button"></button><p id="goal-compose-help"></p></div>
       <button type="button" id="clear-goal-context" class="icon-button" aria-label="回到日常聊天"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
     </div>
     <form id="conversation-form" class="composer">
-      <label class="sr-only" for="message-input">和 Wearing 说说</label>
-      <textarea id="message-input" rows="1" maxlength="12000" required placeholder="想做什么，跟我说。"></textarea>
+      <label class="sr-only" for="message-input">说一声，Pajio 来做</label>
+      <textarea id="message-input" rows="1" maxlength="12000" required placeholder="说一声，我来做…"></textarea>
       <button class="send-button" type="submit" id="send-message" aria-label="发送消息"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button>
     </form>
-    <p class="composer-footnote" id="composer-footnote">想到哪儿，聊到哪儿。<span>Enter 发送 · Shift + Enter 换行</span></p>
+    <p class="composer-footnote" id="composer-footnote">交代清楚要做的事，进展和结果会回到这里。<span>Enter 发送 · Shift + Enter 换行</span></p>
   </div>
 </main>
 <dialog id="identity-panel" class="side-panel identity-panel" aria-labelledby="identity-title">
@@ -83,8 +217,37 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 </dialog>
 <dialog id="settings-panel" class="side-panel" aria-labelledby="settings-title">
   <div class="panel-header"><h2 id="settings-title">让我们连接起来</h2><button class="icon-button" data-close="settings-panel" aria-label="关闭连接设置"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
-  <p class="panel-lead">可以先在这台电脑开始，也可以连接另一台执行电脑。</p>
-  <section class="local-engine" aria-labelledby="local-engine-title"><h3 id="local-engine-title">在这台电脑开始</h3><p id="runtime-status" class="inline-feedback" role="status">正在检查本地引擎……</p><div class="button-row"><button class="primary" id="runtime-install">准备 Wearing</button><button class="primary" id="runtime-start" hidden>启动并连接</button><button class="secondary" id="runtime-stop" hidden>关闭本地引擎</button></div><details class="setup-guide" id="model-guide"><summary>模型与 API Key</summary>
+  <p class="panel-lead" id="connection-intro">可以先在这台电脑开始，也可以连接另一台执行电脑。</p>
+  <section id="cloud-devices-section" class="cloud-devices-section" hidden aria-labelledby="cloud-devices-title">
+    <div class="cloud-device-heading"><h3 id="cloud-devices-title">陪我一起做事的设备</h3><button class="text-button" id="cloud-devices-refresh">重新查看</button></div>
+    <p class="field-help">想自己用一会儿，就暂停这台设备。交回后，再把接下来的事情交给 Pajio。</p>
+    <div id="cloud-devices" class="cloud-device-list" aria-live="polite"></div>
+    <p id="cloud-devices-feedback" class="inline-feedback" role="status"></p>
+    <form id="device-permission-form" class="connection-form device-permission-form decision-card" hidden>
+      <div class="cloud-device-heading"><h3 id="device-permission-title">让这台电脑帮到哪一步</h3><button type="button" class="text-button" id="device-permission-close">收起</button></div>
+      <p id="device-permission-current" class="field-help"></p>
+      <label for="device-permission-mode">交给 Pajio 的能力</label><select id="device-permission-mode"><option value="observe">观察屏幕与窗口</option><option value="input">观察、点击与输入</option></select>
+      <p class="field-help">按任务交给 Pajio 连续处理；关键动作前会停下来。你可以随时接管。</p>
+      <button class="primary" id="device-permission-create" type="submit">应用到这台电脑</button>
+      <p id="device-permission-feedback" class="inline-feedback" role="status"></p>
+      <p id="device-permission-next" class="field-help" hidden>连接器正在自动同步，完成后就能直接对话。</p>
+    </form>
+    <details id="device-setup" class="setup-guide device-setup">
+      <summary>接入新的电脑或手机</summary>
+      <p>先在设备所在电脑的 Pajio 连接器导出设备清单，再选择交给我的设备和能力。手机通过 USB 连接这台电脑。</p>
+      <details><summary>如何导出设备清单？</summary><p>需要先安装 Pajio、完成电脑或 Android 的本机授权。已准备好的连接器可运行：</p><code>wearing connector inventory --data-dir 本机数据目录 --offer --output wearing-devices.json</code><p>Mac 和 Windows 使用同一条命令。当前仍需命令行安装；iPhone 控制尚未开放。</p></details>
+      <label class="device-file-label">选择设备清单<input id="device-offer-file" type="file" accept=".json,application/json"></label>
+      <form id="device-pair-form" hidden>
+        <div id="device-offer-choices"></div>
+        <button class="primary" id="device-pair-create" type="submit">生成配对文件</button>
+      </form>
+      <p id="device-pair-feedback" class="inline-feedback" role="status"></p>
+      <div id="device-pair-next" hidden><a id="device-pair-download" class="device-pair-download" download="wearing-pair.json">下载配对文件</a><p>配对文件从生成起 10 分钟内有效。带回设备所在电脑，完成配对并安装常驻连接；之后无需保持终端打开。</p><code>wearing connector pair --root 新连接目录 --data-dir 本机数据目录 --bundle wearing-pair.json</code><code>wearing connector service install --root 新连接目录</code><p>电脑需保持登录、联网和唤醒，手机需保持 USB 连接。连接建立后点“重新查看”。新接入一种设备时，可在没有进行中操作时更新能力。</p><details class="setup-guide"><summary>查看或停止本机连接</summary><code>wearing connector service status --root 新连接目录</code><code>wearing connector service stop --root 新连接目录</code><code>wearing connector service start --root 新连接目录</code><p>停止会等待当前动作交回回执，配对和历史记录保留。Windows 常驻仍待真机验证。</p></details><button id="device-tools-refresh" class="secondary">更新设备能力</button></div>
+    </details>
+    <section id="device-reviews-section" class="device-review-section" hidden aria-labelledby="device-reviews-title"><h3 id="device-reviews-title">有一步，需要你看一下</h3><p class="field-help">旧动作的结果不明，后续点击和输入暂时停下来。请先查看设备，确认发生了什么；核对会保留原记录。</p><div id="device-reviews"></div></section><p id="device-review-feedback" class="inline-feedback" role="status"></p>
+    <details class="setup-guide"><summary>暂停和离线时会怎样？</summary><p>暂停会立即停止云端派发，设备随后确认。已经发出的操作可能仍会完成。恢复只允许新的动作，结果不明的旧操作需要核对。</p><p>电脑可以观察，也可以按任务连续点击与输入。电话、邮箱与支付方式需要分别接入；iPhone 控制尚在规划中。</p></details>
+  </section>
+  <section class="local-engine" aria-labelledby="local-engine-title"><h3 id="local-engine-title">在这台电脑开始</h3><p id="runtime-status" class="inline-feedback" role="status">正在检查本地引擎……</p><div class="button-row"><button class="primary" id="runtime-install">准备 Pajio</button><button class="primary" id="runtime-start" hidden>启动并连接</button><button class="secondary" id="runtime-stop" hidden>关闭本地引擎</button></div><details class="setup-guide" id="model-guide"><summary>模型与 API Key</summary>
   <form id="model-form" class="connection-form">
     <label for="model-provider">模型服务</label><select id="model-provider" required><option value="">正在读取……</option></select>
     <label for="model-id">模型 ID</label><input id="model-id" required maxlength="200" autocomplete="off" placeholder="填写服务商提供的模型 ID">
@@ -95,7 +258,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <details class="setup-guide"><summary>其他服务与登录方式</summary><p>此处先支持 API Key 接入。其他服务、自定义地址或 OAuth 登录，仍可通过本地向导配置：</p><pre id="model-command">uv run wearing engine model</pre></details>
   </details></section>
   <details class="setup-guide remote-connection"><summary>连接另一台执行电脑</summary>
-  <form id="connection-form" class="connection-form"><label for="hermes-url">执行服务地址</label><input id="hermes-url" type="url" value="http://127.0.0.1:8642" required autocomplete="off"><label for="hermes-key">连接密钥</label><input id="hermes-key" type="password" required autocomplete="off" placeholder="保存在这台电脑上"><p class="field-help">电脑可以在身边，也可以通过 SSH 隧道连接。</p><button class="primary" id="connect-button">连接 Wearing</button><p class="inline-feedback" id="connection-feedback" role="status"></p></form>
+  <form id="connection-form" class="connection-form"><label for="hermes-url">执行服务地址</label><input id="hermes-url" type="url" value="http://127.0.0.1:8642" required autocomplete="off"><label for="hermes-key">连接密钥</label><input id="hermes-key" type="password" required autocomplete="off" placeholder="保存在这台电脑上"><p class="field-help">电脑可以在身边，也可以通过 SSH 隧道连接。</p><button class="primary" id="connect-button">连接 Pajio</button><p class="inline-feedback" id="connection-feedback" role="status"></p></form>
   <details class="setup-guide"><summary>第一次连接，需要准备什么？</summary><p>先在兼容的 Mac 或 Windows 电脑上安装 <a href="https://hermes-agent.nousresearch.com/docs/getting-started/installation" target="_blank" rel="noreferrer">Hermes</a> 并配置模型。按官方说明设置以下环境变量，再运行 Gateway。</p><pre>API_SERVER_ENABLED=true
 API_SERVER_KEY=你的独立连接密钥
 
@@ -105,29 +268,67 @@ hermes gateway</pre><p>工具权限与设备控制需要在执行电脑上验证
     <p id="computer-status" role="status">正在检查电脑连接器……</p>
     <div class="button-row"><button class="secondary" id="computer-prepare">准备电脑连接器</button><button class="secondary" id="computer-permissions" hidden>打开系统授权</button><button class="primary" id="computer-bind" hidden>接入这台电脑</button><button class="secondary" id="computer-control" hidden>我来接管</button><button class="text-button" id="computer-refresh">重新检测</button></div>
     <p id="computer-feedback" class="inline-feedback" role="status"></p>
-    <details class="setup-guide" id="computer-permission-help" hidden><summary>录屏列表里找不到 CuaDriver</summary><p>在 macOS 的「录屏与系统录音」上方列表点击 ＋，按 ⌘ ⇧ G，粘贴下面的应用路径。选中 CuaDriver 后点「打开」，再开启它的开关。</p><pre id="computer-app-path"></pre><p>驱动保存在 Wearing 的运行目录，不一定会出现在「应用程序」中。无需开启下方「仅系统录音」。</p></details>
-    <details class="setup-guide"><summary>接管时会发生什么</summary><p>你可以随时接管。Wearing 会停止新的电脑读取和操作；已发出的点击可能仍需片刻返回。交回后会重新观察窗口再行动。</p><p>电脑操作复用 Hermes 与 Cua Driver。当前接入的是运行 Wearing 的这台电脑。Mac 需要 CuaDriver 的辅助功能和屏幕录制权限；Windows 接入沿用同一驱动，但尚未完成真机验收。</p></details>
+    <details class="setup-guide" id="computer-permission-help" hidden><summary>录屏列表里找不到 CuaDriver</summary><p>在 macOS 的「录屏与系统录音」上方列表点击 ＋，按 ⌘ ⇧ G，粘贴下面的应用路径。选中 CuaDriver 后点「打开」，再开启它的开关。</p><pre id="computer-app-path"></pre><p>驱动保存在 Pajio 的运行目录，不一定会出现在「应用程序」中。无需开启下方「仅系统录音」。</p></details>
+    <details class="setup-guide"><summary>接管时会发生什么</summary><p>你可以随时接管。Pajio 会停止新的电脑读取和操作；已发出的点击可能仍需片刻返回。交回后会重新观察窗口再行动。</p><p>电脑操作复用 Hermes 与 Cua Driver。当前接入的是运行 Pajio 的这台电脑。Mac 需要 CuaDriver 的辅助功能和屏幕录制权限；Windows 接入沿用同一驱动，但尚未完成真机验收。</p></details>
   </section>
   <section class="device-section" aria-labelledby="phone-title"><h3 id="phone-title">你的手机</h3>
   <p id="phone-status" role="status">连接 USB，解锁手机，并允许 USB 调试。</p>
   <p class="setup-hint">每部接入的手机都可以单独使用、暂停和恢复。中文填写支持可识别的 Android 原生输入框。</p>
   <div class="button-row"><button class="secondary" id="phone-prepare">准备手机连接器</button><button class="text-button" id="phone-refresh">重新检测</button></div>
   <div id="phone-resources" class="phone-resources" aria-live="polite"></div>
-  <form id="phone-form" class="connection-form" hidden><label for="phone-device">选择要交给 Wearing 的手机</label><select id="phone-device" required></select><div class="button-row"><button class="primary" id="phone-bind">接入这部手机</button></div></form>
+  <form id="phone-form" class="connection-form" hidden><label for="phone-device">选择要交给 Pajio 的手机</label><select id="phone-device" required></select><div class="button-row"><button class="primary" id="phone-bind">接入这部手机</button></div></form>
   <p id="phone-feedback" class="inline-feedback" role="status"></p>
   <details class="setup-guide"><summary>手机没有出现授权弹窗</summary><p>打开手机的开发者选项与 USB 调试，保持屏幕解锁后重新插拔数据线。小米设备若能看画面却不能点击，还需检查“USB 调试（安全设置）”。</p><p>Android 通过 USB 调试接入，无需插 SIM 卡或 root。不同品牌的附加授权会在实际操作时确认。暂停会拦住后续动作，已发出的操作可能仍需片刻返回。</p></details>
   <details class="setup-guide"><summary>其他 Android 和 iPhone 呢？</summary><p>Android 使用通用调试协议，接入后逐项确认读取、点击、滑动和输入。当前真机验证为小米 6X（Android 9）。iPhone 控制连接器尚未接入，需要单独的信任、开发者模式及签名配置。</p></details>
   </section>
   <section class="device-section"><h3>电脑与手机</h3><p>设备接入后，再逐项确认 Wearing 能实际使用的能力。</p><div class="button-row"><a class="secondary" href="/api/device-doctor.py" download>下载检测脚本</a><button id="import-report" class="secondary">导入设备报告</button><input type="file" id="report-file" accept=".json,application/json" hidden></div><details class="setup-guide"><summary>如何运行检测</summary><pre>python3 wearing-doctor.py --android --output device-report.json</pre><p>Windows 可用 <code>py</code> 替代 <code>python3</code>。在目标电脑运行，然后导入报告。</p></details><div id="device-report"></div><button id="inspect-host" class="text-button">检测当前这台电脑</button><div id="host-report" aria-live="polite"></div></section>
-  <details class="setup-guide"><summary>技术信息与开源致谢</summary><p id="engine-profile">Wearing 使用独立的身份与能力配置。</p><p>执行引擎基于 Nous Research 的 <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noreferrer">Hermes Agent</a>（MIT 许可）。模型、会话和工具调用复用其成熟实现。</p></details>
-  <section class="device-section"><h3>文件空间</h3><p id="files-status" role="status">正在检查……</p><p class="field-help">Wearing 可以在独立目录里读写文件、建立文件夹。写入同名文件会覆盖原内容。其他目录需要后续单独接入。</p><button class="secondary" id="files-enable">启用文件空间</button><p id="files-feedback" class="inline-feedback" role="status"></p></section>
+  <details class="setup-guide"><summary>技术信息与开源致谢</summary><p id="engine-profile">Pajio 使用独立的身份与能力配置。</p><p>执行引擎基于 Nous Research 的 <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noreferrer">Hermes Agent</a>（MIT 许可）。模型、会话和工具调用复用其成熟实现。</p></details>
+  <section class="device-section" id="deletion-section" aria-labelledby="deletion-title"><h3 id="deletion-title">注销账户</h3><div id="deletion-body"><p class="field-help">正在读取……</p></div></section>
+  <section class="device-section" aria-labelledby="chat-import-entry-title"><h3 id="chat-import-entry-title">导入选定聊天</h3><p class="field-help">从微信选定聊天文件（ZIP/TXT）本机预览后导入；附件不导入，可整批移除。</p><button class="secondary" type="button" id="chat-import-entry">导入选定聊天</button></section>
+  <section class="device-section" aria-labelledby="onboarding-entry-title"><h3 id="onboarding-entry-title">初始偏好</h3><p class="field-help">第一次认识时的点选偏好，可随时修改；修改在最终确认前只留在本机。</p><button class="secondary" type="button" id="onboarding-entry">打开初始偏好</button></section>
+  <section class="device-section" id="quiet-hours-section" aria-labelledby="quiet-hours-title"><h3 id="quiet-hours-title">通知与安静时段</h3><div id="quiet-hours-body"><p class="field-help">正在读取……</p></div><p id="quiet-hours-feedback" class="inline-feedback" role="status"></p></section>
+  <section class="device-section" id="diagnostics-section" aria-labelledby="diagnostics-title"><h3 id="diagnostics-title">诊断</h3><p class="field-help">生成一份脱敏诊断报告（只读检查，不修改任何任务，不上传）。</p><div id="diagnostics-body"></div><div id="health-history-body" aria-label="健康历史"></div><div class="brief-actions"><button class="secondary" data-health-export type="button">创建支持包</button></div><div id="health-export-result" role="status"></div></section>
+  <section class="device-section" id="data-export-section" aria-labelledby="data-export-title"><h3 id="data-export-title">带走我的数据</h3><div id="data-export-body"><p class="field-help">正在读取……</p></div><p id="data-export-feedback" class="inline-feedback" role="status"></p></section>
+<section class="device-section" id="decisions-section" aria-labelledby="decisions-title"><h3 id="decisions-title">待核对的决定</h3><div id="decisions-list"><p class="field-help">正在读取……</p></div><p id="decisions-feedback" class="inline-feedback" role="status"></p></section>
+  <section class="device-section" id="usage-section" aria-labelledby="usage-title"><h3 id="usage-title">用量</h3><div id="usage-body"><p class="field-help">正在读取……</p></div></section>
+  <section class="device-section" id="cloud-apps-section" aria-labelledby="cloud-apps-title"><h3 id="cloud-apps-title">飞书个人账号</h3><div id="cloud-apps-body" aria-live="polite"><p class="field-help">正在读取……</p></div></section>
+  <section class="device-section" id="messaging-section" aria-labelledby="messaging-title"><h3 id="messaging-title">聊天工具</h3><div id="messaging-body" aria-live="polite"><p class="field-help">正在读取……</p></div></section>
+  <section class="device-section"><h3>联网查资料</h3><p id="web-capability" role="status">连接后检查检索能力。</p><p class="field-help">直接在对话里交代，也可以用于到时执行的安排；查到的来源会随回应保存。</p></section>
+  <section class="device-section"><h3>文件空间</h3><p id="files-status" role="status">正在检查……</p><p class="field-help">Pajio 可以在独立目录里读写文件、建立文件夹。写入同名文件会覆盖原内容。其他目录需要后续单独接入。</p><button class="secondary" id="files-enable">启用文件空间</button><p id="files-feedback" class="inline-feedback" role="status"></p></section>
   <section class="device-section"><h3>云端空间</h3><p>为需要独立环境的事情准备。Daytona 接入尚在开发中。</p></section>
 </dialog>
 <dialog id="keeps-panel" class="side-panel" aria-labelledby="keeps-title">
-  <div class="panel-header"><h2 id="keeps-title">一起记着的</h2><button class="icon-button" data-close="keeps-panel" aria-label="关闭记录"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <div class="panel-header"><h2 id="keeps-title">目标与定时任务</h2><button class="icon-button" data-close="keeps-panel" aria-label="关闭记录"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
   <p class="panel-lead">有些事情，需要一起惦记得久一点。</p>
+  <!-- SCHEDULES: An extension of the existing keeps panel. Operate mode; one save action,
+  quiet rows, existing cobalt/system type, current 3D presence unchanged. No workflow gallery. -->
+  <section id="schedules-section" class="schedules-section" aria-labelledby="schedules-heading">
+    <div class="schedule-heading"><div><h3 id="schedules-heading">到时我来</h3><p>交代一次，我会按约定回来。</p></div><button id="new-schedule" class="text-button" type="button">添个安排</button></div>
+    <div id="schedules-list"><p class="field-help">正在查看安排……</p></div>
+    <form id="schedule-form" class="schedule-form" hidden>
+      <label for="schedule-title">给这件事起个名字</label><input id="schedule-title" maxlength="100" required placeholder="比如，每周看看花销">
+      <label for="schedule-instruction">到时帮你做什么</label><textarea id="schedule-instruction" rows="3" required minlength="2" maxlength="6000" placeholder="说说你想要的结果，以及什么情况下需要行动。"></textarea>
+      <div class="schedule-fields"><label>什么时候<select id="schedule-frequency"><option value="once">只安排一次</option><option value="life_change">记录有变化时</option><option value="daily">每天</option><option value="weekdays">周一至周五</option><option value="weekly">每周</option><option value="custom">其他重复规则</option></select></label><label id="schedule-time-label">时间<input id="schedule-time" type="time" value="09:00"></label></div>
+      <fieldset id="schedule-changes" class="schedule-changes" hidden><legend>帮我留意</legend><div class="schedule-kind-options"><label><input type="checkbox" name="schedule-kind" value="note" checked>笔记</label><label><input type="checkbox" name="schedule-kind" value="task" checked>任务</label><label><input type="checkbox" name="schedule-kind" value="event" checked>日程</label></div><p class="field-help">从现在开始，留意你新建、修改或移除的记录。你在聊天里交代记下的，也算。</p><details class="setup-guide"><summary>回应的节奏</summary><label for="schedule-debounce">连续修改，等一会儿再处理</label><select id="schedule-debounce"><option value="60">1 分钟</option><option value="15">15 秒</option><option value="300">5 分钟</option></select><label for="schedule-cooldown">两次行动至少间隔</label><select id="schedule-cooldown"><option value="15">15 分钟</option><option value="1">1 分钟</option><option value="60">1 小时</option></select><label for="schedule-run-limit">24 小时内最多行动几次</label><input id="schedule-run-limit" type="number" min="1" max="48" value="12"><p class="field-help">变化会合并，达到次数后等下一次再看。Pajio 后台写下的结果不会反复唤醒自己；没有值得说的变化，就安静记下。</p></details></fieldset>
+      <label id="schedule-goal-label" hidden>接着推进哪件事<select id="schedule-goal"><option value="">独立安排</option></select><span class="field-help">关联已有目标后，沿用它的约定和剩余轮次。目标暂停时不会行动，恢复后只留意新的变化。</span></label>
+      <label id="schedule-date-label">日期与时间<input id="schedule-date" type="datetime-local"></label>
+      <label id="schedule-week-label" hidden>星期<select id="schedule-week"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option><option value="6">周六</option><option value="0">周日</option></select></label>
+      <label id="schedule-cron-label" hidden>重复规则<input id="schedule-cron" maxlength="100" placeholder="0 9 * * 1-5"><span class="field-help">也可以直接在聊天里告诉 Pajio 怎么安排。</span></label>
+      <p id="schedule-timezone" class="field-help"></p>
+      <details class="setup-guide"><summary>错过时间怎么办</summary><label for="schedule-grace">最多可以晚多久</label><select id="schedule-grace"><option value="15">15 分钟</option><option value="60" selected>1 小时</option><option value="1440">1 天</option></select><p class="field-help">超过这个时间就跳过，不集中补做过去的安排。暂停后恢复，只留意恢复后的新变化。</p></details>
+      <div class="button-row"><button class="primary" id="save-schedule" type="submit">交给 Pajio</button><button class="text-button" id="close-schedule-form" type="button">取消</button></div>
+    </form>
+    <article id="schedule-detail" class="schedule-detail" hidden></article>
+    <p id="schedule-feedback" class="inline-feedback" role="status"></p>
+    <p class="schedule-service-note" id="schedule-service-note">关闭网页也会继续；本机服务需保持运行。结果会回到对话里。</p>
+  </section>
+  <section id="goal-updates-section" class="goal-updates-section" hidden aria-labelledby="goal-updates-title">
+    <div class="updates-heading"><h3 id="goal-updates-title">有些进展，跟你说</h3><button id="goal-updates-seen" class="text-button">这些都看过了</button></div>
+    <div id="goal-updates-list"></div><p id="goal-updates-more" class="field-help" hidden></p>
+  </section>
+  <p id="goal-updates-feedback" class="inline-feedback" role="status"></p>
   <div class="goal-intro"><h3>一起往前推</h3><button class="text-button" id="new-goal">记下一个目标</button></div>
-  <p class="field-help">目标和进展会一直保留。本地 Wearing 服务运行时，会在约定轮次内继续；关闭网页也没关系。</p>
+  <p class="field-help" id="goal-continuity-help">目标和进展会一直保留。本地 Pajio 服务运行时，会在约定轮次内继续；关闭网页也没关系。</p>
   <div id="goals-list"></div>
   <form id="goal-form" class="connection-form personal-goal-form" hidden>
     <div class="goal-field goal-field-main"><label for="goal-objective">你希望慢慢做成什么？</label><textarea id="goal-objective" rows="3" required minlength="2" maxlength="2000" placeholder="比如，探索一个适合我的海外小生意。路径还没想清楚，也可以先聊聊。"></textarea></div>
@@ -135,26 +336,97 @@ hermes gateway</pre><p>工具权限与设备控制需要在执行电脑上验证
       <div class="goal-agreement-fields">
         <div class="goal-field"><label for="goal-boundaries">这次先做到哪里</label><textarea id="goal-boundaries" rows="2" required minlength="2" maxlength="2000">先做资料研究和文件整理；实际业务操作由我确认。</textarea></div>
         <div class="goal-field"><label for="goal-criteria">怎样算有进展</label><textarea id="goal-criteria" rows="2" required minlength="2" maxlength="2000">形成可核对的阶段结果，说明已验证的事实、关键未知和下一步。</textarea></div>
-        <div class="goal-field goal-rounds-field"><label for="goal-rounds">先安排几轮推进</label><select id="goal-rounds"><option value="1">1 轮，先看看</option><option value="3" selected>最多 3 轮</option><option value="5">最多 5 轮</option></select></div>
+        <div class="goal-field goal-rounds-field"><label for="goal-rounds">留多少推进空间</label><select id="goal-rounds"><option value="10">小范围探索 · 10 轮</option><option value="100" selected>持续推进 · 100 轮</option><option value="300">复杂目标 · 300 轮</option><option value="1000">长期推进 · 1,000 轮</option></select></div>
       </div>
-      <p class="field-help">每轮可能包含多次模型和工具调用，轮次不等于金额限额。用完后，等你决定。</p>
+      <p class="field-help">有新进展就继续，做到阶段结果或需要你决定时再停。额度不必用完；每轮可能有多次模型和工具调用，实际费用另计。</p>
     </details>
-    <div class="button-row goal-form-actions"><button class="primary" id="save-goal" name="intent" value="start">交给 Wearing 推进</button><button class="secondary" name="intent" value="save">先记下</button><button type="button" class="text-button" id="cancel-goal-form">取消</button></div>
+    <div class="button-row goal-form-actions"><button class="primary" id="save-goal" name="intent" value="start">交给 Pajio 推进</button><button class="secondary" name="intent" value="save">先记下</button><button type="button" class="text-button" id="cancel-goal-form">取消</button></div>
   </form>
   <p id="goal-feedback" class="inline-feedback" role="status"></p>
   <article id="goal-detail" class="goal-detail" hidden></article>
   <details id="memory-section" class="older-keeps personal-memory"><summary>记着你的</summary>
-    <p class="field-help">这里是 Wearing 为当前身份记下的偏好和经验。发现记错了，可以在对话里纠正。</p>
+    <p class="field-help">这里是 Pajio 为当前身份记下的偏好和经验。发现记错了，可以在对话里纠正。</p>
     <div id="memory-list"></div><p id="memory-feedback" class="inline-feedback" role="status"></p>
     <div class="button-row"><button id="refresh-memory" class="text-button">重新查看</button><button id="remember-something" class="text-button">告诉我一件要记住的事</button></div>
   </details>
   <details class="older-keeps"><summary>以前留下的事情</summary><div id="keeps-list"></div><article id="keep-detail" hidden></article></details>
 </dialog>
+<dialog id="series-panel" class="side-panel" aria-labelledby="series-title">
+  <div class="panel-header"><h2 id="series-title">重复日程</h2><button class="icon-button" data-close="series-panel" aria-label="关闭重复日程"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <p class="panel-lead">重复安排直接保存在当前身份；单次改动不影响整个系列。</p>
+  <p id="series-note" class="inline-feedback" role="status"></p>
+  <div id="series-body"></div>
+</dialog>
+<dialog id="bookmarks-panel" class="side-panel" aria-labelledby="bookmarks-title">
+  <div class="panel-header"><h2 id="bookmarks-title">链接收藏</h2><button class="icon-button" data-close="bookmarks-panel" aria-label="关闭链接收藏"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <p class="panel-lead">把网页链接记在这里；只有你点「打开网页」时才会访问，保存不抓取、不预览。</p>
+  <p id="bm-note" class="inline-feedback" role="status"></p>
+  <div id="bm-body"></div>
+</dialog>
+<dialog id="sources-panel" class="side-panel" aria-labelledby="sources-title">
+  <div class="panel-header"><h2 id="sources-title">对话引用范围</h2><button class="icon-button" data-close="sources-panel" aria-label="关闭对话引用范围"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <p class="panel-lead">选择哪些历史对话不再作为后续回答来源；历史仍保留可查看。</p>
+  <p id="sc-note" class="inline-feedback" role="status"></p>
+  <div id="sc-body"></div>
+</dialog>
+<dialog id="onboarding-panel" class="side-panel ob-panel" aria-labelledby="onboarding-title">
+  <div class="panel-header"><button class="text-button" id="ob-back" data-ob-back hidden>上一步</button><h2 id="onboarding-title">初始偏好</h2><button class="icon-button" data-ob-close-btn aria-label="稍后继续，关闭初始偏好"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <div class="ob-progress" id="ob-progress" role="img"></div>
+  <div id="ob-body"></div>
+  <div class="ob-footer" id="ob-footer"></div>
+</dialog>
+<dialog id="chat-import-panel" class="side-panel ob-panel" aria-labelledby="chat-import-title">
+  <div class="panel-header"><h2 id="chat-import-title">导入选定聊天</h2><button class="icon-button" data-ci-close-btn aria-label="关闭导入选定聊天"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <input id="ci-file" type="file" accept=".zip,.txt,application/zip,text/plain" hidden>
+  <div id="ci-body"></div>
+</dialog>
+<dialog id="brief-panel" class="side-panel" aria-labelledby="brief-title">
+  <div class="panel-header"><h2 id="brief-title">今日图文简报</h2><button class="icon-button" id="brief-close" aria-label="关闭简报"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <p class="panel-lead">基于已连接的真实来源整理；每一版都会留在这里，可回看与打开图文。</p>
+  <div class="brief-tools"><label for="brief-date">日期</label><input id="brief-date" type="date"><button class="text-button" id="brief-refresh" type="button">刷新</button></div>
+  <button class="primary" id="brief-create" type="button">整理今天的简报</button>
+  <input id="brief-base" type="hidden" value="0">
+  <p id="brief-feedback" class="inline-feedback" role="status"></p>
+  <div id="brief-preferences" aria-label="简报偏好"></div>
+  <div id="brief-list" aria-live="polite"></div>
+</dialog>
+<dialog id="text-editor-panel" class="side-panel" aria-labelledby="text-editor-title-h">
+  <div class="panel-header"><h2 id="text-editor-title-h">编辑文档</h2><button class="icon-button" data-close="text-editor-panel" aria-label="关闭编辑"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <h3 id="text-editor-title"></h3><p id="text-editor-status" role="status"></p>
+  <div id="text-editor-body"></div>
+</dialog>
 <dialog id="files-panel" class="side-panel" aria-labelledby="files-title">
   <div class="panel-header"><h2 id="files-title">我们的文件</h2><button class="icon-button" data-close="files-panel" aria-label="关闭文件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
-  <p class="panel-lead">一起写下的东西，都放在这里。你可以下载带走。</p>
-  <button class="text-button" id="refresh-files">刷新文件</button><p id="files-list-status" class="inline-feedback" role="status"></p><div id="files-list"></div>
+  <p class="panel-lead">一起整理的结果，可以展开看，也可以下载带走。</p>
+  <div id="artifact-library"></div>
+  <div class="files-tools">
+    <input id="files-search" type="search" placeholder="按文件名搜索当前列表" maxlength="120" aria-label="按文件名搜索文件">
+    <button class="secondary" id="files-import" type="button">导入文件</button><button class="secondary" type="button" id="ci-files-entry">导入选定聊天</button>
+    <input id="files-import-input" class="sr-only" type="file" tabindex="-1" aria-label="选择要导入的文件">
+  </div>
+  <button class="text-button" id="refresh-files">刷新文件</button><button class="text-button" id="files-more" type="button" hidden>继续查找</button><p id="files-list-status" class="inline-feedback" role="status"></p><div id="files-list"></div>
   <details class="setup-guide"><summary>文件保存在哪里</summary><pre id="files-path"></pre><p>这里显示独立文件目录的实际内容；文件出现并不代表其中的信息已经核实。</p></details>
+</dialog>
+<dialog id="artifact-panel" class="artifact-view" aria-labelledby="artifact-title" aria-describedby="artifact-description">
+  <header class="artifact-view-header">
+    <div class="artifact-view-heading"><h2 id="artifact-title" tabindex="-1" autofocus>一起看看结果</h2><p id="artifact-description"></p></div>
+    <div class="artifact-view-actions">
+      <button id="artifact-previous" hidden>上一版</button>
+      <a id="artifact-download" download hidden>下载</a>
+      <button class="wr-close" data-close="artifact-panel" aria-label="关闭结果"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </div>
+  </header>
+  <p id="artifact-status" role="status">正在打开结果……</p>
+  <div id="artifact-choices" class="artifact-choices" hidden aria-label="结果选项"></div>
+  <div id="artifact-body" class="artifact-body"></div>
+  <details id="artifact-evidence" class="artifact-evidence wr-disclosure" hidden><summary><svg class="wr-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 6 6-6 6"/></svg><span>查看依据与假设</span></summary><div id="artifact-evidence-copy"></div></details>
+</dialog>
+<dialog id="activity-panel" class="side-panel" aria-labelledby="activity-title">
+  <div class="panel-header"><h2 id="activity-title">事情的进展</h2><button class="icon-button" data-close="activity-panel" aria-label="关闭进展"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  <div class="activity-subhead"><span id="activity-updated">正在查看…</span><button class="text-button" id="activity-refresh">重新查看</button></div>
+  <p id="activity-error" class="inline-feedback" role="status"></p>
+  <div id="activity-list"></div>
+  <p id="activity-more" class="field-help" hidden>先显示 20 件，优先呈现需要处理的事和未读结果。完整记录仍在原对话与目标里。</p>
 </dialog>
 </body>
 </html>

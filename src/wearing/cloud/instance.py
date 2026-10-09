@@ -67,8 +67,11 @@ def read_private(path: Path):
     return path.read_text(encoding="utf-8")
 
 
-def load_instance(root: Path):
+def load_instance(root: Path, *, allow_deleting=False):
     root = checked_root(root)
+    tombstone = root / "deletion-tombstone.json"
+    if not allow_deleting and (tombstone.exists() or tombstone.is_symlink()):
+        raise InstanceError("此实例已冻结等待删除；不能重新启动业务或设备服务。")
     try:
         instance = TenantInstance.model_validate_json(read_private(root / "instance.json"))
         key = read_private(root / "gateway.key").strip()

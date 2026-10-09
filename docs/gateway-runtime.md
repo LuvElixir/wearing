@@ -2,7 +2,7 @@
 
 2026-10-03。S1 新增入口服务：用 Authlib 的授权码流程、S256 PKCE、Discovery/JWKS 与 ID Token 验证接成熟 OIDC；用 SQLAlchemy 保存平台会员、实例路由和登录会话。平台不存 Wearing 对话、记忆、业务文件、截图或模型密钥，也不运行共享 Agent Gateway。
 
-**当前部署仍是本地验收。**双用户实际 HTTP 链路及真实 PostgreSQL/RLS 已通过；配置支持 HTTPS + PostgreSQL 的非开发模式，并在启动时检查数据库版本与权限。真实 OIDC 账号、生产 TLS/mTLS 和独立 VM 尚未部署。当前 8765 本地入口保持独立。
+**OIDC 登录当前仍是本地验收。**双用户实际 HTTP 链路及真实 PostgreSQL/RLS 已通过；配置支持 HTTPS + PostgreSQL 的非开发模式，并在启动时检查数据库版本与权限。独立腾讯试验 VM、真实云端核心与设备 HTTPS 出站连接已部署，单人 [私人 SSH 网页入口](private-cloud-entry.md)已接入。真实 OIDC 账号及生产 TLS/mTLS 尚未部署。当前 8765 本地入口保持独立。
 
 ## 配置与命令
 

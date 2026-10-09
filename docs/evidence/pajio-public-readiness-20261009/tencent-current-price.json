@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-10-09T07:05:36.435292+00:00",
+  "region": "ap-hongkong",
+  "instance_type": "SA2.MEDIUM4",
+  "currency": "CNY",
+  "includes_system_and_data_disks": true,
+  "price": {
+    "InstancePrice": {
+      "UnitPrice": 0.36,
+      "ChargeUnit": "HOUR",
+      "OriginalPrice": null,
+      "DiscountPrice": null,
+      "Discount": 81,
+      "UnitPriceDiscount": 0.29,
+      "UnitPriceSecondStep": 0.36,
+      "UnitPriceDiscountSecondStep": 0.29,
+      "UnitPriceThirdStep": 0.36,
+      "UnitPriceDiscountThirdStep": 0.29,
+      "OriginalPriceThreeYear": null,
+      "DiscountPriceThreeYear": null,
+      "DiscountThreeYear": null,
+      "OriginalPriceFiveYear": null,
+      "DiscountPriceFiveYear": null,
+      "DiscountFiveYear": null,
+      "OriginalPriceOneYear": null,
+      "DiscountPriceOneYear": null,
+      "DiscountOneYear": null
+    },
+    "BandwidthPrice": {
+      "UnitPrice": 1.0,
+      "ChargeUnit": "GB",
+      "OriginalPrice": null,
+      "DiscountPrice": null,
+      "Discount": 66,
+      "UnitPriceDiscount": 0.6666,
+      "UnitPriceSecondStep": null,
+      "UnitPriceDiscountSecondStep": null,
+      "UnitPriceThirdStep": null,
+      "UnitPriceDiscountThirdStep": null,
+      "OriginalPriceThreeYear": null,
+      "DiscountPriceThreeYear": null,
+      "DiscountThreeYear": null,
+      "OriginalPriceFiveYear": null,
+      "DiscountPriceFiveYear": null,
+      "DiscountFiveYear": null,
+      "OriginalPriceOneYear": null,
+      "DiscountPriceOneYear": null,
+      "DiscountOneYear": null
+    }
+  },
+  "creates_resources": false
+}
