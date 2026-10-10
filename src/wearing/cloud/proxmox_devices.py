@@ -10,10 +10,12 @@ import shlex
 import subprocess
 
 from .device_provisioning import Inventory, ProvisionError, VM
+from .device_retirement import RETENTION_SOURCE
+from .core_reservations import CORE_RESERVATIONS_SOURCE
 
 # Runs only with the administrator's preconfigured SSH access. Inputs are JSON
 # on stdin, not shell interpolation; pvesh/qm/lvs use fixed argument arrays.
-REMOTE = r'''
+REMOTE = RETENTION_SOURCE + CORE_RESERVATIONS_SOURCE + r'''
 import fcntl,hashlib,json,math,os,re,subprocess,sys,time
 p=json.load(sys.stdin)
 def fail(code):
@@ -40,10 +42,12 @@ def owner(c):
     except (ValueError,AttributeError):return None
 def vm(row):
     c=config(row['vmid']);o=owner(c)
+    try:retained=retained_archive_sha(row['vmid'],c,row['status'],p['node'])
+    except (ValueError,TypeError,KeyError,OSError):fail('retained_archive_evidence_invalid')
     # Do not output descriptions, bootstrap keys, IPs or arbitrary config data.
     return {'vmid':row['vmid'],'state':row['status'],'vcpus':int(c.get('cores',1))*int(c.get('sockets',1)),
             'memory_mib':int(c.get('memory',512)),'disk_mib':mb_disk(c),'template':bool(c.get('template',False)),
-            'locked':bool(c.get('lock')),'owner':o,'config_sha256':digest(c),
+            'locked':bool(c.get('lock')),'owner':o,'config_sha256':digest(c),'retirement_sha256':retained,
             'prepared':int(c.get('onboot',0))==0 and int(c.get('balloon',0))==0 and not any(re.fullmatch(r'(?:net|ipconfig)\d+',k) or k in ('sshkeys','cicustom','cipassword','ciuser','nameserver','searchdomain') for k in c)}
 def inventory():
     status=call('pvesh','get',f'/nodes/{p["node"]}/status','--output-format','json')
@@ -56,12 +60,33 @@ def inventory():
     if config_storage.get('vgname')!=p['vg'] or config_storage.get('thinpool')!=p['pool']:fail('storage_pool_mismatch')
     volumes=call('lvs','--reportformat','json','--units','b','--nosuffix','-o','vg_name,lv_name,lv_size,pool_lv')['report'][0]['lv']
     used=sum(math.ceil(float(v['lv_size'])/1048576) for v in volumes if v['vg_name']==p['vg'] and v['pool_lv']==p['pool'])
+    observed=[vm(r) for r in rows]
+    try:assert_group_restores_complete(observed,p['node'])
+    except (ValueError,TypeError,KeyError,OSError):fail('group_restore_capacity_unconfirmed')
+    try:cores=core_reservations(observed,node=p['node'])
+    except (ValueError,TypeError,KeyError,OSError,subprocess.SubprocessError):fail('core_reservation_evidence_invalid')
     return {'node':p['node'],'storage':p['storage'],'observed_at':time.time(),
             'physical_cores':int(status['cpuinfo']['cores'])*int(status['cpuinfo']['sockets']),
             'memory_mib':int(status['memory']['total'])//1048576,
             'available_memory_mib':int(status['memory']['available'])//1048576,
             'storage_mib':int(storage['total'])//1048576,'available_storage_mib':int(storage['avail'])//1048576,
-            'committed_storage_mib':used,'vms':[vm(r) for r in rows]}
+            'committed_storage_mib':used,'vms':observed,'core_promises':cores}
+def capacity_totals(inv):
+    vms=inv['vms'];cores=inv['core_promises'];core_ids={v['vmid'] for v in cores}
+    memory=sum(v['memory_mib'] for v in cores);cpus=sum(v['vcpus'] for v in cores);backup=0
+    slots={'linux':0,'android':0}
+    for core in cores:
+        current=next((v for v in vms if v['vmid']==core['vmid']),None)
+        backup+=core['disk_mib']+(core['disk_mib']+4 if current is None else max(0,core['disk_mib']-current['disk_mib']))
+    for item in vms:
+        o=item['owner']
+        if o:
+            backup+=o['disk_mib']+max(0,o['disk_mib']-item['disk_mib'])
+            if not item['retirement_sha256']:
+                memory+=max(item['memory_mib'],o['memory_mib']);cpus+=max(item['vcpus'],o['vcpus']);slots[o['kind']]+=1
+        elif item['state']!='stopped' and not item['template'] and item['vmid'] not in core_ids:
+            memory+=item['memory_mib'];cpus+=item['vcpus']
+    return {'vcpus':cpus,'memory_mib':memory,'recovery_and_missing_disk_mib':backup,'linux_slots':slots['linux'],'android_slots':slots['android']}
 def checked_target(spec,expected):
     c=config(spec['vmid'])
     state=call('pvesh','get',f'/nodes/{p["node"]}/qemu/{spec["vmid"]}/status/current','--output-format','json')
@@ -82,19 +107,17 @@ except BlockingIOError:fail('host_provision_inflight')
 spec,policy,expected=p['spec'],p['policy'],p['owner']
 if action=='clone_stopped':
     inv=inventory();vms=inv['vms'];template=policy['templates'][spec['kind']]
-    if any(v['vmid']==spec['vmid'] for v in vms):fail('vm_id_or_owner_conflict')
+    if any(v['vmid']==spec['vmid'] for v in vms) or any(v['vmid']==spec['vmid'] for v in inv['core_promises']):fail('vm_id_or_owner_conflict')
     source=next((v for v in vms if v['vmid']==template['vmid']),None)
     if not source or not source['template'] or source['state']!='stopped' or source['locked'] or source['owner'] or source['config_sha256']!=template['config_sha256'] or source['disk_mib']!=spec['disk_mib']:fail('reviewed_clean_template_required')
     # Final host-side fence serializes even separate operator processes. Known
     # staged devices count their promised memory/CPU, despite being powered off.
-    memory=cpus=backup=0;slots={'linux':policy['external_linux_slots'],'android':policy['external_android_slots']}
+    totals=capacity_totals(inv)
+    memory=totals['memory_mib'];cpus=totals['vcpus'];backup=totals['recovery_and_missing_disk_mib']
+    slots={k:totals[k+'_slots']+policy['external_'+k+'_slots'] for k in ('linux','android')}
     for item in vms:
         o=item['owner']
-        if o:
-            if o['request_id']==spec['request_id'] or o['resource_id']==spec['resource_id'] or (o['tenant_id'],o['kind'])==(spec['tenant_id'],spec['kind']):fail('device_binding_conflict')
-            memory+=max(item['memory_mib'],o['memory_mib']);cpus+=max(item['vcpus'],o['vcpus']);backup+=o['disk_mib'];slots[o['kind']]+=1
-        elif item['state']!='stopped' and not item['template']:
-            memory+=item['memory_mib'];cpus+=item['vcpus']
+        if o and (o['request_id']==spec['request_id'] or o['resource_id']==spec['resource_id'] or (o['tenant_id'],o['kind'])==(spec['tenant_id'],spec['kind'])):fail('device_binding_conflict')
     if memory+spec['memory_mib']+policy['host_memory_mib']>inv['memory_mib'] or cpus+spec['vcpus']+policy['host_cores']>inv['physical_cores']:fail('host_capacity_changed')
     slots[spec['kind']]+=1
     if any(slots[k]>policy[k+'_slots'] for k in slots):fail('host_capacity_changed')

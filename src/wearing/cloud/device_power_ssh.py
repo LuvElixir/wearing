@@ -149,8 +149,8 @@ state=call('pvesh','get',f'/nodes/{p["node"]}/qemu/{spec["vmid"]}/status/current
 if state!=('running' if p['action']=='shutdown' else 'stopped'):fail('power_state_changed')
 if p['action']=='start':
  inv=inventory()
- reserved=[v for v in inv['vms'] if not v['template'] and (v['owner'] or v['state']!='stopped')]
- if sum(v['vcpus'] for v in reserved)+p['host_cores']>inv['physical_cores'] or sum(v['memory_mib'] for v in reserved)+p['host_memory_mib']>inv['memory_mib'] or inv['available_memory_mib']<spec['memory_mib']+p['host_memory_mib']:fail('wake_capacity_unavailable')
+ totals=capacity_totals(inv)
+ if totals['vcpus']+p['host_cores']>inv['physical_cores'] or totals['memory_mib']+p['host_memory_mib']>inv['memory_mib'] or inv['available_memory_mib']<spec['memory_mib']+p['host_memory_mib']:fail('wake_capacity_unavailable')
 argv=['qm',p['action'],str(spec['vmid'])]
 if p['action']=='shutdown':argv+=['--timeout','60','--forceStop','0']
 run_change(argv)

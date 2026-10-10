@@ -71,6 +71,20 @@ class VM(Record):
     owner: Owner | None = None
     config_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
     prepared: bool = False
+    retirement_sha256: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+
+    @model_validator(mode='after')
+    def retained_state(self):
+        if self.retirement_sha256 and (self.state != 'stopped' or not self.locked or self.template or self.owner is None):
+            raise ValueError('retained_vm_state_invalid')
+        return self
+
+
+class CorePromise(Record):
+    vmid: int = Field(strict=True, ge=100)
+    vcpus: int = Field(strict=True, ge=1)
+    memory_mib: int = Field(strict=True, ge=1)
+    disk_mib: int = Field(strict=True, ge=16384)
 
 
 class Inventory(Record):
@@ -84,10 +98,14 @@ class Inventory(Record):
     available_storage_mib: int = Field(strict=True, ge=0)
     committed_storage_mib: int = Field(strict=True, ge=0)
     vms: tuple[VM, ...]
+    core_promises: tuple[CorePromise, ...] = ()
 
     @model_validator(mode='after')
     def checked(self):
         owners = [vm.owner for vm in self.vms if vm.owner]
+        core_ids = {item.vmid for item in self.core_promises}
+        if len(core_ids) != len(self.core_promises) or any(vm.vmid in core_ids and (vm.owner is not None or vm.template) for vm in self.vms):
+            raise ValueError('invalid_core_promises')
         if (not math.isfinite(self.observed_at)
                 or len({vm.vmid for vm in self.vms}) != len(self.vms)
                 or len({owner.resource_id for owner in owners}) != len(owners)
@@ -135,11 +153,24 @@ def inspect_capacity(spec, policy, inventory, reservations, *, now=None):
             or source.locked or source.owner or source.config_sha256 != template.config_sha256
             or source.disk_mib != template.disk_mib or spec.disk_mib != template.disk_mib):
         reasons.append('reviewed_clean_template_required')
-    running = [v for v in inventory.vms if v.state != 'stopped' and not v.template]
+    core_ids = {item.vmid for item in inventory.core_promises}
+    if spec.vmid in core_ids:
+        reasons.append('core_vm_binding_conflict')
+    running = [v for v in inventory.vms if v.state != 'stopped' and not v.template and v.vmid not in core_ids]
     memory = sum(v.memory_mib for v in running)
     cpus = sum(v.vcpus for v in running)
     disk = inventory.committed_storage_mib
     extra_memory = extra_disk = 0
+    for core in inventory.core_promises:
+        current = vms.get(core.vmid)
+        memory += core.memory_mib
+        cpus += core.vcpus
+        extra_memory += core.memory_mib if current is None or current.state == 'stopped' else max(0, core.memory_mib-current.memory_mib)
+        extra_disk += core.disk_mib  # Keep one full recovery copy.
+        if current is None:
+            extra_disk += core.disk_mib + 4
+        else:
+            extra_disk += max(0, core.disk_mib-current.disk_mib)
     slots = {'linux': policy.external_linux_slots, 'android': policy.external_android_slots}
     rows = list(reservations)
     known = {r['spec']['request_id'] for r in rows}
@@ -171,8 +202,14 @@ def inspect_capacity(spec, policy, inventory, reservations, *, now=None):
         if current and (expected is None or current.owner != expected):
             reasons.append('vm_id_or_owner_conflict')
             continue
-        slots[item.kind] += 1
-        if not current or current.state == 'stopped':
+        # Only host-verified retained archives release compute/slots. Binding
+        # uniqueness above and storage/recovery promises below remain intact.
+        retained = current is not None and current.retirement_sha256 is not None
+        if not retained:
+            slots[item.kind] += 1
+        if retained:
+            pass
+        elif not current or current.state == 'stopped':
             allocated_memory = max(item.memory_mib, current.memory_mib if current else 0)
             memory += allocated_memory
             cpus += max(item.vcpus, current.vcpus if current else 0)
