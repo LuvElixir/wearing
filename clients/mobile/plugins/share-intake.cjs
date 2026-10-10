@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const plist = require('@expo/plist').default;
-const {withDangerousMod, withMainActivity} = require('@expo/config-plugins');
+const {withDangerousMod, withMainActivity, withXcodeProject} = require('@expo/config-plugins');
 const withSharing = require('expo-sharing/app.plugin').default;
 
 const APP_GROUP = 'group.io.luckyloading.wearing.mobile.share';
@@ -17,6 +17,7 @@ module.exports = function withPajioShareIntake(config) {
     // entitlement plumbing, replace the experimental auto-open controller.
     const target = path.join(mod.modRequest.platformProjectRoot, 'expo-sharing-extension');
     fs.copyFileSync(path.join(__dirname, '../extensions/share-intake/ShareIntoViewController.swift'), path.join(target, 'ShareIntoViewController.swift'));
+    fs.copyFileSync(path.join(__dirname, '../extensions/share-intake/PrivacyInfo.xcprivacy'), path.join(target, 'PrivacyInfo.xcprivacy'));
     const infoPath = path.join(target, 'Info.plist');
     const info = plist.parse(fs.readFileSync(infoPath, 'utf8'));
     info.CFBundleDisplayName = 'Pajio';
@@ -24,6 +25,12 @@ module.exports = function withPajioShareIntake(config) {
     fs.writeFileSync(infoPath, plist.build(info));
     return mod;
   }]);
+  // Register first so the official plugin creates the extension target before
+  // its required-reason manifest is added to that target's resources.
+  config = withXcodeProject(config, mod => {
+    addPrivacyResource(mod.modResults);
+    return mod;
+  });
   config = withSharing({...config, scheme: 'pajio'}, {
     ios: {enabled: true, appGroupId: APP_GROUP,
       extensionBundleIdentifier: `${config.ios.bundleIdentifier}.share`,
@@ -38,6 +45,38 @@ module.exports = function withPajioShareIntake(config) {
   });
 };
 module.exports.APP_GROUP = APP_GROUP;
+
+function addPrivacyResource(project) {
+  const targets = Object.entries(project.pbxNativeTargetSection()).filter(([key, value]) =>
+    !key.endsWith('_comment') && String(value.name).replaceAll('"', '') === 'expo-sharing-extension');
+  if (targets.length !== 1) throw new Error('Cannot locate the Pajio share extension privacy target.');
+  const [target, nativeTarget] = targets[0];
+  // Expo 57 labels every extension phase "Embed Foundation Extensions".
+  // xcode.pbxResourcesBuildPhaseObj searches the comment "Resources" and can
+  // silently fall back to the main app. Resolve by the target's phase UUIDs.
+  const phases = nativeTarget.buildPhases
+    .map(phase => project.hash.project.objects.PBXResourcesBuildPhase[phase.value])
+    .filter(Boolean);
+  if (phases.length !== 1) throw new Error('Cannot locate the Pajio share extension resource build phase.');
+  const resources = phases[0].files;
+  const resource = 'expo-sharing-extension/PrivacyInfo.xcprivacy';
+  if (!project.hasFile(resource)) {
+    // xcode.addResourceFile assumes a Resources group, absent in Expo 57's
+    // template. Use the explicit root file reference and target build phase.
+    const file = project.addFile(resource, project.getFirstProject().firstProject.mainGroup, {lastKnownFileType: 'text.xml'});
+    if (!file) throw new Error('Cannot add Pajio share extension privacy manifest.');
+    file.target = target;
+    file.uuid = project.generateUuid();
+    project.addToPbxBuildFileSection(file);
+    resources.push({value: file.uuid, comment: 'PrivacyInfo.xcprivacy in Resources'});
+  }
+  const refs = project.pbxFileReferenceSection();
+  const builds = project.pbxBuildFileSection();
+  if (!resources.some(file => String(refs[builds[file.value]?.fileRef]?.path).replaceAll('"', '') === resource)) {
+    throw new Error('Pajio share extension privacy manifest is not in its resource build phase.');
+  }
+}
+module.exports.addPrivacyResource = addPrivacyResource;
 
 function normalizeAndroidActivity(source) {
   if (source.includes('// pajio-share-text-stream-v1')) return source;

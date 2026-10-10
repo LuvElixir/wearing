@@ -6,6 +6,33 @@ const path = require('node:path');
 const plist = require('@expo/plist').default;
 const plugin = require('./share-intake.cjs');
 
+test('privacy resources bind by extension phase UUID, never the main Resources comment', () => {
+  const mainResources = {files: []};
+  const extensionResources = {files: []};
+  const refs = {};
+  const builds = {};
+  const project = {
+    hash: {project: {objects: {PBXResourcesBuildPhase: {mainResources, extensionResources}}}},
+    pbxNativeTargetSection: () => ({main: {name: 'Pajio', buildPhases: [{value: 'mainResources', comment: 'Resources'}]},
+      extension: {name: '"expo-sharing-extension"', buildPhases: [{value: 'extensionResources', comment: 'Embed Foundation Extensions'}]}}),
+    hasFile: resource => Object.values(refs).some(ref => ref.path === resource),
+    addFile: resource => {refs.manifest = {path: resource}; return {fileRef: 'manifest'};},
+    getFirstProject: () => ({firstProject: {mainGroup: 'root'}}),
+    generateUuid: () => 'privacyBuild',
+    addToPbxBuildFileSection: file => {builds[file.uuid] = {fileRef: file.fileRef};},
+    pbxFileReferenceSection: () => refs,
+    pbxBuildFileSection: () => builds,
+    addToPbxResourcesBuildPhase: () => {throw new Error('Ambiguous xcode helper must not be used');},
+  };
+  plugin.addPrivacyResource(project);
+  assert.equal(mainResources.files.length, 0);
+  assert.deepEqual(extensionResources.files, [{value: 'privacyBuild', comment: 'PrivacyInfo.xcprivacy in Resources'}]);
+  plugin.addPrivacyResource(project);
+  assert.equal(extensionResources.files.length, 1);
+  extensionResources.files.length = 0;
+  assert.throws(() => plugin.addPrivacyResource(project), /not in its resource build phase/);
+});
+
 test('official target generation is overridden after template copy, with only intake app-group', async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'pajio-share-plugin-'));
   try {
@@ -25,6 +52,12 @@ test('official target generation is overridden after template copy, with only in
     const entitlements = plist.parse(fs.readFileSync(path.join(target, 'expo-sharing-extension.entitlements'), 'utf8'));
     assert.deepEqual(Object.keys(entitlements), ['com.apple.security.application-groups']);
     assert.deepEqual(entitlements['com.apple.security.application-groups'], [plugin.APP_GROUP]);
+    const privacy = plist.parse(fs.readFileSync(path.join(target, 'PrivacyInfo.xcprivacy'), 'utf8'));
+    assert.equal(privacy.NSPrivacyTracking, false);
+    assert.deepEqual(privacy.NSPrivacyCollectedDataTypes, []);
+    assert.equal(privacy.NSPrivacyAccessedAPITypes.length, 1);
+    assert.equal(privacy.NSPrivacyAccessedAPITypes[0].NSPrivacyAccessedAPIType, 'NSPrivacyAccessedAPICategoryFileTimestamp');
+    assert.deepEqual(privacy.NSPrivacyAccessedAPITypes[0].NSPrivacyAccessedAPITypeReasons, ['C617.1', '3B52.1']);
   } finally {fs.rmSync(directory, {recursive: true, force: true});}
 });
 

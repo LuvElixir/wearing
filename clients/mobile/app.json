@@ -11,7 +11,14 @@
     ],
     "ios": {
       "bundleIdentifier": "io.luckyloading.wearing.mobile",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": false,
+          "NSExceptionDomains": {}
+        }
+      }
     },
     "android": {
       "package": "io.luckyloading.wearing.mobile",
