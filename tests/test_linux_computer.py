@@ -12,7 +12,8 @@ import pytest
 
 from wearing.desktop_input import DesktopFrames, DesktopApproval, action_hash
 from wearing.linux_computer import LinuxComputerBackend, LinuxComputerError, run_helper
-from wearing.linux_computer_helper import LinuxDesktop, Refused, geometry, key_chord, view_id
+from wearing.linux_computer_helper import (LinuxDesktop, Refused, geometry, key_chord,
+    view_id, text_input_command, accessible_input_text)
 
 
 class Node:
@@ -22,17 +23,22 @@ class Node:
         self.password, self.focused = password, focused
         self.childCount = len(self.children)
         self.enabled, self.showing = True, True
+        self.editable = role == 'entry'
+        self.caret = len(text)
+        self.selection = None
         self.invoked, self.values = [], []
         self.rect = (115, 225, 100, 30)
         self.nActions = 1 if role == 'button' else 0
     def getState(self):
-        states = {'enabled': self.enabled, 'showing': self.showing, 'focused': self.focused}
+        states = {'enabled': self.enabled, 'showing': self.showing, 'focused': self.focused, 'editable': self.editable}
         return SimpleNamespace(contains=lambda name: states.get(name, False))
     def getRole(self):return 'password' if self.password else self.role
     def getRoleName(self):return self.getRole()
     def getChildAtIndex(self, index):return self.children[index]
     def queryText(self):
-        return SimpleNamespace(characterCount=len(self.text), getText=lambda start, end: self.text[start:end])
+        return SimpleNamespace(characterCount=len(self.text), getText=lambda start, end: self.text[start:end],
+            caretOffset=self.caret, getNSelections=lambda: int(self.selection is not None),
+            getSelection=lambda _: self.selection)
     def queryComponent(self):return SimpleNamespace(getExtents=lambda _: self.rect)
     def queryAction(self):return self
     def getName(self, index):return 'click'
@@ -48,7 +54,7 @@ def desktop():
     class Application(list):
         def get_process_id(self):return 101
     atspi=SimpleNamespace(ROLE_FRAME='frame',ROLE_DIALOG='dialog',ROLE_WINDOW='window',ROLE_PASSWORD_TEXT='password',
-        STATE_DEFUNCT='defunct',STATE_SHOWING='showing',STATE_ENABLED='enabled',STATE_FOCUSED='focused',DESKTOP_COORDS=0,
+        STATE_DEFUNCT='defunct',STATE_SHOWING='showing',STATE_ENABLED='enabled',STATE_FOCUSED='focused',STATE_EDITABLE='editable',DESKTOP_COORDS=0,
         Registry=SimpleNamespace(getDesktop=lambda _:[Application([root])]))
     calls=[];state={'active':32,'geometry':'  Absolute upper-left X: 100\n  Absolute upper-left Y: 200\n  Width: 800\n  Height: 600\n','windows':'0x20'}
     png=b'\x89PNG\r\n\x1a\n'+b'\0\0\0\rIHDR'+struct.pack('>II',800,600)
@@ -64,6 +70,26 @@ def desktop():
         if argv[1]=='getwindowname':return 'Notebook'
         if argv[1]=='getactivewindow':return str(state['active'])
         if argv[1]=='getdisplaygeometry':return '1280 1024'
+        if argv[1]=='key' and argv[-1]=='ctrl+a':
+            if not state.get('ignore_select'):field.selection=(0,len(field.text))
+            if state.get('lose_focus_after_select'):field.focused=False
+            if state.get('password_after_select'):field.password=True
+            if state.get('move_after_select'):state['active']=33
+            if state.get('change_after_select'):field.text='changed elsewhere'
+        if argv[1] in ('type','key') and (argv[1]=='type' or argv[-1]=='BackSpace'):
+            if state.get('ignore_type'):return ''
+            start,end=field.selection or (field.caret,field.caret)
+            incoming=kwargs.get('stdin','')
+            if state.get('partial_type'):incoming=incoming[:-1]
+            field.text=field.text[:start]+incoming+field.text[end:]
+            field.caret=start+len(incoming);field.selection=None
+            if state.get('insert_sibling_after_type'):
+                root.children.insert(0,Node('Suggestion',role='text'))
+                root.childCount=len(root.children)
+            if state.get('replace_field_after_type'):
+                root.children[0]=Node('Notes','entry',text=field.text,focused=True)
+            if state.get('duplicate_field_after_type'):
+                root.children.append(field);root.childCount=len(root.children)
         return ''
     host=LinuxDesktop(native=native,atspi=atspi)
     return SimpleNamespace(host=host,button=button,field=field,root=root,calls=calls,state=state,png=png)
@@ -121,22 +147,24 @@ def test_sensitive_focus_is_handoff_and_unfocused_field_is_redacted(desktop):
         desktop.host.act(action(frame,action='set_value',element=1,value='password'))
 
 
-def test_native_click_and_edit_are_atspi_not_coordinate_guesses(desktop):
+def test_native_click_is_atspi_and_replace_is_once_verified_keyboard(desktop):
     frame,_=desktop.host.snapshot({'app':'Notebook'})
     assert desktop.host.act(action(frame,action='click',element=2))['ok']
     assert desktop.button.invoked==[0]
     assert desktop.host.act(action(frame,action='set_value',element=1,value='new note'))['ok']
-    assert desktop.field.values==['new note']
-    assert not any(args[1] in ('click','mousemove','type') for args,_ in desktop.calls if args[0]=='xdotool')
+    assert desktop.field.values==[] and desktop.field.text=='new note'
+    inputs=[(args,kw) for args,kw in desktop.calls if args[0]=='xdotool' and args[1] in ('key','type')]
+    assert [args[1] for args,_ in inputs]==['key','type']
+    assert inputs[0][0][-1]=='ctrl+a' and inputs[1][1]['stdin']=='new note'
 
 
 def test_typed_content_is_stdin_only_and_result_never_echoes_it(desktop):
     frame,_=desktop.host.snapshot({'app':'Notebook'})
     secret='private phrase --window 9 $(do-not-execute)'
     result=desktop.host.act(action(frame,action='type',text=secret))
-    argv,options=desktop.calls[-1]
-    assert argv==['xdotool','type','--clearmodifiers','--delay','0','--file','-']
-    assert options=={'stdin':secret} and secret not in json.dumps(result)
+    argv,options=next((a,k) for a,k in desktop.calls if a[:2]==['xdotool','type'])
+    assert argv==['xdotool','type','--clearmodifiers','--delay','30','--file','-']
+    assert options=={'stdin':secret,'timeout':10} and secret not in json.dumps(result)
 
 
 @pytest.mark.parametrize('value',['ctrl+a mousemove 1 1','--window','Return\nexec','ctrl++a','$(whoami)','F25'])
@@ -242,3 +270,83 @@ def test_timeout_reaps_helper_and_its_native_child(tmp_path):
     import time
     time.sleep(.8)
     assert not marker.exists()
+
+@pytest.mark.parametrize('change',['ignore_select','lose_focus_after_select','password_after_select','move_after_select','change_after_select'])
+def test_replace_never_types_after_unverified_selection_or_target_change(desktop,change):
+    frame,_=desktop.host.snapshot({'app':'Notebook'})
+    desktop.state[change]=True
+    with pytest.raises(Refused):desktop.host.act(action(frame,action='set_value',element=1,value='next'))
+    assert not any(a[:2]==['xdotool','type'] for a,_ in desktop.calls)
+    assert desktop.field.values==[]
+
+
+@pytest.mark.parametrize('action_name',['type','set_value'])
+@pytest.mark.parametrize('mode',['ignore_type','partial_type'])
+def test_text_noop_or_partial_submission_is_unknown_without_replay(desktop,action_name,mode):
+    frame,_=desktop.host.snapshot({'app':'Notebook'});desktop.state[mode]=True
+    args={'action':action_name,('value' if action_name=='set_value' else 'text'):'中文 new'}
+    if action_name=='set_value':args['element']=1
+    with pytest.raises(Refused,match='outcome_unverified_no_replay'):
+        desktop.host.act(action(frame,**args))
+    assert sum(a[:2]==['xdotool','type'] for a,_ in desktop.calls)==1
+    assert desktop.field.values==[]
+
+
+@pytest.mark.parametrize('text',['x'*257,'line1\nline2','tab\tvalue','\x00','\ud800',None])
+def test_replace_rejects_oversized_or_control_input_before_selection(desktop,text):
+    frame,_=desktop.host.snapshot({'app':'Notebook'})
+    with pytest.raises(Refused,match='invalid_or_oversized_text'):
+        desktop.host.act(action(frame,action='set_value',element=1,value=text))
+    assert not any(a[0]=='xdotool' and a[1] in ('type','key') for a,_ in desktop.calls)
+
+
+def test_replace_empty_and_long_unicode_are_verified_without_atspi_setter(desktop):
+    text=('中文é🙂，AZ42'*30)[:256]
+    frame,_=desktop.host.snapshot({'app':'Notebook'})
+    assert desktop.host.act(action(frame,action='set_value',element=1,value=text))['ok']
+    assert desktop.field.text==text
+    frame,_=desktop.host.snapshot({'app':'Notebook'})
+    assert desktop.host.act(action(frame,action='set_value',element=1,value=''))['ok']
+    assert desktop.field.text=='' and desktop.field.values==[]
+
+
+@pytest.mark.parametrize('field_change',['focused','editable'])
+def test_noneditable_or_unfocused_target_gets_no_keyboard_input(desktop,field_change):
+    setattr(desktop.field,field_change,False)
+    frame,_=desktop.host.snapshot({'app':'Notebook'})
+    with pytest.raises(Refused):desktop.host.act(action(frame,action='set_value',element=1,value='next'))
+    assert not any(a[0]=='xdotool' and a[1] in ('type','key') for a,_ in desktop.calls)
+
+
+def test_caret_and_selection_are_part_of_observed_authority(desktop):
+    frame,_=desktop.host.snapshot({'app':'Notebook'})
+    desktop.field.caret=0
+    with pytest.raises(Refused,match='view_changed'):
+        desktop.host.act(action(frame,action='type',text='next'))
+    assert not any(a[:2]==['xdotool','type'] for a,_ in desktop.calls)
+
+
+def test_firefox_expected_projection_preserves_literal_bom():
+    text='🙂\ufeff中é'
+    assert accessible_input_text(text,'firefox')=='🙂\ufeff\ufeff中é'
+    assert accessible_input_text(text,'Notebook')==text
+    assert text_input_command('中'*32)==['xdotool','type','--clearmodifiers','--delay','30','--file','-']
+    with pytest.raises(Refused):text_input_command('中'*33)
+    assert text_input_command('中'*256,maximum=256)
+
+
+def test_text_readback_tracks_same_accessible_node_across_inserted_siblings(desktop):
+    frame,_=desktop.host.snapshot({'app':'Notebook'})
+    desktop.state['insert_sibling_after_type']=True
+    result=desktop.host.act(action(frame,action='set_value',element=1,value='https://example.com/'))
+    assert result['ok'] and desktop.field.text=='https://example.com/'
+    assert len([a for a,k in desktop.calls if a[:2]==['xdotool','type']])==1
+
+
+@pytest.mark.parametrize('change',['replace_field_after_type','duplicate_field_after_type'])
+def test_text_readback_refuses_replaced_or_ambiguous_accessible_identity(desktop,change):
+    frame,_=desktop.host.snapshot({'app':'Notebook'})
+    desktop.state[change]=True
+    with pytest.raises(Refused,match='linux_text_outcome_unverified_no_replay'):
+        desktop.host.act(action(frame,action='set_value',element=1,value='https://example.com/'))
+    assert len([a for a,k in desktop.calls if a[:2]==['xdotool','type']])==1

@@ -21,6 +21,17 @@ export function remoteViewerDocument(transport: RemoteTransport, kind: 'computer
   let seq=0, gesture=null, capabilities={}, heartbeat, watch, stats, pending=new Map(), latestMove=0;
   const post = value => {if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(value));};
   const scope = () => ({session_id:config.session_id,epoch:config.epoch,gateway_epoch:config.gateway_epoch});
+  // Deliberately inline for Hermes; tests cover parity with the native boundary.
+  function textIssue(text) {
+    if(capabilities.text!=='unicode')return 'text_unavailable';
+    const limit=(value,fallback)=>Number.isSafeInteger(value)&&value>0?Math.min(value,4096):fallback;
+    const points=Array.from(text);
+    if(points.some(point=>{const value=point.codePointAt(0);return value>=0xd800&&value<=0xdfff;}))return 'text_invalid';
+    if(capabilities.text_disallow_controls===true&&/[\\u0000-\\u001f\\u007f]/.test(text))return 'text_invalid';
+    if(points.length>limit(capabilities.text_max_chars,config.device_kind==='android'?4096:32))return 'text_too_long';
+    if(new TextEncoder().encode(text).length>limit(capabilities.text_max_bytes,4096))return 'text_too_large';
+    return null;
+  }
   function stop(reason) {
     if(stopped)return; stopped=true; frozen=true; gesture=null; shade.style.display='block';
     clearInterval(heartbeat);clearInterval(watch);clearInterval(stats);pending.clear();
@@ -89,9 +100,7 @@ export function remoteViewerDocument(transport: RemoteTransport, kind: 'computer
     }
     if(message.type==='key'&&typeof message.key==='string'&&message.key.length<=32){input('key',{key:message.key,phase:'down'});input('key',{key:message.key,phase:'up'});return;}
     if(message.type==='text'&&typeof message.text==='string'){
-      if(capabilities.text!=='unicode'){post({type:'notice',code:'text_unavailable'});return;}
-      if(new TextEncoder().encode(message.text).length>4096){post({type:'notice',code:'text_too_large'});return;}
-      if(capabilities.text==='ascii'&&(!/^[\\x20-\\x7e]*$/.test(message.text)||message.text.includes('%'))){post({type:'notice',code:'ascii_only'});return;}
+      const issue=textIssue(message.text);if(issue){post({type:'notice',code:issue});return;}
       input('text',{text:message.text});
     }
   };

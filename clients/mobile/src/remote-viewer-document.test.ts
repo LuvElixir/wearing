@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runInNewContext} from 'node:vm';
 import {remoteViewerDocument} from './remote-viewer-document';
+import {remoteTextIssue, type RemoteTextCapabilities} from './remote-text-input';
 
 type Message = Record<string, unknown>;
 type Handler = (value?: unknown) => void;
@@ -34,7 +35,7 @@ async function harness(pointer = false) {
   channel.onopen();
   const fromHost = (value: Message) => channel.onmessage({data: JSON.stringify(value)});
   const scope = {session_id: 'human_one', epoch: 3, gateway_epoch: 7};
-  const ready = (text = pointer ? 'unicode' : 'ascii') => fromHost({type: 'ready', ...scope, capabilities: {pointer, keyboard: true, text, touch: true}});
+  const ready = (text = pointer ? 'unicode' : 'ascii', limits: Message = {}) => fromHost({type: 'ready', ...scope, capabilities: {pointer, keyboard: true, text, touch: true, ...limits}});
   const frame = (values: Message = {}) => {
     fromHost({type: 'frame', frame_id: 'frame_a', width: 1080, height: 1920, gateway_epoch: 7, ...values});
     events.loadeddata(); frameCallback?.();
@@ -94,5 +95,46 @@ test('legacy adb ASCII and unavailable text capabilities cannot receive private 
     assert.equal(h.inputs().length, 0);
     assert.equal(h.posted.at(-1)?.code, 'text_unavailable');
     assert.equal(JSON.stringify(h.posted).includes('Private123'), false);
+  }
+});
+test('actual viewer enforces the same negotiated code-point and byte limits before data-channel transmission', async () => {
+  const cases: {text: string; limits: RemoteTextCapabilities}[] = [
+    {text: '😀'.repeat(64), limits: {text_max_chars: 64, text_max_bytes: 4096}},
+    {text: '😀'.repeat(65), limits: {text_max_chars: 64, text_max_bytes: 4096}},
+    {text: 'e\u0301'.repeat(33), limits: {text_max_chars: 64, text_max_bytes: 4096}},
+    {text: '😀'.repeat(1024), limits: {text_max_chars: 4096, text_max_bytes: 4096}},
+    {text: '😀'.repeat(1025), limits: {text_max_chars: 4096, text_max_bytes: 4096}},
+    {text: '中a', limits: {text_max_chars: 64, text_max_bytes: 3}},
+    {text: 'private\ud800text', limits: {text_max_chars: 4096, text_max_bytes: 4096}},
+    {text: 'private\nline', limits: {text_max_chars: 32, text_disallow_controls: true}},
+    {text: 'private\nline', limits: {text_max_chars: 4096}},
+    {text: 'private\u007fline', limits: {text_disallow_controls: true}},
+    {text: '😀'.repeat(32), limits: {}},
+    {text: '😀'.repeat(33), limits: {}},
+    {text: 'x'.repeat(65), limits: {text_max_chars: -1}},
+  ];
+  for (const sample of cases) {
+    const h = await harness(true); h.ready('unicode', sample.limits); h.frame(); await h.native({type: 'control', enabled: true});
+    const issue = remoteTextIssue(sample.text, {text: 'unicode', ...sample.limits});
+    await h.native({type: 'text', text: sample.text});
+    if (issue) {
+      assert.equal(h.inputs().length, 0); assert.equal(h.posted.at(-1)?.code, issue);
+      assert.equal(JSON.stringify(h.posted).includes(sample.text), false);
+      h.frame(); h.heartbeat(); assert.equal(h.inputs().length, 0); // no delayed segmentation/replay
+    } else {
+      assert.equal(h.inputs().length, 1); assert.equal(h.inputs()[0].text, sample.text);
+    }
+  }
+});
+test('actual viewer preserves old Android limits using trusted native configuration, not host-controlled kind', async () => {
+  for (const pointer of [false, true]) {
+    for (const text of ['x'.repeat(33), 'x'.repeat(4096), '😀'.repeat(1024), '😀'.repeat(1025)]) {
+      const h = await harness(pointer); h.ready('unicode', {device_kind: pointer ? 'android' : 'computer'}); h.frame(); await h.native({type: 'control', enabled: true});
+      const issue = remoteTextIssue(text, {text: 'unicode'}, pointer ? 'computer' : 'android');
+      await h.native({type: 'text', text});
+      assert.equal(h.inputs().length, issue ? 0 : 1);
+      if (issue) assert.equal(h.posted.at(-1)?.code, issue);
+      else assert.equal(h.inputs()[0].text, text);
+    }
   }
 });

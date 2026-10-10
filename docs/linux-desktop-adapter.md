@@ -90,11 +90,31 @@ password fields have their accessible label and value redacted. This detects
 standard accessible password roles; it is not a generic detector for every
 custom-drawn sensitive screen or a password-manager implementation.
 
-Clicks use the selected node's AT-SPI action. Edits use EditableText. Keyboard
-input uses XTEST on the verified foreground, because many apps discard
-XSendEvent. Scroll moves the pointer to the captured window center before sending
-the bounded wheel event. Actions report native submission; only the next observed
-application state establishes the result. No automatic input retry is performed.
+Clicks use the selected node's AT-SPI action. `set_value` and `type` require a
+focused, enabled, readable editable field from the current capture. `set_value`
+selects all once, verifies the complete selection without changing focus, then
+submits one replacement through XTEST; it never trusts an EditableText success
+flag as proof that an application changed its value. `type` preserves the
+observed caret/selection and inserts once. Both require an exact subsequent field
+read to report success. Firefox's documented non-BMP-to-ATK projection is applied
+to the expected value only, preserving intentional U+FEFF characters.
+
+Ordinary Agent text input allows at most **256 Unicode code points** per action,
+with a fixed 30 ms XTEST delay. C0 control characters (including newline/tab), DEL,
+and lone surrogates are rejected before input. Empty `set_value` clears the field;
+empty `type` is rejected. This is single-line text entry, not a multiline paste:
+a newline never becomes an implicit Return that could submit a form. The
+separate explicit `key` action retains its one-action approval contract.
+
+Text is sent through stdin, without the clipboard or command-line content. A
+partial, unreadable, changed-focus or failed submission returns
+`linux_text_outcome_unverified_no_replay`; it never retries, appends missing
+characters, or restores an earlier value. The helper's 18-second process-group
+limit remains the final deadline. Private human media input uses the same bounded
+XTEST command builder with its own smaller limit and does **not** read back
+password text. Scroll moves the pointer to the captured window center before
+sending the bounded wheel event. Click/key/scroll results still prove submission;
+subsequent observation establishes their effect.
 
 ## User service lifecycle
 
@@ -174,10 +194,16 @@ The UID comes from the provisioned account, not from a tenant-supplied request.
 `linux-native-probe.html` and `probe-linux-native.py` are synthetic host acceptance
 fixtures, not product screens. Open the local fixture in the dedicated Firefox
 window, then run the probe as the desktop user with the above environment and a
-private `--output` directory. It refuses other window titles and exercises native
-read/edit/keyboard/click/scroll through the real helper. Its local one-use callback
-is limited to this provisioning test and does not establish end-to-end relay
-approval, ownership, or private-media acceptance.
+private `--output` directory, the installed connector's `--resource-id`, and
+`--data` (default `~/.pajio`). It validates the persisted connector ID and takes
+DeviceGateway's permit/native lock for **each** dispatch; do not put an outer
+native lock around the probe process. It refuses other window titles and
+exercises exact Unicode field replacement/insertion, an incrementing Save
+counter, and scroll pixels plus accessibility geometry. Read observations may
+poll briefly; input is never replayed. Its local one-use callback is limited to
+this provisioning test and does not establish end-to-end relay approval or
+private-media acceptance. The fixture does not persist its text/counter, so this
+probe explicitly does not claim browser-profile or restart persistence.
 
 ## Acceptance evidence
 

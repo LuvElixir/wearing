@@ -11,10 +11,11 @@ import {IconButton, PrimaryButton, TactilePressable} from './experience/primitiv
 import {serviceFetch} from './transport';
 import {canStream, deviceIdentifier, RemoteDeviceApi, remoteStatusCopy, type RemoteAccess, type RemoteTransport} from './remote-device-model';
 import {remoteViewerDocument} from './remote-viewer-document';
+import {remoteTextIssue, remoteTextLimits, remoteTextNotice, type RemoteTextCapabilities} from './remote-text-input';
 
 type Props = {connection: Connection; resource: string; name: string; kind: 'computer' | 'android'; onBack: () => void};
 type Viewer = {access: RemoteAccess; transport: RemoteTransport; attempt: number};
-type Capabilities = {text?: 'ascii' | 'unicode' | 'unavailable'; keyboard?: boolean; touch?: boolean; pointer?: boolean; scroll?: boolean};
+type Capabilities = RemoteTextCapabilities & {keyboard?: boolean; touch?: boolean; pointer?: boolean; scroll?: boolean};
 const messageOf = (error: unknown) => error instanceof Error ? error.message : '这次连接没有完成，请重新检查设备。';
 const pauseCopy: Record<string, string> = {
   background: '你已离开接管页面，输入与画面已停止。设备保持暂停。',
@@ -26,8 +27,6 @@ const pauseCopy: Record<string, string> = {
 };
 const noticeCopy: Record<string, string> = {
   ascii_only: '这台云手机当前只支持英文、数字和常用符号输入，不支持中文或 %。',
-  text_unavailable: '此设备的私密输入尚未就绪，暂时不能从 App 发送文字。',
-  text_too_large: '一次最多发送 4 KB 文字，请缩短后再试。',
   frame_not_ready: '正在等待新画面，本次操作未发送。',
 };
 const sameSession = (a: RemoteAccess, b: RemoteAccess) => a.session_id === b.session_id && a.epoch === b.epoch;
@@ -184,7 +183,13 @@ export function NativeRemoteDevicePanel({connection, resource, name, kind, onBac
       if (value.capabilities && typeof value.capabilities === 'object') setCapabilities(value.capabilities as Capabilities);
     } else if (value.type === 'control') {setControlling(value.enabled === true); setNotice(value.enabled === true ? '你可以直接触控设备。结束后明确交还，Pajio 才会继续。' : '当前只查看画面。点“开始操作”后，可直接触控设备。');}
     else if (value.type === 'quality' && typeof value.rtt_ms === 'number' && Number.isFinite(value.rtt_ms)) setRtt(Math.max(0, Math.round(value.rtt_ms)));
-    else if (value.type === 'notice') setError(noticeCopy[String(value.code)] || '设备拒绝了这次操作，操作不会自动重试。请检查画面后再操作。');
+    else if (value.type === 'notice') setError(remoteTextNotice(String(value.code), capabilities, kind) || noticeCopy[String(value.code)] || '设备拒绝了这次操作，操作不会自动重试。请检查画面后再操作。');
+  }
+  function submitText() {
+    if (!alive.current || !foreground.current || !viewing.current || !controlling || !capabilities.keyboard || !text) return;
+    const issue = remoteTextIssue(text, capabilities, kind);
+    if (issue) {setError(remoteTextNotice(issue, capabilities, kind)!); return;}
+    const draft = text; setText(''); setError(''); send({type: 'text', text: draft});
   }
   const html = useMemo(() => viewer ? remoteViewerDocument(viewer.transport, kind, viewer.access.expires_at!) : '', [viewer, kind]);
   const baseUrl = new URL('/remote-viewer-native', connectionEndpoint(connection)).toString();
@@ -220,9 +225,9 @@ export function NativeRemoteDevicePanel({connection, resource, name, kind, onBac
         {controlling && <View style={styles.keyRow}>{keys.map(([key, label]) => <TactilePressable key={key} accessibilityLabel={`远程${label}`} style={styles.key} onPress={() => send({type: 'key', key})}><Text style={styles.keyText}>{label}</Text></TactilePressable>)}</View>}
         {controlling && capabilities.text !== 'unicode' && <Text style={styles.caption}>此设备的私密输入尚未就绪，暂时不能从 App 发送文字。</Text>}
         {keyboard && controlling && capabilities.text === 'unicode' && <View style={styles.keyboard}>
-          <Text style={styles.caption}>发送到远程当前输入框，发送后立即清空。</Text>
-          <View style={styles.row}><TextInput accessibilityLabel="发送到远程输入框的文字" style={styles.input} value={text} onChangeText={setText} secureTextEntry autoCapitalize="none" autoCorrect={false} textContentType="none" autoComplete="off" maxLength={4096} onSubmitEditing={() => {const draft = text; setText(''); if (draft) send({type: 'text', text: draft});}}/>
-            <PrimaryButton label="输入" disabled={!text} onPress={() => {const draft = text; setText(''); send({type: 'text', text: draft});}}/></View>
+          <Text style={styles.caption}>每次最多 {remoteTextLimits(capabilities, kind).chars} 个字符。发送到远程当前输入框，发送后立即清空。</Text>
+          <View style={styles.row}><TextInput accessibilityLabel="发送到远程输入框的文字" style={styles.input} value={text} onChangeText={setText} secureTextEntry autoCapitalize="none" autoCorrect={false} textContentType="none" autoComplete="off" onSubmitEditing={submitText}/>
+            <PrimaryButton label="输入" disabled={!text} onPress={submitText}/></View>
           <View style={styles.keyRow}>{[['Backspace', '删除'], ['Enter', '回车']].map(([key, label]) => <TactilePressable key={key} accessibilityLabel={`远程${label}`} style={styles.key} onPress={() => send({type: 'key', key})}><Text style={styles.keyText}>{label}</Text></TactilePressable>)}</View>
         </View>}
         {confirmReturn && <View style={styles.confirmation}><Text style={styles.title}>确认交还</Text><Text style={styles.caption}>设备确认后，Pajio 会恢复读取与操作。</Text>

@@ -48,7 +48,7 @@ test('failed persistence sends nothing, account cleanup fences prevent late rest
   assert.equal(await read(store),null);assert.equal(await store.get(reminderCacheKey(scope,target)),null);
 });
 test('transport freezes account and identity, no owner/URL accepted from payload',async()=>{
-  const c:Connection={...connection,session:{userId:'user_'+'a'.repeat(32),tenantId:'tenant_a',credentialId:'c'.repeat(32),accessToken:'s'.repeat(64),expiresAt:'2026-10-10T00:00:00Z'}};
+  const c:Connection={...connection,session:{userId:'user_'+'a'.repeat(32),tenantId:'tenant_a',credentialId:'c'.repeat(32),accessToken:'s'.repeat(64),expiresAt:new Date(Date.now()+3_600_000).toISOString()}};
   const h=client([()=>json(bootstrap),()=>json(result)],c);c.identity='other';c.session!.accessToken='later';await h.api.save(target,request);
   assert.equal(h.calls[1].headers.get('authorization'),'Bearer '+'s'.repeat(64));assert.equal(h.calls[1].headers.get('X-Wearing-Identity'),identity);assert.deepEqual(h.calls[1].body,request);
 });

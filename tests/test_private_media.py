@@ -97,7 +97,7 @@ def test_text_is_not_placed_in_subprocess_argv_or_error(monkeypatch):
         calls.append((args,kw))
         return b''
     monkeypatch.setattr('wearing.private_media_sources._run',run)
-    secret = "password with ' quote $dollar `tick`"
+    secret = "p' $dollar `tick` 中文"
     X11Source().apply({'action':'text','text':secret})
     with pytest.raises(SourceError, match='android_private_input_unavailable'):
         AndroidScreencapSource(serial='synthetic').apply({'action':'text','text':secret})
@@ -107,6 +107,56 @@ def test_text_is_not_placed_in_subprocess_argv_or_error(monkeypatch):
     with pytest.raises(SourceError,match='android_private_input_unavailable') as error:
         AndroidScreencapSource(serial='synthetic').apply({'action':'text','text':'private%中文'})
     assert 'private%' not in str(error.value)
+
+
+def test_x11_text_uses_shared_unicode_cadence_and_codepoint_limit(monkeypatch):
+    from wearing.linux_computer_helper import text_input_command
+    calls = []
+    monkeypatch.setattr('wearing.private_media_sources._run',
+                        lambda args, **kwargs: calls.append((args, kwargs)))
+    # Astral characters count once, matching Array.from in the native viewer.
+    text = '😊' * 32
+    source = X11Source(xdotool='/reviewed/xdotool')
+    source.apply({'action':'text', 'text':text})
+    assert len(calls) == 1
+    argv, options = calls[0]
+    assert argv == text_input_command(text, maximum=32, xdotool='/reviewed/xdotool')
+    assert argv[argv.index('--delay') + 1] == '30'
+    assert options['stdin'] == text.encode('utf-8')
+    assert all(text not in part for part in argv)
+
+
+@pytest.mark.parametrize(('text', 'code'), [
+    ('中' * 33, 'text_too_long'), ('😊' * 33, 'text_too_long'),
+    ('', 'text_invalid'), ('private\nmarker', 'text_invalid'),
+    ('private\x00marker', 'text_invalid'), ('private\ud800marker', 'text_invalid'),
+])
+def test_x11_text_rejects_entire_request_before_any_native_input(monkeypatch, text, code):
+    calls = []
+    monkeypatch.setattr('wearing.private_media_sources._run',
+                        lambda *args, **kwargs: calls.append((args, kwargs)))
+    with pytest.raises(SourceError, match='^' + code + '$'):
+        X11Source().apply({'action':'text', 'text':text})
+    assert calls == []
+
+
+def test_ready_advertises_limits_and_android_keeps_original_byte_budget(gate, tmp_path):
+    from wearing.private_media_android import AndroidScrcpySource
+    source = X11Source()
+    sent = []
+    session = PrivateSession(gate, SCOPE, 'session_test', 3, 1, source, None)
+    session.channel = SimpleNamespace(readyState='open', bufferedAmount=0,
+                                      send=lambda raw: sent.append(json.loads(raw)))
+    session.ready()
+    assert sent[0]['capabilities']['text'] == 'unicode'
+    assert sent[0]['capabilities']['text_max_chars'] == 32
+    assert sent[0]['capabilities']['text_max_bytes'] == 4096
+    assert sent[0]['capabilities']['text_disallow_controls'] is True
+    android = AndroidScrcpySource(serial='synthetic', server=tmp_path/'unused', unicode_ime=True)
+    assert android.capabilities['text'] == 'unicode'
+    assert android.capabilities['text_max_chars'] == 4096
+    assert android.capabilities['text_max_bytes'] == 4096
+    assert 'text_disallow_controls' not in android.capabilities
 
 
 @pytest.mark.asyncio

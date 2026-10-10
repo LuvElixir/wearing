@@ -75,18 +75,39 @@ B Linux1211 与 Android1212 从已核对的空白 Ubuntu 模板创建，未克�
 - A1111/1112 与 B1211/1212 四台执行设备分别在服务暂停后备份配置、账号/状态；原服务精确恢复，加密后完整解密比对哈希，并复制到独立腾讯云广州主机再次核对。B 的 run 为 `b-desktop-20261010T043441-36802856aae4` 与 `b-android-20261010T043601-84650439a58d`。Android 初始报告保留 `backup_bindings_changed`，另存严格核对证明仅 connector.connection_id 在重连后改变，其他字段和 owner/machine/artifact 均一致；复用同一 135,185,913 B 归档，未再次停启。只有本次 guest 临时明文被删除，恢复索引和密钥分开保存。不是新加坡主机，也不是完整 VM 异机恢复演练。
 - B 备份恢复和最终核心更新后重新建立公网 TURN 接管：Linux 1280×800 首帧 0.918 秒、17 帧；Android 720×1280 首帧 1.233 秒、26 帧，Home 输入 ACK。两设备从旧连接未确认状态，经真实接管和明确双确认交还，均返回 `agent_ready / device_confirmed=true`；旧 offer 均 409。未保存画面、SDP 或输入内容，也未新增模型调用。
 - 四设备最终检查发现 A 组早前备份后仍缺新连接确认，保留第一次总检查失败记录。A 随后也以同样流程补验：Linux 首帧 1.165 秒、17 帧；Android 首帧 1.501 秒、27 帧及 Home ACK。两台均取得新接管、双确认交还后的设备确认，旧 offer 409；未直接修改控制状态或放宽门禁。以上首帧数字自 offer 测量起算，与包含鉴权/ICE 的早期 11.726 秒测试起点不同，不能用于宣称延迟提升。
-- 每日 05:30 的 VM 归档现覆盖 1100/1101/1102/1111/1112/1211/1212 共 7 台 VM，新增两台的备份前检查已实际通过；有磁盘上界检查与 16 GiB 宿主剩余空间保护。备份目录 0700、归档 0600；首次计划执行时间尚未经过。
+- 每日 05:30 的 VM 归档现覆盖 1100/1101/1102/1111/1112/1211/1212 共 7 台 VM，新增两台的备份前检查已实际通过；有磁盘上界检查与 16 GiB 宿主剩余空间保护。备份目录 0700、归档 0600。首次计划运行已于 2026-10-10 05:30:03–06:47:16 成功完成，Proxmox 任务为 OK，7 台 VM 各有成功日志及非空归档；这批计划归档尚未逐台做恢复演练。
 - 两分钟一次的固定服务与 OIDC TLS 观察已扩展至上述 7 台 VM，首次全范围检查健康；只记录元数据，不调用模型、不采集画面。失败、漏采、时钟倒退、监控设备范围变化均重置连续窗口。48 小时尚未经过。
 - 最终独立总检查 `final-handoff-proof.json`：A/B 核心各 3 次公网状态均 200/Hermes reachable，当前无运行/排队/启动中的模型任务；四设备均 supported、agent_ready、device_confirmed=true；7 台 VM 服务全部健康。该时点基础设施连续记录为 1,726 秒，不能算作 48 小时稳定性通过。
 
 ## 构建与测试
 
 - 全仓 Python 最终回归：2,011 passed、31 skipped、3 warnings，243.49 秒；跳过项未记作通过。之后 Linux 安装依赖、Node 官方归档兼容与交付就绪检查补验，生命周期定向套件 183 项通过。
-- App：768 tests，TypeScript、ESLint；Release iOS 模拟器构建与签名验证。303 个 App 源文件哈希与候选构建匹配。
+- 前一交付检查点 App：768 tests，TypeScript、ESLint；Release iOS 模拟器构建与签名验证。303 个 App 源文件哈希与候选构建匹配。
 - Android：arm64 测试 APK，Release 构建但使用测试签名，16 KB 对齐与签名检查通过。SHA256：`bf842764cbfab65b239ccc15bf758ebcdd78a43d6eca91310327b95ac8d8f943`。尚未安装到物理 Android 验收；不能称正式发行包。
 - 手工配对 API 原先遗漏启用配置版本，现统一为私有 `schema_version=1`；真实 API→配置→工具开关回归，含授权、CSRF、身份隔离与幂等重试。最终相关设备回归 51 项通过。
 - 独立审查修复了 enrollment 重启竞态、可预测上传目录权限、中断安装半成品、venv 缺 pip 中间态，以及 Android 内部桥误伤 QGA 主网卡校验。
 
 ## 仍需真实外部条件
 
-Apple Developer/TestFlight 资格与物理 iPhone 安装、物理 Android 安装、国内第三方 App 登录兼容性、长期运行与并发负载；Firefox 首次条款由实际使用者完成。注册与资源创建目前由 operator 控制，公众自助注册自动供应未启用，不直接暴露 Proxmox。自动空闲关机和设备按时计费未启用，自动证书轮换尚未实现；当前设备叶证书剩余约 89 天。上述工程项不能与外部资质或真机验收混为一类。
+Apple Developer/TestFlight 资格与物理 iPhone 安装、物理 Android 安装、国内第三方 App 登录兼容性、长期运行与并发负载；A 专用 Firefox 首次条款已按用户本次明确授权完成；B 及后续使用者仍自行确认。注册与资源创建目前由 operator 控制，公众自助注册自动供应未启用，不直接暴露 Proxmox。自动空闲关机和设备按时计费未启用，自动证书轮换尚未实现；当前设备叶证书剩余约 89 天。上述工程项不能与外部资质或真机验收混为一类。
+
+## 浏览器输入补验与修复（2026-10-10 后续）
+
+用户明确同意 A 的 Firefox 首启条款后，完成真实界面确认，关闭可选遥测与自动崩溃报告。普通浏览器发现并修复 AT-SPI 假成功、零延迟中文丢字，以及地址栏建议改变 AX 索引造成的误报。A/B Linux 两个宿主已窄更新，未重启核心、连接器或 VM；详细失败记录、准确 Unicode 验证、HTTPS 与书签重启保留见 [Linux 浏览器证据](linux-desktop-native-2026-10-10.md)。
+
+App 输入增加宿主能力长度、UTF-8 字节及控制字符预检。超长/非法文本整体拒绝并保留未发送草稿，不截断、分段或重放；新 Linux 每次最多 32 码点，旧 Android 维持既有 4096 字节能力，不为本次修复重启云手机。代码针对性回归 176 项，App 全量 779 项，类型检查与直接源码 ESLint 通过。`expo lint` 启动器遇到本机 npx ESM 配置错误，改由相同本地 ESLint 执行源码检查，未修改全局 npm。两项 App 合成会话测试的固定到期日期已经过期，改为相对当前时间的有效测试凭据。
+
+新包保存在 `Downloads/Pajio-test-20261010/`，原包保留：
+
+- `Pajio-0.2.0-20261010-browser-input-fix-arm64-test.apk`，SHA-256 `0c93d1fe35bdf2d39eb229439a53ae9bb8a397747473899d12b219b24373d55e`，仅 arm64、Debug 测试证书，v2 签名及 16 KiB ZIP/25 个 ELF 对齐检查通过；本轮未重新安装物理 Android。
+- `Pajio-0.2.0-20261010-browser-input-fix-simulator.app`，Release 模拟器包；JS bundle SHA-256 `44c14686263f5ab52a9008dba92df1db366b0d534ff53d2d85bf6c3da10749c6`。首次 compile-only 后自行签名缺少 simulator entitlement，真实启动暴露 SecureStore 错误；失败产物隔离保留，改用 Xcode 原生模拟器签名重新构建后原位安装，既有 OAuth 与数据恢复，无需卸载或清空。最终 executable SHA-256 `ad98b92d5d46bde10e602eda2628a6883f6b8413e57f06a3d19a3e5eaec310a0`，分享扩展存在。
+
+这些是测试构建，不是 TestFlight/公开商店分发资格的完成证明。
+
+## 本轮原生 App 与最终状态
+
+新版 iPhone 模拟器 Release App 保留既有 OAuth 与数据，实际进入 A Linux 私密接管。输入 33 码点时显示长度提示，完整掩码草稿仍在，合成字段画面不变；随后改为 20 码点中英文/emoji/é 合成串，仅点一次发送，草稿清空，画面持续可用。没有点网页的 Save 按钮，不把输入成功称为表单保存成功。
+
+双确认交还后 App 显示设备确认。独立服务端在普通设备锁与 Agent 许可下只读核对已约定的合成字段：原 32 码点前缀加合法 20 码点后缀完整一致，不含被拒绝的草稿；仅保存布尔结果和长度。验收期间没有读取真实密码或调用模型。证据为私有 `mobile-browser-input-fix-native-proof.json` 与 `browser-acceptance-20261010/native-app-exact-text-proof.json`。
+
+本轮最终独立检查：A/B 核心各连续 3 次公网 HTTP 200 且 Hermes reachable，没有运行/排队/启动中的任务；四台执行设备均 `agent_ready / device_confirmed=true`，7 台 VM 固定服务健康。新检查保存在 `browser-acceptance-20261010/final-handoff-proof.json`，保留上轮历史检查；48 小时连续运行仍未完成。原生结果限于 iPhone 模拟器，本轮未补物理 iPhone/Android 安装与实际第三方账号登录。

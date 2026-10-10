@@ -4,7 +4,7 @@ import {ApiError,type Connection} from './core';
 import {ConversationSourcesClient,adoptSourcePage,excludeConversation,mergeSourcePages,pendingSource,sourcePage,sourcePendingKey,sourceReceipt,sourceReceiptKey,sourceRequest,type SourcePage,type SourceReceipt,type SourceRequest} from './conversation-sources';
 import {accountCleanupPlan,fencedWrite,type AccountFence} from './account-cleanup-model';
 const identity='daily',scope='https://fixture.invalid/|user_'+'a'.repeat(32)+'|tenant_a|daily';
-const connection:Connection={endpoint:'https://fixture.invalid/',identity,session:{userId:'user_'+'a'.repeat(32),tenantId:'tenant_a',credentialId:'c'.repeat(32),accessToken:'s'.repeat(64),expiresAt:'2026-10-10T00:00:00Z'}};
+const connection:Connection={endpoint:'https://fixture.invalid/',identity,session:{userId:'user_'+'a'.repeat(32),tenantId:'tenant_a',credentialId:'c'.repeat(32),accessToken:'s'.repeat(64),expiresAt:new Date(Date.now()+3_600_000).toISOString()}};
 const request:SourceRequest={source_id:'source_'+'a'.repeat(64),source_revision:'b'.repeat(64),revision:0,request_key:'exclude-fixture-0001'};
 const result:SourceReceipt={...request,identity_id:identity,revision:1,excluded:true,excluded_at:'2026-10-10T12:00:00Z',continuation_reset:true,history_retained:true};
 const page:SourcePage={identity_id:identity,revision:0,snapshot:'c'.repeat(64),next_offset:null,items:[{source_id:request.source_id,source_revision:request.source_revision,source_task_id:'d'.repeat(32),title:'Synthetic conversation',started_at:result.excluded_at,updated_at:result.excluded_at,message_count:3,excluded:false,excluded_at:null}]};

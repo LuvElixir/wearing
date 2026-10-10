@@ -86,7 +86,9 @@ Data channel 名称 `pajio-control`，要求 ordered、reliable。每条 App 消
 - 宿主发送 `ready`（含 `capabilities`）、`frame`（含 `frame_id,width,height,geometry_revision,capture_fps,source`）。`frame_id` 最多有效 2 秒，几何版本变化立即失效。
 - 输入：`{type:"input", ..., seq,frame_id,action, ...}`。`seq` 严格递增；坐标使用视频本身的像素，不能使用屏幕 CSS 坐标。
 - `tap:{x,y}`；`swipe:{x,y,to_x,to_y,duration_ms}`；`pointer:{phase:"move"|"down"|"up",x,y,button:0|1|2}`；`scroll:{delta_x,delta_y}`；`key:{key,phase:"down"|"up"}`；`text:{text}`。这些字段与 action 同层，能力按 `ready.capabilities` 限制。
-- 每条 JSON 最多 20 KiB；文本最多 4096 UTF-8 字节。最多排队 32 个输入；超过即暂停。每次原生输入前再次检查 scope、会话、epoch、帧时效与设备几何；执行后再次验证 ownership。
+- 每条 JSON 最多 20 KiB；文本有 4096 UTF-8 字节的全局上限，还必须满足 `ready.capabilities.text_max_chars`（Unicode 码点数）和 `text_max_bytes`。X11 私密输入目前最多 32 码点，`text_disallow_controls:true` 表示拒绝 C0/DEL 控制字符，包括换行；Android 的 Unicode IME 保持最多 4096 UTF-8 字节，并声明 4096 码点的外层上限。App 发送前整串校验，不能通过截断或自动分段改变输入。宿主在任何按键前再次校验；超长或非法文本返回固定错误码 `text_too_long` / `text_invalid`，不回显正文。
+- X11 与普通电脑驱动共用经过合成窗口测试的 30 ms 输入节奏，文字仅经 stdin；不读取私密字段内容来验证密码，也不使用剪贴板。32 码点上限用于约束持有原生锁的时长，不能通过延长 App 的 2.5 秒输入确认或视频时效门槛来掩盖阻塞。输入 ACK 表示原生提交完成，不是目标应用保存、验证或登录成功的证明。
+- 最多排队 32 个输入；超过即暂停。每次原生输入前再次检查 scope、会话、epoch、帧时效与设备几何；执行后再次验证 ownership。
 - 成功返回 `{type:"input_ack",seq}`；失败只回 `{type:"error",code,seq?}`。不回显输入，不记录输入，不自动重放不确定操作。
 
 ## 归还与隐私边界

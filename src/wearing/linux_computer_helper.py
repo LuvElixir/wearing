@@ -18,10 +18,35 @@ import time
 MAX_NODES = 750
 MAX_IMAGE = 8 * 1024 * 1024
 INPUTS = {'click', 'set_value', 'type', 'key', 'scroll'}
+TEXT_DELAY_MS = 30
+MAX_AGENT_TEXT = 256
 
 
 class Refused(ValueError):
     pass
+
+
+def text_input_command(text, *, maximum=32, xdotool='xdotool'):
+    """One bounded XTEST submission; callers pass text exclusively via stdin.
+
+    Unicode keysyms require temporary X11 mappings. Zero-delay typing was
+    observed dropping/reordering characters in Firefox. Never retry a failed
+    submission, use the clipboard, or split one request into implicit retries.
+    """
+    if (type(maximum) is not int or not 1 <= maximum <= MAX_AGENT_TEXT
+            or not isinstance(text, str) or not 1 <= len(text) <= maximum
+            or any(ord(c) < 32 or ord(c) == 127 or 0xD800 <= ord(c) <= 0xDFFF for c in text)):
+        raise Refused('linux_invalid_or_oversized_text')
+    return [xdotool, 'type', '--clearmodifiers', '--delay', str(TEXT_DELAY_MS), '--file', '-']
+
+
+def accessible_input_text(text, app):
+    # Mozilla's DOMtoATK::AddBOMs deliberately appends one U+FEFF after every
+    # non-BMP character to preserve UTF-16 offsets. Compare that representation
+    # exactly; never strip BOMs from arbitrary observed user content.
+    if app.lower() == 'firefox':
+        return ''.join(c + ('\ufeff' if ord(c) > 0xFFFF else '') for c in text)
+    return text
 
 
 def run(argv, *, stdin=None, binary=False, timeout=5):
@@ -230,6 +255,16 @@ class LinuxDesktop:
                            'role': role, 'text': '[private]' if password else text,
                            'focused': focused, 'enabled': state.contains(atspi.STATE_ENABLED),
                            'password': password, 'actions': actions}
+                if not password and focused and state.contains(atspi.STATE_EDITABLE):
+                    try:
+                        iface = node.queryText()
+                        element['text_caret'] = int(iface.caretOffset)
+                        element['text_selections'] = [list(iface.getSelection(i))
+                            for i in range(min(iface.getNSelections(), 2))]
+                    except Exception:
+                        # Observation still works; input requires these exact
+                        # offsets and will refuse an unsupported text interface.
+                        pass
                 try:
                     rect = node.queryComponent().getExtents(atspi.DESKTOP_COORDS)
                     x, y, w, h = (int(part) for part in rect)
@@ -281,6 +316,99 @@ class LinuxDesktop:
             result['screenshot'] = {'mime_type': 'image/png', 'data': base64.b64encode(png).decode('ascii')}
         return result, nodes
 
+    def editable_state(self, node):
+        try:
+            state = node.getState()
+            if node.getRole() == self.atspi.ROLE_PASSWORD_TEXT:
+                raise Refused('linux_sensitive_focus_handoff_required')
+            if (not state.contains(self.atspi.STATE_EDITABLE)
+                    or not state.contains(self.atspi.STATE_ENABLED)
+                    or not state.contains(self.atspi.STATE_SHOWING)
+                    or state.contains(self.atspi.STATE_DEFUNCT)):
+                raise Refused('linux_element_not_editable')
+            if not state.contains(self.atspi.STATE_FOCUSED):
+                raise Refused('linux_element_focus_required')
+            iface = node.queryText()
+            count = integer(iface.characterCount, maximum=1000)
+            value = str(iface.getText(0, count))
+            caret = integer(iface.caretOffset, maximum=count)
+            selections = integer(iface.getNSelections(), maximum=1)
+            selected = tuple(iface.getSelection(0)) if selections else (caret, caret)
+            if len(selected) != 2 or any(type(v) is not int for v in selected) or not 0 <= selected[0] <= selected[1] <= count:
+                raise Refused('linux_text_selection_unavailable')
+            return value, selected, count
+        except Refused:
+            raise
+        except Exception as error:
+            raise Refused('linux_text_selection_unavailable') from error
+
+    def text_input(self, frame, nodes, index, value, *, replace):
+        # Validate the entire request before Ctrl+A can change even a selection.
+        if replace and value == '':
+            command = ['xdotool', 'key', '--clearmodifiers', 'BackSpace']
+        else:
+            command = text_input_command(value, maximum=MAX_AGENT_TEXT)
+        node = nodes[index]
+        before, selection, count = self.editable_state(node)
+        element = frame['elements'][index]
+        if element.get('text_caret') is None or 'text_selections' not in element:
+            raise Refused('linux_text_selection_unavailable')
+        rendered = accessible_input_text(value, frame['app'])
+        expected = rendered if replace else before[:selection[0]] + rendered + before[selection[1]:]
+        if len(expected) > 1000:
+            raise Refused('linux_invalid_or_oversized_text')
+        target = frame['target']
+
+        def observe():
+            current, live = self.snapshot(target, image=False)
+            # AT-SPI tree indices are capture-local: Firefox's suggestions can
+            # insert siblings while typing in its address bar. Keep the same
+            # accessible object, never a coincidentally reused list position.
+            matching = [candidate for candidate in live.values() if candidate == node]
+            if (len(matching) != 1
+                    or any(current[k] != frame[k] for k in ('target', 'window_title', 'origin', 'width', 'height'))):
+                raise Refused('linux_text_target_changed')
+            return current, self.editable_state(matching[0])
+
+        if replace:
+            if before == expected:
+                return
+            self.native(['xdotool', 'key', '--clearmodifiers', 'ctrl+a'])
+            # Only read while selection catches up. A missing/full-selection
+            # failure never causes another keypress or a fallback edit.
+            for attempt in range(6):
+                current, (seen, selected, current_count) = observe()
+                unchanged = lambda e: {k: v for k, v in e.items() if k not in ('text_caret', 'text_selections')}
+                if (seen != before or current_count != count
+                        or [unchanged(e) for e in current['elements']] != [unchanged(e) for e in frame['elements']]):
+                    raise Refused('linux_text_target_changed')
+                if selected == (0, count):
+                    break
+                if attempt == 5:
+                    raise Refused('linux_text_selection_unverified')
+                time.sleep(.05)
+        else:
+            current, state = observe()
+            if current['snapshot_id'] != frame['snapshot_id'] or state != (before, selection, count):
+                raise Refused('linux_view_changed')
+        try:
+            if value:
+                self.native(command, stdin=value, timeout=10)
+            else:
+                self.native(command)
+            # Successful process exit is only submission. Confirm the exact
+            # readable field; any partial/unobservable result is unknown and
+            # must not be retried or repaired automatically.
+            for attempt in range(6):
+                _, (seen, _, _) = observe()
+                if seen == expected:
+                    return
+                if attempt < 5:
+                    time.sleep(.05)
+        except Exception as error:
+            raise Refused('linux_text_outcome_unverified_no_replay') from error
+        raise Refused('linux_text_outcome_unverified_no_replay')
+
     def act(self, args):
         target = args.get('target')
         if not isinstance(target, dict) or set(target) != {'app', 'window_id', 'pid'} or target['app'] != args.get('app'):
@@ -301,16 +429,7 @@ class LinuxDesktop:
             if action == 'set_value':
                 if frame['elements'][index]['password']:
                     raise Refused('linux_sensitive_focus_handoff_required')
-                value = args.get('value')
-                if not isinstance(value, str) or len(value) > 2000:
-                    raise Refused('linux_invalid_input')
-                try:
-                    if node.queryEditableText().setTextContents(value) is False:
-                        raise Refused('linux_element_input_failed')
-                except Refused:
-                    raise
-                except Exception as error:
-                    raise Refused('linux_element_not_editable') from error
+                self.text_input(frame, nodes, index, args.get('value'), replace=True)
             else:
                 try:
                     iface = node.queryAction()
@@ -323,12 +442,10 @@ class LinuxDesktop:
                 except Exception as error:
                     raise Refused('linux_element_not_actionable') from error
         elif action == 'type':
-            text = args.get('text')
-            if not isinstance(text, str) or len(text) > 2000:
-                raise Refused('linux_invalid_input')
-            # XTEST to the verified foreground; --window uses synthetic
-            # XSendEvent which Chromium and many GTK apps discard.
-            self.native(['xdotool', 'type', '--clearmodifiers', '--delay', '0', '--file', '-'], stdin=text)
+            focused = [e['index'] for e in frame['elements'] if e['focused']]
+            if len(focused) != 1:
+                raise Refused('linux_element_focus_required')
+            self.text_input(frame, nodes, focused[0], args.get('text'), replace=False)
         elif action == 'key':
             self.native(['xdotool', 'key', '--clearmodifiers', key_chord(args.get('keys'))])
         elif action == 'scroll':

@@ -14,6 +14,8 @@ import time
 
 from PIL import Image
 
+from .linux_computer_helper import Refused, text_input_command
+
 
 class SourceError(RuntimeError):
     pass
@@ -55,7 +57,8 @@ ANDROID_KEYS = {
 
 class X11Source:
     name = 'x11'
-    capabilities = {'pointer':True, 'scroll':True, 'keyboard':True, 'text':'unicode', 'touch':True}
+    capabilities = {'pointer':True, 'scroll':True, 'keyboard':True, 'text':'unicode', 'touch':True,
+                    'text_max_chars':32, 'text_max_bytes':4096, 'text_disallow_controls':True}
 
     def __init__(self, *, display=':0', xauthority=None, max_fps=15, xdotool='xdotool'):
         self.max_fps = min(30, max(1, float(max_fps)))
@@ -137,8 +140,19 @@ class X11Source:
             if event['phase']!='down':
                 self.keys.discard(mapped)
         elif action == 'text':
-            self._x('type', '--clearmodifiers', '--delay', '0', '--file', '-',
-                    stdin=event['text'].encode('utf-8'))
+            text = event.get('text')
+            # Bounded before any keystroke. Longer typing would starve capture
+            # under the native guard and exceed the viewer's input ACK budget.
+            # Share the measured Unicode cadence with the ordinary driver, but
+            # never read private field contents back to validate delivery.
+            try:
+                command = text_input_command(text, maximum=self.capabilities['text_max_chars'],
+                                             xdotool=self.xdotool)
+            except Refused:
+                code = ('text_too_long' if isinstance(text, str) and
+                        len(text) > self.capabilities['text_max_chars'] else 'text_invalid')
+                raise SourceError(code) from None
+            _run(command, stdin=text.encode('utf-8'), env=self.env)
         else:
             raise SourceError('unsupported_input')
 
@@ -166,7 +180,8 @@ class X11Source:
 class AndroidScreencapSource:
     """Explicit low-frame-rate fallback; replace this driver with scrcpy later."""
     name = 'adb-screencap'
-    capabilities = {'pointer':False, 'scroll':False, 'keyboard':True, 'text':'unavailable', 'touch':True}
+    capabilities = {'pointer':False, 'scroll':False, 'keyboard':True, 'text':'unavailable', 'touch':True,
+                    'text_max_chars':4096, 'text_max_bytes':4096}
 
     def __init__(self, *, serial, adb='adb', max_fps=2):
         self.serial, self.adb = serial, adb
