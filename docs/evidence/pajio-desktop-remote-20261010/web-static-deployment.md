@@ -122,3 +122,30 @@ remote-device.js 保持 `9086adb6…`，pajio.css 保持 `dd5c280c…`，完整�
 - core-a：`/var/backups/pajio-web-control-return-v58-20261010/core-a-e4de2c50ff6e46b1b33db37d5d539095`
 
 当前回滚入口是该 app58 目录的 `python3 -I web-overlay.py core-a rollback` 或对应 core-b，精确恢复 app55 与换行修正后的 index。需要更早版本时，先完成此回滚，再按换行 attempt、四文件修正版、v4 的逆序逐层核对；未知结果只查 status，不重投 deploy。
+
+
+## app59 / views17：邀请码正式入口与云端设置
+
+本次只写 `web/views.js`、`web/app.js`、`web/index.html`，依此顺序逐文件原子替换，index 最后。正式云端用户不再看到服务器地址填写入口；明确本地开发入口保留独立条件。源代码冻结后，沿用共享静态锁、原像 CAS、不可覆盖 intent 与回滚备份；B 完成 deploy/status 和公网 HTTP 校验后才执行 A。没有重启服务或操作设备。
+
+| 文件 | SHA-256 |
+| --- | --- |
+| `web/views.js` | `12532c9891c9969370eaed87f66204aac730db5bfc0f5b5054a65fab6665eedc` |
+| `web/app.js` | `32c32f7c75fd5254f1fb45f7071cd7d5687c59c4fb1968b50e9625062f564627` |
+| `web/index.html` | `e9f9f783fad57c18d519ffe27e37bb8d97ca87c4ef76d8330d0a9a9ceae69582` |
+
+| 目标 | UTC 部署时间 | 更新前后未变的 Core PID |
+| --- | --- | ---: |
+| core-b | 2026-10-10T05:57:01.539269+00:00 | 14640 |
+| core-a | 2026-10-10T06:00:19.346318+00:00 | 5886 |
+
+两端真实认证 HTML 与 assets 均为 200，三项正文 SHA 与清单精确一致，引用为 views17/app59；remote6/CSS22 引用与完整 SHA 继续匹配前版。`/api/status` 两端均为 200，响应保留 private/no-store。控制面已独立启用邀请码入口：匿名 `/` 303→`/join`，`/join` 200且具有邀请码输入，四项静态资源匿名访问401，已有账号 `/auth/login` 转至 IdP 密码表单200。本次未提交邀请码或登录表单，不把 HTTP 结果视为 Desktop UI 注册/登录验收。
+
+私有证据目录 `.wearing/on-prem/20261009/personal-compute/invitation-entry-20261010/web59-prepared/`；`web59-http-b-proof.json` 还核实了 B 新版/A 原像同时存在的分阶段状态，`web59-http-final-proof.json` 核实两端最终状态，均未保留 cookie/token/响应正文。
+
+`summary.json` SHA：`c4372a41a1225247b4707f7c253932f13ae1e45845eb8b8b6391f7437613037b`。原像备份：
+
+- core-b：`/var/backups/pajio-web-invitation59/core-b-56282c1427e14731b4fd97bd624363b1`
+- core-a：`/var/backups/pajio-web-invitation59/core-a-662026d7ff49402f8a3abb48b7940a41`
+
+当前回滚入口为本次私有目录中的 `python3 -I web-overlay.py core-a rollback` 或对应 core-b，先恢复旧 index，再恢复 app/views，且只接受本次候选或原像，拒绝覆盖第三方变化。需回退更早版本时先完成本次，再逆序处理 app58 及此前 attempts。未知只查 status，不重投 deploy。

@@ -1,0 +1,47 @@
+{
+  "created_date": "2026-10-10",
+  "keycloak": "26.7.4",
+  "javac": "21.0.12.1",
+  "compile_flags": [
+    "--release",
+    "21",
+    "-Xlint:all",
+    "-Werror"
+  ],
+  "registration": {
+    "sdk_test_groups_passed": 10,
+    "artifact_host": "pajio-control-lab",
+    "artifact_path": "/tmp/pajio-registration-artifact-20261010d/pajio-registration.jar",
+    "sha256": "1a7cadd1b272605fd26e62fe008dfbe3378dfedc9d693eae3926bc20429827b4"
+  },
+  "migration": {
+    "sdk_core_test_groups_passed": 11,
+    "startup_gate_test_groups_passed": 4,
+    "artifact_host": "pajio-control-lab",
+    "artifact_path": "/tmp/pajio-profile-artifact-20261010d/pajio-profile-migration.jar",
+    "sha256": "5efd9c42b5f3c5ae36c4e4fc75be371cc2e9cb1fc9f51ba028bd0049a051ab7e"
+  },
+  "offline_profile_tests_passed": 3,
+  "deployment_performed": false,
+  "production_profile_read_or_mutated": false,
+  "live_acceptance_performed": false,
+  "source_sha256": {
+    ".gitignore": "625ec084e4aa26c7939b8dcd4f73fd1b30701294fa833eb5c0733fe30de01a23",
+    "META-INF/beans.xml": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "META-INF/services/org.keycloak.services.resource.RealmResourceProviderFactory": "5a34e831d098aedd0b2565677c3d237daf383f266839233a0e77e1e54d94aa03",
+    "README.md": "1dc7ed87d60ada8e3558145e5baebafdee9dc0e9944c189f107454f71e4f4c86",
+    "build.sh": "3fa6463a458067d01ad3eb791144bdc9ce6e0dacc72e9db1d5610f00c116e39a",
+    "prepare-user-profile.py": "58bca5b46a0c214d32c9c8e350718f193e470e47ff742c773945dc4cbbbbec2b",
+    "profile-migration/META-INF/services/org.keycloak.events.EventListenerProviderFactory": "0637c40ef72fd567945e48874f62960be036a75bc5b3aa12a9f9c918c97dcb07",
+    "profile-migration/README.md": "e049c644544719cfddcc633b765f11ea8733763509694f5b84fbe1428f626f1f",
+    "profile-migration/build.sh": "6534b6c4b94a6076ef7db5622926223e390fb95435c25ff18e45e9c2ee75b5ad",
+    "profile-migration/src/io/pajio/profile/ProfileMigration.java": "ac73d38afbfa3546ff603f0ed69b79604178aa031235857ccbab30411f0a64b8",
+    "profile-migration/src/io/pajio/profile/ProfileMigrationFactory.java": "164576ed764fe9ccb52515c3b08437422cf4e648babc56080c66e75bd78a747b",
+    "profile-migration/test/io/pajio/profile/ProfileMigrationFactoryTest.java": "fffcb4d1f1eecbf37ada90d9d0c60d8aede8d6509befb3c519aa0dd01b23caae",
+    "profile-migration/test/io/pajio/profile/ProfileMigrationTest.java": "b7d9007cce046692672fb71bcea3d3471915939921a92f5ccc422e07b0598683",
+    "src/io/pajio/identity/RegistrationFactory.java": "6331fc830460b9ff086c5f4e24bb2844a038abb7adbe856a5e87a27b53385300",
+    "src/io/pajio/identity/RegistrationResource.java": "440afb791923ef29f2def1d9bb19d3aae03fea866c6af46d77077828c7599822",
+    "test/io/pajio/identity/RegistrationResourceTest.java": "0f3758b924ce1ba77f48f8cef4c91284fc65f6f3fb4d6ee2ca9b85f794b98287",
+    "test_profile.py": "38866193289d2374c444e53d22807977bc96611cc004274f4c21a03e891cb2b0"
+  }
+}

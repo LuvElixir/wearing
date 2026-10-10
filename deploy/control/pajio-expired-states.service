@@ -1,0 +1,19 @@
+[Unit]
+Description=Pajio bounded expired authentication-state maintenance
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+User=pajio-control-maintenance
+Group=pajio-control-maintenance
+ExecStart=/opt/wearing/venv/bin/python -I /opt/pajio-control/cleanup-expired-states.py --config /etc/pajio-control-maintenance/config.json
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+TimeoutStartSec=30
+MemoryMax=192M
+CPUQuota=25%
+TasksMax=16

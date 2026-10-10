@@ -8,9 +8,15 @@ import {serviceFetch} from '../transport';
 import {AppThemeProvider, useAppTheme, useThemedStyles, type AppColors} from '../app-theme';
 import {PajamaBear} from '../PajamaBear';
 import {BrandWordmark} from '../BrandWordmark';
+import {developmentConnectionsEnabled} from '../development-access';
 
 export default function Connect() {
-  return <AppThemeProvider><SafeAreaProvider><ConnectScreen/></SafeAreaProvider></AppThemeProvider>;
+  return <AppThemeProvider><SafeAreaProvider>{developmentConnectionsEnabled()?<ConnectScreen/>:<PublicEntry/>}</SafeAreaProvider></AppThemeProvider>;
+}
+
+function PublicEntry() {
+  const {colors:c}=useAppTheme();
+  return <SafeAreaView style={{flex:1,backgroundColor:c.canvas,padding:28,justifyContent:'center',gap:24}}><Text style={{color:c.ink,fontSize:22}}>欢迎来到 Pajio</Text><Text style={{color:c.muted,lineHeight:24}}>请回到登录页面，使用邀请码加入或登录已有账号。</Text><Pressable accessibilityRole="button" onPress={()=>router.replace('/')} style={{padding:18,backgroundColor:c.action,borderRadius:20}}><Text style={{color:c.onAction,textAlign:'center'}}>前往登录</Text></Pressable></SafeAreaView>;
 }
 
 function ConnectScreen() {

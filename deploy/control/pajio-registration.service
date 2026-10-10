@@ -1,0 +1,27 @@
+[Unit]
+Description=Pajio invitation-only identity registration broker
+After=network-online.target postgresql.service pajio-identity.service
+Requires=postgresql.service
+
+[Service]
+User=pajio-registration
+Group=wearing
+WorkingDirectory=/var/lib/pajio-registration
+ExecStartPre=/usr/bin/test -r /etc/pajio-registration/provider.key
+ExecStart=/opt/wearing/venv/bin/python -I -m wearing.cloud.registration --config /etc/pajio-registration/config.json --socket /run/pajio-registration/broker.sock
+RuntimeDirectory=pajio-registration
+RuntimeDirectoryMode=0750
+UMask=0007
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/pajio-registration /run/pajio-registration
+MemoryMax=256M
+CPUQuota=50%
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target

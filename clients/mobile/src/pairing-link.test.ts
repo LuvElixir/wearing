@@ -13,7 +13,10 @@ const metro = 'exp://192.168.1.25:8081';
 const pair = {endpoint: 'http://192.168.1.25:8795/', identity: 'daily', accessToken: 'safe_SYNTHETIC-token_'.repeat(3), expiresAt: '2026-10-07T13:00:00.900120+00:00'};
 const descriptors = new Map<string, PropertyDescriptor | undefined>();
 const realNow = Date.now;
+let previousDevelopmentFlag: string | undefined;
 beforeEach(() => {
+  previousDevelopmentFlag = process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS;
+  process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = 'true';
   for (const [key, value] of Object.entries({__DEV__: true, expo: {modules: {ExpoGo: {}}}})) {
     descriptors.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
     Object.defineProperty(globalThis, key, {configurable: true, value});
@@ -21,6 +24,8 @@ beforeEach(() => {
   Date.now = () => now;
 });
 afterEach(() => {
+  if (previousDevelopmentFlag === undefined) delete process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS;
+  else process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = previousDevelopmentFlag;
   Date.now = realNow;
   for (const [key, descriptor] of descriptors) {
     if (descriptor) Object.defineProperty(globalThis, key, descriptor);

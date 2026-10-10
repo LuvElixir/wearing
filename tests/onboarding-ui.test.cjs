@@ -68,7 +68,7 @@ test("app.js hooks fire after entry recovery; index.html wiring in place", () =>
   assert.match(html, /onboarding\.js\?v=7/);
   assert.match(html, /id="onboarding-panel"/);
   assert.match(html, /id="onboarding-entry"/);
-  assert.match(html, /app\.js\?v=58/);
+  assert.match(html, /app\.js\?v=59/);
   assert.match(html, /pajio\.css\?v=22/);
   // 幽灵面板回归：作者样式不得覆盖 UA 的 dialog:not([open]) display:none。
   assert.match(fs.readFileSync("src/wearing/web/pajio.css","utf8"), /\.ob-panel\[open\]\{width:min\(640px/);

@@ -61,6 +61,18 @@ deletion_requests = Table("wearing_deletion_requests", metadata,
                   Column("updated_at", Integer),
                   CheckConstraint("state IN ('awaiting_operator','frozen','waiting','completed')"),
                   UniqueConstraint("user_id", "request_key"))
+invitations = Table("wearing_invitations", metadata,
+                  Column("id", String(32), primary_key=True), Column("code_hash", String(64), nullable=False, unique=True),
+                  Column("issuer", Text, nullable=False), Column("tenant_id", ForeignKey("wearing_tenants.id"), nullable=False, unique=True),
+                  Column("instance_id", String(128), nullable=False), Column("created_at", Integer, nullable=False),
+                  Column("expires_at", Integer, nullable=False), Column("revoked_at", Integer),
+                  Column("redeemed_user_id", ForeignKey("wearing_users.id")), Column("redeemed_at", Integer),
+                  Column("registration_id", String(32), unique=True), Column("username_hash", String(64)),
+                  Column("registration_subject", String(512)),
+                  CheckConstraint("expires_at > created_at"),
+                  CheckConstraint("(redeemed_user_id IS NULL) = (redeemed_at IS NULL)"),
+                  CheckConstraint("(registration_id IS NULL) = (username_hash IS NULL)"),
+                  CheckConstraint("registration_subject IS NULL OR registration_id IS NOT NULL"))
 
 
 def digest(value):
@@ -77,8 +89,11 @@ class SessionView:
 
 
 class ControlStore:
-    def __init__(self, url: str, *, initialize=False, operator=False):
+    def __init__(self, url: str, *, initialize=False, operator=False, registration=False):
+        if operator and registration:
+            raise ControlError("数据库角色不能同时用于运营和注册。")
         self.operator = operator
+        self.registration = registration
         self.engine = create_engine(url, hide_parameters=True)
         self.postgres = self.engine.dialect.name == "postgresql"
         if self.postgres:
@@ -88,7 +103,7 @@ class ControlStore:
                 raise ControlError("PostgreSQL 需要版本化迁移，不能用 create_all 初始化。")
             self.engine = self.engine.execution_options(schema_translate_map={None: SCHEMA})
             try:
-                assert_database_boundary(self.engine, operator=operator)
+                assert_database_boundary(self.engine, operator=operator, registration=registration)
             except Exception:
                 self.engine.dispose()
                 raise

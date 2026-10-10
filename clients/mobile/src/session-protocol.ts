@@ -4,10 +4,12 @@ export const AUTH_CALLBACK = 'pajio://auth';
 export type Vault = {get(key: string): Promise<string | null>; put(key: string, value: string): Promise<void>; remove(key: string): Promise<void>};
 const vaultKey = (session: NativeSession) => 'pajio.session.' + session.credentialId;
 
-export function authorizationURL(address: string, challenge: string, state: string) {
+export type SignInEntry = 'account' | 'invite';
+export function authorizationURL(address: string, challenge: string, state: string, entry: SignInEntry = 'account') {
   const origin = endpoint(address);
-  if (!origin.startsWith('https://') || !/^[A-Za-z0-9_-]{43}$/.test(challenge) || !/^[A-Za-z0-9_-]{32,128}$/.test(state)) throw new ApiError('请使用邀请中提供的 HTTPS 登录地址。', 422);
+  if (!origin.startsWith('https://') || !/^[A-Za-z0-9_-]{43}$/.test(challenge) || !/^[A-Za-z0-9_-]{32,128}$/.test(state) || !['account', 'invite'].includes(entry)) throw new ApiError('登录信息不完整，请重新打开登录。', 422);
   const url = new URL('auth/mobile/start', origin); url.searchParams.set('challenge', challenge); url.searchParams.set('state', state);
+  if (entry === 'invite') url.searchParams.set('entry', 'invite');
   return url.toString();
 }
 export function authorizationCode(result: string, state: string) {
@@ -32,8 +34,9 @@ export async function saveConnection(connection: Connection, storage: Pick<Store
   if (accessToken) await vault.put(vaultKey(connection.session), accessToken);
   await storage.put('connection', {...connection, session: metadata});
 }
-export async function loadConnection(storage: Pick<Store,'get'>, vault: Vault): Promise<Connection | null> {
-  const connection = await storage.get<Connection>('connection');
+export async function loadConnection(storage: Pick<Store,'get'>, vault: Vault, select: (stored: Connection | null) => Connection | null = stored => stored): Promise<Connection | null> {
+  // Apply the build's origin policy before retrieving any bearer from the vault.
+  const connection = select(await storage.get<Connection>('connection'));
   if (!connection?.session) return connection;
   connectionEndpoint(connection, true);
   const accessToken = await vault.get(vaultKey(connection.session));

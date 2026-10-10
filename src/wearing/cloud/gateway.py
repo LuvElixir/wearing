@@ -26,6 +26,9 @@ from starlette.responses import JSONResponse, RedirectResponse, StreamingRespons
 from starlette.routing import Route, WebSocketRoute
 from .voice import voice_endpoint, PATH as VOICE_PATH
 
+from .join import JoinFlow, callback_error, native_ready
+from .registration import RegistrationClient
+from .invitations import InvitationStore
 from .commands import Identifier, Record
 from .control import ControlError, ControlStore, OIDCStateCache, users
 from .deletion_gateway import ReceiptCodec, deletion_routes, fresh_auth, small_json, PREFIX
@@ -124,7 +127,7 @@ def initialize_gateway(root, public_origin, issuer, client_id, *, client_secret=
 def operator_store(config, *, database_url=None):
     runtime = config.database_url.get_secret_value()
     if runtime.startswith("sqlite:///"):
-        return ControlStore(runtime)
+        return ControlStore(runtime, operator=True)
     operator_url = database_url or os.environ.get("WEARING_CONTROL_OPERATOR_DATABASE_URL", "")
     if not operator_url or not same_database(runtime, operator_url):
         raise GatewayError("会员与路由登记需要同一数据库的独立操作者凭据。")
@@ -229,12 +232,20 @@ class EntryHeaders:
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(scope=message)
                 headers["Cache-Control"] = "private, no-store"
-                headers["Referrer-Policy"] = "no-referrer"
+                # Invitation HTML forms require their real same-origin Origin.
+                # All other responses (including native completion) keep the
+                # no-referrer policy; upstream workers cannot opt into this.
+                join_form = scope.get("path") in {
+                    "/join", "/join/check", "/join/create", "/join/login", "/join/existing", "/auth/mobile/start"
+                }
+                if not (join_form and headers.get("Referrer-Policy") == "same-origin"
+                        and headers.get("Content-Type", "").startswith("text/html")):
+                    headers["Referrer-Policy"] = "no-referrer"
             await send(message)
         return await self.app(scope, receive, private_response)
 
 
-def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None, voice_connector=None):
+def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None, voice_connector=None, registration_transport=None):
     root = checked_root(root)
     config = load_gateway(root)
     # Upstream debug logging includes fetched token values. Never enable it here.
@@ -344,6 +355,10 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
             handoff = mobile_request(request.query_params)
         except ValueError as error:
             return JSONResponse({"detail": str(error)}, status_code=422)
+        if request.query_params.get("entry") == "invite":
+            return await join.start(request, handoff)
+        if request.query_params.get("entry"):
+            return JSONResponse({"detail": "登录入口不正确。"}, status_code=422)
         response = await login(request)
         state = parse_qs(urlparse(response.headers["location"]).query)["state"][0]
         request.session["_mobile_" + state] = handoff
@@ -374,10 +389,10 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
     async def callback(request):
         state = request.query_params.get("state", "")
         if len(state) > 256 or not request.session.get("_state_wearing_" + state):
-            return JSONResponse({"detail": "登录关联已失效，请重新登录。"}, status_code=400)
+            return callback_error(request, "登录关联已失效，请重新登录。", status=400)
         nonce = cache.nonce("_state_wearing_" + state)
         if not nonce:
-            return JSONResponse({"detail": "登录关联已失效，请重新登录。"}, status_code=400)
+            return callback_error(request, "登录关联已失效，请重新登录。", status=400)
         # A callback can land on a restarted gateway: reapply the algorithm limit.
         await verified_metadata()
         try:
@@ -398,7 +413,12 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
                 if verified_user != prior.user_id:
                     raise GatewayError('重新验证的账户不一致。')
                 auth_time = user['auth_time']
-            handoff = reauth.get('mobile') if reauth is not None else request.session.pop("_mobile_" + state, None)
+            saved_join = await cache.get('join-auth:' + state)
+            joined = json.loads(saved_join) if saved_join else None
+            if joined and joined.get('code_hash'):
+                InvitationStore(store).redeem_hash(joined['code_hash'], issuer=config.issuer, subject=user['sub'])
+            handoff = (reauth.get('mobile') if reauth is not None else joined.get('mobile') if joined is not None
+                       else request.session.pop("_mobile_" + state, None))
             if handoff is not None:
                 return RedirectResponse(await issue_handoff(cache, mobile_request(handoff), user["sub"],
                     auth_time=auth_time, tenant_id=reauth['tenant_id'] if reauth else None), status_code=303)
@@ -407,14 +427,26 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
                 store.switch(sid, reauth['tenant_id'])
                 store.logout(reauth['sid'])
         except ControlError:
-            return JSONResponse({"detail": "此账号尚未加入 Pajio 试用。"}, status_code=403)
+            return callback_error(request, "此账号尚未加入 Pajio 试用。", status=403)
         except Exception:
             # Authlib/JOSE errors can contain provider tokens or callback values.
-            return JSONResponse({"detail": "登录验证未完成，请重新登录。"}, status_code=400)
+            return callback_error(request, "登录验证未完成，请重新登录。", status=400)
         store.logout(request.session.get("sid"))
         request.session.clear()
         request.session["sid"] = sid
         return RedirectResponse("/", status_code=303)
+
+    async def join_finish(request, subject, mobile):
+        if mobile is not None:
+            return native_ready(await issue_handoff(cache, mobile_request(mobile), subject))
+        sid = store.login(config.issuer, subject)
+        store.logout(request.session.get('sid'))
+        request.session.clear()
+        request.session['sid'] = sid
+        return RedirectResponse('/', status_code=303)
+
+    join = JoinFlow(config, store, cache, login, join_finish,
+                    RegistrationClient(os.environ.get('PAJIO_REGISTRATION_SOCKET'), transport=registration_transport), session)
 
     async def account(request):
         current = session(request)
@@ -467,7 +499,7 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
         current = session(request)
         if current is None:
             if request.url.path == "/":
-                return RedirectResponse("/auth/login", status_code=303)
+                return RedirectResponse("/join", status_code=303)
             return JSONResponse({"detail": "请先登录 Pajio。"}, status_code=401)
         if request.method not in {"GET", "HEAD"} and not unsafe_allowed(request, current):
             return JSONResponse({"detail": "请求来源未通过验证。"}, status_code=403)
@@ -505,7 +537,7 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
     receipt_codec = ReceiptCodec(config.session_key.get_secret_value())
     voice = voice_endpoint(config.public_origin, store, credentials, ssl_context=upstream_tls,
                            **({"connector": voice_connector} if voice_connector else {}))
-    app = Starlette(routes=[*deletion_routes(deletion, receipt_codec, session, unsafe_allowed, reauth=deletion_reauth),
+    app = Starlette(routes=[*join.routes(), *deletion_routes(deletion, receipt_codec, session, unsafe_allowed, reauth=deletion_reauth),
                            Route(PREFIX + '/reauth/start', deletion_reauth_start), WebSocketRoute(VOICE_PATH, voice), Route("/auth/login", login), Route("/auth/callback", callback),
                            Route("/auth/mobile/start", mobile_start), Route("/auth/mobile/exchange", mobile_exchange, methods=["POST"]),
                            Route("/auth/session", account), Route("/auth/logout", logout, methods=["POST"]),

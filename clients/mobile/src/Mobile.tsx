@@ -7,7 +7,10 @@ import ArtifactPanel from './ArtifactPanel';
 import NativeSearchPanel, {type SearchContext} from './NativeSearchPanel';
 import CloudSessionPanel from './CloudSessionPanel';
 import {persistNativeConnection, restoreNativeConnection} from './native-session';
-import {initialConnection, PUBLIC_PAJIO_ENDPOINT} from './connection-default';
+import {assertNativeServiceAddress, initialConnection, PUBLIC_PAJIO_ENDPOINT, requiresNativeSignIn} from './connection-default';
+import {developmentConnectionsEnabled} from './development-access';
+import {PajamaBear} from './PajamaBear';
+import {BrandWordmark} from './BrandWordmark';
 import BriefPanel from './BriefPanel';
 import type {OngoingCreateRequest} from './ongoing-management-forms';
 import {AppThemeProvider, useAppTheme, useThemedStyles, type AppColors} from './app-theme';
@@ -265,6 +268,7 @@ function Mobile() {
   }, [connection]);
   async function synchronize(connection = current.current, allowPending = !connection?.development) {
     if (!connection || syncBusy.current || AppState.currentState !== 'active') return;
+    if (requiresNativeSignIn(connection, Platform.OS)) {setConnected(false); await local(connection); return;}
     if(connection.session && (!connection.session.accessToken || Date.parse(connection.session.expiresAt)<=Date.now())){setConnected(false);await local(connection);return;}
     syncBusy.current = true; setBusy(true);
     try {
@@ -287,6 +291,7 @@ function Mobile() {
     }
   }
   async function activateConnection(connection: Connection) {
+    if (Platform.OS !== 'web') assertNativeServiceAddress(connection.endpoint);
     const release = beginCaptureWrite();
     if (!release) throw new Error('输入或原件正在保存，请稍后再切换。');
     const ticket = ++activationEpoch.current;
@@ -328,7 +333,7 @@ function Mobile() {
     } catch (error) {setMessage(error instanceof Error ? error.message : '本机存储暂时无法打开，尚未保存新记录。请检查存储空间后重试。');}})();
     return () => {active = false;};
   }, [startupAttempt,authDone]);
-  useEffect(()=>{if(authError)setMessage('登录没有完成，请在连接设置重新登录。');},[authError]);
+  useEffect(()=>{if(authError)setMessage('登录没有完成，请重新登录。');},[authError]);
   useEffect(() => {
     if (!connection || !ready || !connected || (connection.session && !connection.session.accessToken)) return;
     let live = true;
@@ -494,6 +499,7 @@ function Mobile() {
     finally {setSaving(false); release();}
   }
   async function connect() {
+    if (!developmentConnectionsEnabled()) return;
     if(connectionWrite.current)return;connectionWrite.current=true;
     try {
       const prior = current.current;
@@ -575,6 +581,11 @@ function Mobile() {
     onFrozen={freezeAccount}
     isCurrent={() => !!connection?.session && (current.current?.session ? sameAccount(current.current, connection) : deletionFrozen)}/>;
   const name = identities.find(i => i.id === connection?.identity)?.name || '日常';
+  const accountPanel = <CloudSessionPanel connection={connection} disabled={!ready||busy||captureLocked} onConnected={async next=>{
+    await activateConnection(next); setReady(true); setAdvancedConnection(false);
+    if (next.session?.accessToken) {setScreen('conversation');setMessage('登录已完成。');}
+    else {setScreen('connection');setMessage('已退出账户，本机草稿仍保留。');}
+  }}/>;
   const visibleRecords=records.filter(r=>!r.deleted_at);
   const events = visibleRecords.filter(r => r.kind === 'event').sort((a, b) => (a.start_at || '').localeCompare(b.start_at || ''));
   const todayEvents = today ? events.filter(r => eventOccursOn(r, today)) : [];
@@ -625,20 +636,21 @@ function Mobile() {
     {(screen === 'companion'||screen === 'settings') && <SettingsHub key={connection?scopeOf(connection):'disconnected'} onOnboarding={connection?()=>{onboardingReturn.current=screen;onboardingSeen.current=connection;setScreen('onboarding');}:undefined} onAccountDeletion={()=>setScreen('account-deletion')} onBookmarks={()=>setScreen('bookmarks')} onChat={prepareMessage} onSync={()=>void refresh()} pendingCount={pending.length+pendingMutations.length} syncing={busy||manualSync} wardrobe={wardrobe} personal={screen === 'companion'} connection={connection} identity={name} connected={connected} onConnection={()=>setScreen('connection')} onFiles={()=>openReviewTool('files')} onNative={()=>setScreen('native')}/>}
     {screen === 'notes' && <><View style={s.section}>{visibleRecords.some(r => r.kind === 'note') ? visibleRecords.filter(r => r.kind === 'note').map(row) : <Text style={s.empty}>还没有笔记。Pajio 整理出的想法和资料会出现在这里。</Text>}</View></>}
     {screen === 'connection' && <>
-      <Text variant="headlineLarge" style={s.heading}>连接你的 Pajio。</Text>
+      <Text variant="headlineLarge" style={s.heading}>账户与身份</Text>
       <Text style={s.muted}>已有记录和未同步内容，会分别留在各自的身份里。</Text>
       <View style={{gap: 20, marginTop: 24}}>
-        <TextInput mode="outlined" label="Pajio 地址" accessibilityLabel="Pajio 地址" value={address} onChangeText={setAddress} autoCapitalize="none" autoCorrect={false} keyboardType="url"/>
-        <CloudSessionPanel connection={connection} address={address} disabled={busy||captureLocked} onConnected={async next=>{await activateConnection(next);setReady(true);if(next.session?.accessToken){setScreen('conversation');setMessage('登录已完成。');}else{setMessage('已退出账户，本机草稿仍保留。');}}}/>
-        <View style={{borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8, gap: 14}}>
-          <Button icon={advancedConnection ? 'chevron-up' : 'chevron-down'} accessibilityLabel="高级 / 开发连接" accessibilityState={{expanded: advancedConnection}} onPress={() => setAdvancedConnection(value => !value)}>高级 / 开发连接</Button>
+        {accountPanel}
+        {connection?.session?.accessToken && identities.length > 1 ? <View style={{gap:8}}><Text style={s.muted}>当前身份</Text>{identities.map(item => <Button key={item.id} mode={connection.identity===item.id?'contained-tonal':'text'} disabled={busy||captureLocked} onPress={()=>{void activateConnection({...connection, identity:item.id}).catch(error=>setMessage(error instanceof Error?error.message:'身份暂时无法切换。'));}}>{item.name}</Button>)}</View> : null}
+        {developmentConnectionsEnabled() ? <View style={{borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8, gap: 14}}>
+          <Button icon={advancedConnection ? 'chevron-up' : 'chevron-down'} accessibilityLabel="开发连接" accessibilityState={{expanded: advancedConnection}} onPress={() => setAdvancedConnection(value => !value)}>开发连接</Button>
           {advancedConnection ? <View style={{gap: 16}}>
-            <Text style={s.muted}>仅用于本机开发或专用服务。填写上方地址和身份标识后连接，也可使用短期配对。</Text>
+            <Text style={s.muted}>仅供已启用开发连接的开发版验收，不会迁移其他服务的账户或草稿。</Text>
+            <TextInput mode="outlined" label="开发服务地址" accessibilityLabel="开发服务地址" value={address} onChangeText={setAddress} autoCapitalize="none" autoCorrect={false} keyboardType="url"/>
             <TextInput mode="outlined" label="身份标识" accessibilityLabel="身份标识" value={identity} onChangeText={setIdentity} autoCapitalize="none"/>
             {identities.map(i => <Button key={i.id} mode={identity === i.id ? 'contained-tonal' : 'text'} onPress={() => setIdentity(i.id)}>{i.name}</Button>)}
             <Button mode="contained-tonal" onPress={connect} disabled={busy || captureLocked} loading={busy} contentStyle={s.buttonSize}>连接 Pajio</Button>
           </View> : null}
-        </View>
+        </View> : null}
         {Platform.OS === 'web' ? <Text style={s.muted}>当前是手机客户端代码的网页预览，拍照和系统权限需在手机验收。</Text> : null}
         <Text style={s.muted}>离开应用时停止录音并尝试保存。已保存的原件留在应用私有目录；卸载或清除应用数据会移除未同步记录。</Text>
       </View>
@@ -649,6 +661,13 @@ function Mobile() {
 
   </ReadingScrollView>;
   if (deletionFrozen && screen !== 'connection') return <SafeAreaView style={{flex: 1, backgroundColor: c.canvas}}><StatusBar style={mode === 'night' ? 'light' : 'dark'}/><ScrollView contentContainerStyle={s.scroll}>{deletionPanel}{message ? <Text accessibilityLiveRegion="polite" style={s.muted}>{message}</Text> : null}<Button onPress={() => setScreen('connection')}>重新登录或切换账户</Button></ScrollView></SafeAreaView>;
+  if (requiresNativeSignIn(connection, Platform.OS) && !(developmentConnectionsEnabled() && screen==='connection' && advancedConnection)) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.scroll,{flexGrow:1,justifyContent:'center',maxWidth:480,width:'100%',alignSelf:'center',gap:24}]}>
+    <View style={{alignItems:'center',gap:12}}><PajamaBear size={184}/><BrandWordmark width={116} color={c.ink}/><Text style={s.muted}>说一声，我来做。</Text></View>
+    {accountPanel}
+    {message?<Text accessibilityLiveRegion="polite" style={s.muted}>{message}</Text>:null}
+    {!ready?<Button onPress={()=>setStartupAttempt(value=>value+1)}>重新读取本机记录</Button>:null}
+    {developmentConnectionsEnabled()?<Button onPress={()=>{setAdvancedConnection(true);setScreen('connection');}}>开发连接</Button>:null}
+  </ScrollView></SafeAreaView>;
   if(screen==='remote-device' && connection && !deletionFrozen) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}><NativeRemoteDevicePanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')+'|'+resource} connection={connection} resource={resource||''} name={(deviceName||'').slice(0,100)} kind={deviceKind==='android'?'android':'computer'} onBack={goBack}/></KeyboardAvoidingView></SafeAreaView>;
   if(screen==='onboarding' && connection && !deletionFrozen) return <View style={{flex:1}}><AppBackdrop/><NativeSyncSession connection={connection} isCurrent={()=>current.current===connection} onRecordsChanged={()=>{void synchronize(current.current,false);}}/><SafeAreaView style={{flex:1,backgroundColor:'transparent'}}><StatusBar style={mode==='night'?'light':'dark'}/><OnboardingPanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')} connection={connection} outfit={wardrobe.state.outfit} isCurrent={()=>current.current===connection&&!deletionFrozen} onComplete={destination=>{if(current.current===connection){onboardingSeen.current=connection;setBriefingIntro(destination==='briefing');setScreen(destination||'today');}}} onClose={()=>{if(current.current===connection){onboardingSeen.current=connection;setScreen(onboardingReturn.current);}}}/></SafeAreaView></View>;
   return <View style={{flex:1}}><AppBackdrop/>

@@ -84,6 +84,8 @@ def gateway_body_limit(scope):
         return 20 * 1024 * 1024
     if path == "/api/life/assets":
         return 15 * 1024 * 1024
+    if path.startswith("/join/"):
+        return 8192
     if path == "/auth/mobile/exchange":
         return 2048
     if path == "/auth/tenant" or path.startswith("/auth/account-deletion/"):

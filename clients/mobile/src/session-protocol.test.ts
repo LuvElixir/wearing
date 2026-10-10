@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {AuthorizationFlow, authorizationCode, authorizationURL, forgetSession, loadConnection, saveConnection, sessionReceipt, Vault} from './session-protocol';
 import {connectionEndpoint, connectionHeaders, scopeOf, Store} from './core';
+import {initialConnection, PUBLIC_PAJIO_ENDPOINT} from './connection-default';
 const state='s'.repeat(48),code='c'.repeat(43),verifier='v'.repeat(64), token='t'.repeat(64);
 const callback='pajio://auth?code='+code+'&state='+state;
 const receipt = () => ({token_type:'Bearer',access_token:token,expires_at:new Date(Date.now()+3600000).toISOString(),user_id:'user_'+'a'.repeat(32),tenant_id:'tenant-a'});
@@ -18,6 +19,15 @@ test('callback binds exact origin, single code and state, without extra fields',
  assert.throws(()=>authorizationURL('http://127.0.0.1','a'.repeat(43),state));
  assert.equal(new URL(authorizationURL('https://pajio.example','a'.repeat(43),state)).pathname,'/auth/mobile/start');
 });
+test('invite entry carries only its fixed selector alongside PKCE; account login remains compatible',()=>{
+ const origin='https://pajio.luckyloading.com/',challenge='a'.repeat(43);
+ const invite=new URL(authorizationURL(origin,challenge,state,'invite'));
+ assert.equal(invite.origin,'https://pajio.luckyloading.com');assert.equal(invite.pathname,'/auth/mobile/start');
+ assert.deepEqual([...invite.searchParams], [['challenge',challenge],['state',state],['entry','invite']]);
+ const account=new URL(authorizationURL(origin,challenge,state,'account'));
+ assert.equal(account.searchParams.has('entry'),false);assert.equal(account.searchParams.has('return'),false);
+ assert.throws(()=>authorizationURL(origin,challenge,state,'https://other.invalid/' as 'invite'));
+});
 test('receipt validates token, identity, expiry and HTTPS before exposing a session',()=>{
  for(const patch of [{token_type:'Basic'},{access_token:'bad'},{expires_at:'bad'},{expires_at:new Date(0).toISOString()},{expires_at:new Date(Date.now()+86400000).toISOString()},{user_id:'user_?'},{tenant_id:'a/b'}]) assert.throws(()=>sessionReceipt('https://pajio.example',{...receipt(),...patch},'d'.repeat(32)));
  assert.throws(()=>sessionReceipt('http://127.0.0.1',receipt(),'d'.repeat(32)));
@@ -29,6 +39,16 @@ test('SQLite holds metadata, token restores securely, logout retains drafts',asy
  await saveConnection(con,db,vault);assert.equal(JSON.stringify([...db.data]).includes(token),false);assert.deepEqual(await loadConnection(db,vault),con);
  const out=await forgetSession(con,db,vault);assert.equal(out.session?.accessToken,undefined);assert.equal((await loadConnection(db,vault))?.session?.accessToken,undefined);
  assert.deepEqual(await db.get('draft:'+scopeOf(con)),{text:'private draft'});assert.equal(scopeOf(con),scopeOf(out));assert.throws(()=>connectionEndpoint(out));assert.equal(connectionEndpoint(out,true),con.endpoint);
+});
+test('native production restore rejects a retired origin before reading its bearer and preserves isolated drafts',async()=>{
+ const db=new Memory(),vault=new Memory(),retired=connection();
+ await saveConnection(retired,db,vault);await db.put('draft:'+scopeOf(retired),{text:'原服务未同步草稿'});
+ let vaultReads=0;const read=vault.get.bind(vault);vault.get=async<T=string>(key:string)=>{vaultReads++;return read<T>(key);};
+ const restored=await loadConnection(db,vault,stored=>initialConnection(stored,'ios'));
+ assert.deepEqual(restored,{endpoint:PUBLIC_PAJIO_ENDPOINT,identity:'daily'});assert.equal(vaultReads,0);
+ assert.deepEqual(await db.get('draft:'+scopeOf(retired)),{text:'原服务未同步草稿'});
+ assert.equal(await db.get('draft:'+scopeOf(restored!)),null);
+ assert.equal(vault.data.size,1);assert.equal((await db.get<{endpoint:string}>('connection'))?.endpoint,retired.endpoint);
 });
 test('scopes separate accounts and tenants while refresh preserves scope',()=>{
  const con=connection();for(const patch of [{userId:'user_'+'b'.repeat(32)},{tenantId:'tenant-b'}]) assert.notEqual(scopeOf(con),scopeOf({...con,session:{...con.session!,...patch}}));

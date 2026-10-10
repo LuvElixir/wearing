@@ -27,6 +27,9 @@ test('audio loading, buffering, playback error and ready states remain distinct'
 test('original requests bind current identity in headers and reject invalid identifiers', async context => {
   const dev = Object.getOwnPropertyDescriptor(globalThis, '__DEV__');
   Object.defineProperty(globalThis, '__DEV__', {configurable: true, value: true});
+  const previousDevelopmentFlag = process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS;
+  process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = 'true';
+  context.after(() => {if (previousDevelopmentFlag === undefined) delete process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS; else process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = previousDevelopmentFlag;});
   context.after(() => {if (dev) Object.defineProperty(globalThis, '__DEV__', dev); else Reflect.deleteProperty(globalThis, '__DEV__');});
   const configured = {endpoint: 'http://192.168.1.25:8795/', identity: 'work', development: {accessToken: 'a'.repeat(48), expiresAt: new Date(Date.now() + 3600000).toISOString()}};
   const source = remoteOriginalSource(configured, asset);

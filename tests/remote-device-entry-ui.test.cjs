@@ -72,7 +72,7 @@ test("click branch: pending guard and original control flow", () => {
 });
 
 test("version bumped; no regression in wiring", () => {
-  assert.match(html, /app\.js\?v=58/);
+  assert.match(html, /app\.js\?v=59/);
   assert.match(html, /pajio\.css\?v=22/);
   assert.match(app, /data-rd-open data-rd-resource/);
 });

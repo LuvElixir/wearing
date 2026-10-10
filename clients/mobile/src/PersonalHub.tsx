@@ -283,7 +283,7 @@ function SettingsHubContent({connection, identity, connected, wardrobe, personal
       <HubRow title="聊天工具" detail="连接常用的沟通入口" icon={<MessageCircle size={24} color={c.ink}/>} onPress={() => open('messaging')} last/>
     </View>
     <SectionLabel>数据与身份</SectionLabel><View style={s.group}>
-      <HubRow title="连接与身份" detail="切换服务地址或当前身份" icon={<Layers size={24} color={c.ink}/>} onPress={onConnection}/>
+      <HubRow title="账户与身份" detail="管理登录状态与当前身份" icon={<Layers size={24} color={c.ink}/>} onPress={onConnection}/>
       {onBookmarks ? <HubRow title="收藏链接" detail="保存网页、备注，需要时再打开" icon={<Link2 size={24} color={c.ink}/>} onPress={onBookmarks}/> : null}
       <HubRow title="资料与文件" detail="原件和完成的结果，都留在这里" icon={<BookOpen size={24} color={c.ink}/>} onPress={onFiles} last={!onSync}/>{onSync ? <HubRow title="同步记录" detail={syncing ? '正在同步本机记录…' : pendingCount > 0 ? `${pendingCount} 条本机记录待同步，点按重试` : '本机没有等待同步的记录，点按检查'} icon={<RefreshCw size={24} color={c.ink}/>} onPress={syncing ? undefined : onSync} status={syncing ? '同步中' : pendingCount > 0 ? '待同步' : undefined} last/> : null}
     </View>

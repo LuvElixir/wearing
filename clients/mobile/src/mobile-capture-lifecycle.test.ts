@@ -9,6 +9,7 @@ import {commitRecordReceipt, commitRecordSnapshot, localRecords} from './record-
 import {observeDiagnosticError, recentDiagnosticErrors, clearDiagnosticErrors} from './diagnostics-client';
 import {feedbackAfterSynchronization, feedbackAfterSyncFailure, type MobileFeedback} from './mobile-sync-feedback';
 import {sameAccount} from './account-deletion-client';
+import {assertNativeServiceAddress, PUBLIC_PAJIO_ENDPOINT, requiresNativeSignIn} from './connection-default';
 
 // Exercise the actual shell handlers without loading native modules or a live service.
 const source = ts.createSourceFile('Mobile.tsx', readFileSync(new URL('./Mobile.tsx', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -21,7 +22,7 @@ function handlerCode(names: string[]) {
 }
 function deferred<T>() {let resolve!: (value: T) => void; const promise = new Promise<T>(yes => {resolve = yes;}); return {promise, resolve};}
 const settle = async () => {for (let count = 0; count < 20; count++) await Promise.resolve();};
-const daily: Connection = {endpoint: 'https://pajio.example/', identity: 'daily'};
+const daily: Connection = {endpoint: PUBLIC_PAJIO_ENDPOINT, identity: 'daily', session:{userId:'user_'+'a'.repeat(32),tenantId:'tenant-fixture',credentialId:'b'.repeat(32),accessToken:'s'.repeat(64),expiresAt:'2099-01-01T00:00:00Z'}};
 const work: Connection = {...daily, identity: 'work'};
 type Form = {id: string; text: string; kind: 'note'; media: Media[]; organize: boolean; start: string; end: string};
 const blank = (): Form => ({id: 'next', text: '', kind: 'note', media: [], organize: false, start: '2026-10-07T00:00:00Z', end: '2026-10-07T01:00:00Z'});
@@ -37,7 +38,7 @@ function fixture(names = ['beginCaptureWrite', 'changeForm', 'save', 'activateCo
   const apiState = {items: [] as RecordItem[], version: 0, updates: 0, snapshots: 0, bootstrapFailure: null as Error | null, updateFailure: null as Error | null};
   let requestKey = 0;
   const context = {
-    Error, Promise, Date, clearTimeout, setTimeout, Platform:{OS:'ios'}, data, state, apiState, storage, sameAccount, persistNativeConnection:(connection:Connection)=>storage.put('connection',connection), outbox: new Outbox(storage), makeDraft, scopeOf, blank,
+    Error, Promise, Date, clearTimeout, setTimeout, Platform:{OS:'ios'}, data, state, apiState, storage, sameAccount, assertNativeServiceAddress, requiresNativeSignIn, persistNativeConnection:(connection:Connection)=>storage.put('connection',connection), outbox: new Outbox(storage), makeDraft, scopeOf, blank,
     connection: daily, current: {current: daily}, formRef: {current: state.form}, ready: true, saving: false,
     startupDeletionDisposition: async (_connection: Connection) => 'clear', setDeletionFrozen: (value: boolean) => {state.frozen = value;}, setScreen: (value: string) => {state.screen = value;},
     mutations: new RecordMutations(storage, () => `synthetic-request-${++requestKey}`), localRead: {current: 0}, commitRecordReceipt, commitRecordSnapshot, localRecords, projectRecordMutations, observeDiagnosticError,
@@ -122,6 +123,25 @@ test('a failed local refresh releases the sync lock and permits a later recovery
   await h.synchronize(daily);
   assert.equal(h.syncBusy.current, false); assert.equal(h.state.busy, false);
   await h.synchronize(daily); assert.equal(attempts, 2); assert.equal(h.syncBusy.current, false);
+});
+
+test('unsigned native entry cannot bootstrap or flush a queued draft before account login', async () => {
+  const h=fixture(['synchronize']);
+  const unsigned:Connection={endpoint:PUBLIC_PAJIO_ENDPOINT,identity:'daily'};
+  await h.outbox.enqueue({id:'unsigned-draft',scope:scopeOf(unsigned),draft:makeDraft('本机旧草稿','note'),media:[],uploaded:[],organize:false,state:'pending',attempts:0,nextAt:0,createdAt:''});
+  h.apiState.bootstrapFailure=Error('must not contact service');
+  await h.synchronize(unsigned);
+  assert.equal(h.apiState.snapshots,0);assert.equal(h.apiState.updates,0);assert.equal(h.state.connected,false);
+  assert.equal((await h.outbox.items(scopeOf(unsigned)))[0].state,'pending');
+  assert.equal(h.state.feedback.text,'');
+});
+
+test('foreign service activation fails before credentials, drafts or current account can change', async () => {
+  const h=fixture();
+  const foreign={...daily,endpoint:'https://retired-service.invalid/'};
+  await assert.rejects(h.activateConnection(foreign),/重新登录/);
+  assert.equal(h.current.current,daily);assert.equal(h.state.locked,false);
+  assert.equal(await h.storage.get('connection'),null);assert.equal(h.data.size,0);
 });
 
 

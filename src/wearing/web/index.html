@@ -25,7 +25,7 @@
   <script src="/assets/conversation-submissions.js?v=2" defer></script>
   <script src="/assets/confirmations.js?v=2" defer></script>
   <script src="/assets/activity.js?v=4" defer></script>
-  <script src="/assets/app.js?v=58" defer></script>
+  <script src="/assets/app.js?v=59" defer></script>
   <script src="/assets/vendor/fullcalendar/all/global.js" defer></script>
   <script src="/assets/vendor/fullcalendar/themes/monarch/global.js" defer></script>
   <script src="/assets/reminders.js?v=2" defer></script>
@@ -47,7 +47,7 @@
   <link rel="stylesheet" href="/assets/activity.css?v=1">
   <script src="/assets/now.js?v=6" defer></script>
   <script src="/assets/pajio.js?v=6" defer></script>
-  <script src="/assets/views.js?v=16" defer></script>
+  <script src="/assets/views.js?v=17" defer></script>
   <script src="/assets/briefings.js?v=4" defer></script>
   <script src="/assets/cloud-apps.js?v=1" defer></script>
   <script src="/assets/decisions.js?v=5" defer></script>
@@ -259,13 +259,14 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   </form>
   <details class="setup-guide"><summary>其他服务与登录方式</summary><p>此处先支持 API Key 接入。其他服务、自定义地址或 OAuth 登录，仍可通过本地向导配置：</p><pre id="model-command">uv run wearing engine model</pre></details>
   </details></section>
-  <details class="setup-guide remote-connection"><summary>连接另一台执行电脑</summary>
+  <div id="development-connection-host"></div>
+  <template id="development-connection-template"><details class="setup-guide remote-connection"><summary>本地开发：连接执行服务</summary>
   <form id="connection-form" class="connection-form"><label for="hermes-url">执行服务地址</label><input id="hermes-url" type="url" value="http://127.0.0.1:8642" required autocomplete="off"><label for="hermes-key">连接密钥</label><input id="hermes-key" type="password" required autocomplete="off" placeholder="保存在这台电脑上"><p class="field-help">电脑可以在身边，也可以通过 SSH 隧道连接。</p><button class="primary" id="connect-button">连接 Pajio</button><p class="inline-feedback" id="connection-feedback" role="status"></p></form>
   <details class="setup-guide"><summary>第一次连接，需要准备什么？</summary><p>先在兼容的 Mac 或 Windows 电脑上安装 <a href="https://hermes-agent.nousresearch.com/docs/getting-started/installation" target="_blank" rel="noreferrer">Hermes</a> 并配置模型。按官方说明设置以下环境变量，再运行 Gateway。</p><pre>API_SERVER_ENABLED=true
 API_SERVER_KEY=你的独立连接密钥
 
 hermes gateway</pre><p>工具权限与设备控制需要在执行电脑上验证。</p></details>
-  </details>
+  </details></template>
   <section class="device-section" aria-labelledby="computer-title"><h3 id="computer-title">这台电脑</h3>
     <p id="computer-status" role="status">正在检查电脑连接器……</p>
     <div class="button-row"><button class="secondary" id="computer-prepare">准备电脑连接器</button><button class="secondary" id="computer-permissions" hidden>打开系统授权</button><button class="primary" id="computer-bind" hidden>接入这台电脑</button><button class="secondary" id="computer-control" hidden>我来接管</button><button class="text-button" id="computer-refresh">重新检测</button></div>

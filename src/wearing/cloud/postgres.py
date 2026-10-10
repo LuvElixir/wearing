@@ -9,10 +9,11 @@ from sqlalchemy.engine import make_url
 
 
 SCHEMA = "wearing_control"
-REVISION = "wearing_control_0002"
+REVISION = "wearing_control_0003"
 WEB_ROLE = "wearing_web"
 OPERATOR_ROLE = "wearing_operator"
-TABLES = ("wearing_users", "wearing_tenants", "wearing_memberships", "wearing_routes", "wearing_sessions", "wearing_oidc_states", "wearing_tenant_ownership", "wearing_deletion_requests")
+REGISTRATION_ROLE = "wearing_registration"
+TABLES = ("wearing_users", "wearing_tenants", "wearing_memberships", "wearing_routes", "wearing_sessions", "wearing_oidc_states", "wearing_tenant_ownership", "wearing_deletion_requests", "wearing_invitations")
 CONTEXT_KEYS = ("user_id", "tenant_id", "session_hash", "issuer", "subject", "state_hash")
 
 
@@ -55,7 +56,7 @@ def set_session(db, session_hash):
     db.execute(text("SELECT pg_catalog.set_config('wearing.session_hash', :value, true)"), {"value": session_hash})
 
 
-def assert_database_boundary(engine, *, operator=False):
+def assert_database_boundary(engine, *, operator=False, registration=False):
     with engine.connect() as db:
         version = db.execute(text("SELECT version_num FROM wearing_control.alembic_version")).scalars().all()
         if version != [REVISION]:
@@ -63,13 +64,18 @@ def assert_database_boundary(engine, *, operator=False):
         role = db.execute(text("""
             SELECT r.rolsuper, r.rolbypassrls, r.rolcreaterole, r.rolcreatedb,
                    pg_catalog.pg_has_role(current_user, 'wearing_web', 'MEMBER') AS web,
-                   pg_catalog.pg_has_role(current_user, 'wearing_operator', 'MEMBER') AS operator
+                   pg_catalog.pg_has_role(current_user, 'wearing_operator', 'MEMBER') AS operator,
+                   pg_catalog.pg_has_role(current_user, 'wearing_registration', 'MEMBER') AS registration,
+                   pg_catalog.pg_has_role(current_user, 'wearing_cleanup', 'MEMBER') AS cleanup
             FROM pg_catalog.pg_roles r WHERE r.rolname = current_user
         """)).mappings().one()
         if operator:
-            if not role["operator"] or role["web"] or any(role[k] for k in ("rolsuper", "rolbypassrls", "rolcreaterole", "rolcreatedb")):
+            if not role["operator"] or role["web"] or role["registration"] or role["cleanup"] or any(role[k] for k in ("rolsuper", "rolbypassrls", "rolcreaterole", "rolcreatedb")):
                 raise DatabaseBoundaryError("登记和撤销需要单独的操作者角色。")
-        elif (any(role[k] for k in ("rolsuper", "rolbypassrls", "rolcreaterole", "rolcreatedb", "operator")) or not role["web"]):
+        elif registration:
+            if not role["registration"] or role["web"] or role["operator"] or role["cleanup"] or any(role[k] for k in ("rolsuper", "rolbypassrls", "rolcreaterole", "rolcreatedb")):
+                raise DatabaseBoundaryError("注册服务需要独立的最小权限角色。")
+        elif (any(role[k] for k in ("rolsuper", "rolbypassrls", "rolcreaterole", "rolcreatedb", "operator", "registration", "cleanup")) or not role["web"]):
             raise DatabaseBoundaryError("网页数据库角色具有管理权限，或缺少应用角色授权。")
         if db.scalar(text("""
             SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_roles r
@@ -88,7 +94,17 @@ def assert_database_boundary(engine, *, operator=False):
             raise DatabaseBoundaryError("平台数据表的所有权或 FORCE RLS 校验未通过。")
         if db.scalar(text("SELECT pg_catalog.has_schema_privilege(current_user, 'wearing_control', 'CREATE')")):
             raise DatabaseBoundaryError("网页数据库角色不能创建平台对象。")
+        assert_invitation_functions(db, registration=registration, operator=operator)
         if operator:
+            return
+        if registration:
+            for table in TABLES:
+                for privilege in ("SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"):
+                    if db.scalar(text("SELECT pg_catalog.has_table_privilege(current_user, :table, :privilege)"), {"table": SCHEMA + "." + table, "privilege": privilege}):
+                        raise DatabaseBoundaryError("注册服务不能直接读取或修改平台数据表。")
+                for privilege in ("SELECT", "INSERT", "UPDATE", "REFERENCES"):
+                    if db.scalar(text("SELECT pg_catalog.has_any_column_privilege(current_user, :table, :privilege)"), {"table": SCHEMA + "." + table, "privilege": privilege}):
+                        raise DatabaseBoundaryError("注册服务不能直接读取或修改平台字段。")
             return
         for table in TABLES:
             name = SCHEMA + "." + table
@@ -126,7 +142,10 @@ def assert_database_boundary(engine, *, operator=False):
         policies = db.execute(text("""
             SELECT tablename, policyname FROM pg_catalog.pg_policies WHERE schemaname = 'wearing_control'
         """)).all()
+        from .migrations.invitation_0003 import DEFINER_TABLES
         expected = {(table, name) for table in TABLES for name in ("operator_all", "web_scope")}
+        expected |= {(table, "invitation_definer") for table in DEFINER_TABLES}
+        expected.add(('wearing_oidc_states','cleanup_definer'))
         if set(policies) != expected:
             raise DatabaseBoundaryError("平台 RLS 策略缺失或存在额外策略。")
 
@@ -149,7 +168,9 @@ def migrate_database(value):
                 SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_roles r WHERE r.rolname = current_user
                   AND (r.rolsuper OR r.rolbypassrls OR r.rolcreaterole OR r.rolcreatedb
                     OR pg_catalog.pg_has_role(current_user, 'wearing_web', 'MEMBER')
-                    OR pg_catalog.pg_has_role(current_user, 'wearing_operator', 'MEMBER')))
+                    OR pg_catalog.pg_has_role(current_user, 'wearing_operator', 'MEMBER')
+                    OR pg_catalog.pg_has_role(current_user, 'wearing_registration', 'MEMBER')
+                    OR pg_catalog.pg_has_role(current_user, 'wearing_cleanup', 'MEMBER')))
             """)):
                 raise DatabaseBoundaryError("迁移需要独立对象所有者，不能复用网页、操作者或超级用户凭据。")
             db.execute(text("SELECT pg_catalog.pg_advisory_xact_lock(8247991101)"))
@@ -157,3 +178,43 @@ def migrate_database(value):
             command.upgrade(config, "head")
     finally:
         engine.dispose()
+
+
+def assert_invitation_functions(db, *, registration, operator):
+    """Reject broadened DEFINER grants/body/search_path, not merely missing RLS."""
+    from .migrations.invitation_0003 import (CLEANUP_FUNCTION_BODY, DEFINER_TABLES, FUNCTION_BODIES,
+        FUNCTION_SIGNATURES, REGISTRATION_FUNCTIONS, WEB_FUNCTIONS)
+    expected = REGISTRATION_FUNCTIONS if registration else set() if operator else WEB_FUNCTIONS
+    owners = set()
+    for name, signature in {**FUNCTION_SIGNATURES,'delete_expired_states':''}.items():
+        row = db.execute(text("""SELECT p.oid,p.prosrc,p.prosecdef,p.proconfig,p.proowner,
+          r.rolname AS owner, r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,
+          pg_catalog.pg_has_role(current_user,p.proowner,'MEMBER') AS owns,
+          pg_catalog.has_function_privilege(current_user,p.oid,'EXECUTE') AS executable,
+          EXISTS(SELECT 1 FROM pg_catalog.aclexplode(COALESCE(p.proacl,pg_catalog.acldefault('f',p.proowner))) a
+            WHERE a.grantee=0 AND a.privilege_type='EXECUTE') AS public_execute
+          FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_roles r ON r.oid=p.proowner
+          WHERE p.oid=pg_catalog.to_regprocedure(:signature)"""),
+          {'signature': SCHEMA + '.' + name + '(' + signature + ')'}).mappings().first()
+        body = CLEANUP_FUNCTION_BODY if name == 'delete_expired_states' else FUNCTION_BODIES[name]
+        if (not row or not row['prosecdef'] or row['prosrc'] != body
+                or row['proconfig'] != ['search_path=pg_catalog, wearing_control']
+                or row['public_execute'] or row['owns'] or bool(row['executable']) != (name in expected)
+                or any(row[k] for k in ('rolsuper','rolbypassrls','rolcreaterole','rolcreatedb'))):
+            raise DatabaseBoundaryError('邀请码数据库函数的最小权限或实现校验未通过。')
+        owners.add(row['owner'])
+    if len(owners) != 1:
+        raise DatabaseBoundaryError('邀请码数据库函数所有者不一致。')
+    owner = next(iter(owners))
+    rows = db.execute(text("""SELECT tablename,roles,cmd,qual,with_check FROM pg_catalog.pg_policies
+        WHERE schemaname='wearing_control' AND policyname='invitation_definer'""")).mappings().all()
+    if ({row['tablename'] for row in rows} != DEFINER_TABLES or any(
+            list(row['roles']) != [owner] or row['cmd'] != 'ALL' or row['qual'] != 'true' or row['with_check'] != 'true'
+            for row in rows)):
+        raise DatabaseBoundaryError('邀请码数据库函数的行级作用域校验未通过。')
+    cleanup = db.execute(text("""SELECT tablename,roles,cmd,qual,with_check FROM pg_catalog.pg_policies
+        WHERE schemaname='wearing_control' AND policyname='cleanup_definer'""")).mappings().all()
+    if (len(cleanup) != 1 or cleanup[0]['tablename'] != 'wearing_oidc_states'
+            or list(cleanup[0]['roles']) != [owner] or cleanup[0]['cmd'] != 'ALL'
+            or cleanup[0]['qual'] != 'true' or cleanup[0]['with_check'] != 'true'):
+        raise DatabaseBoundaryError('过期状态清理函数的行级作用域校验未通过。')

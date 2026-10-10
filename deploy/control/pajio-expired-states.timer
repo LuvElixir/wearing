@@ -1,0 +1,11 @@
+[Unit]
+Description=Expire bounded Pajio authentication state every ten minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+RandomizedDelaySec=30
+Unit=pajio-expired-states.service
+
+[Install]
+WantedBy=timers.target

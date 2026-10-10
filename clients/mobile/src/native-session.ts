@@ -10,15 +10,20 @@ import {storage, withNativeState} from './storage';
 import {registerAccountCredential, upsertState} from './account-cleanup-state';
 import {serviceFetch} from './transport';
 import {clearDiagnosticErrors} from './diagnostics-client';
-import {AUTH_CALLBACK, AuthorizationFlow, authorizationURL, forgetSession, loadConnection, saveConnection, sessionReceipt, Vault} from './session-protocol';
+import {assertNativeServiceAddress, initialConnection, PUBLIC_PAJIO_ENDPOINT} from './connection-default';
+import {AUTH_CALLBACK, AuthorizationFlow, authorizationURL, forgetSession, loadConnection, saveConnection, sessionReceipt, type SignInEntry, Vault} from './session-protocol';
 
 const options = {keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY};
 const vault: Vault = {get: key => SecureStore.getItemAsync(key, options), put: (key,value) => SecureStore.setItemAsync(key,value,options), remove: key => SecureStore.deleteItemAsync(key,options)};
-export const restoreNativeConnection = () => loadConnection(storage, vault);
-export const persistNativeConnection = (connection: Connection) => Platform.OS === 'web' ? saveConnection(connection, storage, vault) : withNativeState(async db => {
-  await registerAccountCredential(db, connection);
-  await saveConnection(connection, {put: async (key, value) => {await upsertState(db, key, value);}}, vault);
-});
+export const restoreNativeConnection = () => loadConnection(storage, vault, stored => Platform.OS === 'web' ? stored : initialConnection(stored, Platform.OS));
+export const persistNativeConnection = (connection: Connection) => {
+  if (Platform.OS === 'web') return saveConnection(connection, storage, vault);
+  assertNativeServiceAddress(connection.endpoint);
+  return withNativeState(async db => {
+    await registerAccountCredential(db, connection);
+    await saveConnection(connection, {put: async (key, value) => {await upsertState(db, key, value);}}, vault);
+  });
+};
 export const clearNativeSession = async (connection: Connection) => {
   await clearChatImportPrivateDrafts(connection);
   const result = await forgetSession(connection, storage, vault);
@@ -33,6 +38,7 @@ async function boundedFetch(url: string, init: RequestInit) {
   finally {clearTimeout(timer);}
 }
 const authorization = new AuthorizationFlow(vault, async (pending, code) => {
+  assertNativeServiceAddress(pending.address);
   const response = await boundedFetch(new URL('/auth/mobile/exchange', pending.address).toString(), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,verifier:pending.verifier,state:pending.state})});
   if (!response.ok) throw new ApiError(response.status === 403 ? '此账号尚未加入 Pajio 试用，请使用收到邀请的账号。' : '这次登录没有完成，请重新登录。', response.status);
   const next = sessionReceipt(pending.address, await response.json(), Crypto.randomUUID().replace(/-/g,''));
@@ -45,13 +51,14 @@ const authorization = new AuthorizationFlow(vault, async (pending, code) => {
 }, persistNativeConnection);
 export const completeNativeSignIn = (url: string) => authorization.complete(url);
 let browserOpen = false;
-export async function signIn(address: string): Promise<Connection | null> {return openSignIn(address);}
+export async function signIn(entry: SignInEntry = 'account'): Promise<Connection | null> {return openSignIn(PUBLIC_PAJIO_ENDPOINT, undefined, entry);}
 export async function reauthenticateNativeForDeletion(connection: Connection): Promise<Connection | null> {
   if (!connection.session) throw new ApiError('请先登录云端账户。', 401);
   return openSignIn(connectionEndpoint(connection), connection);
 }
-async function openSignIn(address: string, expectedConnection?: Connection): Promise<Connection | null> {
+async function openSignIn(address: string, expectedConnection?: Connection, entry: SignInEntry = 'account'): Promise<Connection | null> {
   if (Platform.OS === 'web') throw new Error('账户登录请在 Pajio App 中打开；当前为开发预览。');
+  assertNativeServiceAddress(address);
   if (browserOpen) throw new Error('登录窗口已经打开，请先完成这次登录。');
   browserOpen = true;
   try {
@@ -59,7 +66,7 @@ async function openSignIn(address: string, expectedConnection?: Connection): Pro
     const state = Array.from(await Crypto.getRandomBytesAsync(24), b => b.toString(16).padStart(2,'0')).join('');
     const digest = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, verifier, {encoding: Crypto.CryptoEncoding.BASE64});
     const challenge = digest.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-    const url = expectedConnection ? await new AccountDeletionClient(expectedConnection, serviceFetch).reauth(challenge, state) : authorizationURL(address, challenge, state);
+    const url = expectedConnection ? await new AccountDeletionClient(expectedConnection, serviceFetch).reauth(challenge, state) : authorizationURL(address, challenge, state, entry);
     const session = expectedConnection?.session;
     await authorization.begin({address,verifier,state,createdAt:Date.now(), ...(session ? {expected: {userId: session.userId, tenantId: session.tenantId, credentialId: session.credentialId, identity: expectedConnection!.identity}} : {})});
     const result = await WebBrowser.openAuthSessionAsync(url, AUTH_CALLBACK);

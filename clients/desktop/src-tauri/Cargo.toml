@@ -9,6 +9,7 @@ description = "Wearing desktop client; the personal agent remains a separate ser
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+development-endpoints = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

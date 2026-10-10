@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import hashlib
 import json
 from pathlib import Path
+import re
 import time
 from urllib.parse import parse_qs, urlparse
 
@@ -11,11 +12,13 @@ from joserfc import jwt
 from joserfc.jwk import RSAKey
 import pytest
 from sqlalchemy import select, update
+from starlette.requests import Request
 
 from wearing.cloud.control import ControlStore, routes, sessions, states
 from wearing.cloud.gateway import (GatewayError, create_gateway_app, initialize_gateway,
                                    load_gateway, register_route)
 from wearing.cloud.instance import initialize_instance
+from wearing.cloud.join import callback_error
 from wearing.cloud.worker import create_tenant_app
 from wearing.config import write_private_json
 
@@ -238,6 +241,88 @@ async def test_pending_oidc_flow_survives_restart_and_expires(tmp_path):
                 calls = provider.token_calls
                 assert (await restarted.get("/auth/callback", params=params)).status_code == 400
                 assert provider.token_calls == calls
+
+
+@pytest.mark.parametrize('failure, status, detail', [
+    ('missing_state', 400, '登录关联已失效，请重新登录。'),
+    ('expired_nonce', 400, '登录关联已失效，请重新登录。'),
+    ('uninvited', 403, '此账号尚未加入 Pajio 试用。'),
+    ('bad_nonce', 400, '登录验证未完成，请重新登录。'),
+])
+@pytest.mark.parametrize('html', [False, True])
+async def test_callback_failure_browser_html_preserves_validation_and_json_contract(tmp_path, failure, status, detail, html):
+    async with lab(tmp_path) as (_, _, _, control, _, provider, app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url=ORIGIN) as client:
+            if failure == 'missing_state':
+                params = {'state': 'synthetic-state-<script>bad</script>', 'code': 'synthetic-secret-code'}
+            else:
+                redirect = await client.get('/auth/login')
+                params = provider.authorize(redirect.headers['location'],
+                                            subject='uninvited' if failure == 'uninvited' else 'alice',
+                                            overrides={'nonce': 'wrong'} if failure == 'bad_nonce' else None)
+                if failure == 'expired_nonce':
+                    with control.engine.begin() as db:
+                        db.execute(update(states).values(expires=0))
+            params['error_description'] = 'synthetic-private-provider-detail'
+            accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' if html else 'application/json'
+            response = await client.get('/auth/callback', params=params, headers={'Accept': accept})
+            assert response.status_code == status
+            assert response.headers['cache-control'] == 'private, no-store'
+            assert response.headers.get_list('referrer-policy') == ['no-referrer']
+            assert 'location' not in response.headers
+            for secret in (*params.values(), 'private-access-token', 'private-refresh-token'):
+                assert secret not in response.text
+            if html:
+                assert response.headers['content-type'] == 'text/html; charset=utf-8'
+                assert response.content.decode('utf-8') == response.text
+                assert '<meta charset="utf-8">' in response.text[:100]
+                assert '这次登录没有完成' in response.text
+                assert '请关闭窗口，回到 Pajio 后重新点「已有账号登录」' in response.text
+                assert re.findall(r'<a\b[^>]*href="([^"]+)"', response.text) == ['/join']
+                assert '<form' not in response.text and '<script' not in response.text and 'pajio://' not in response.text
+                assert detail not in response.text
+                nonce = re.search(r'<style nonce="([A-Za-z0-9_-]+)">', response.text)[1]
+                assert response.headers['content-security-policy'] == (
+                    f"default-src 'none'; style-src 'nonce-{nonce}'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'")
+                assert response.headers['x-frame-options'] == 'DENY'
+                assert response.headers['x-content-type-options'] == 'nosniff'
+            else:
+                assert response.headers['content-type'] == 'application/json'
+                assert response.json() == {'detail': detail}
+            assert provider.token_calls == (0 if failure in {'missing_state', 'expired_nonce'} else 1)
+            session = await client.get('/auth/session', headers={'Accept': 'text/html'})
+            assert session.status_code == 401 and session.json() == {'detail': '请先登录 Pajio。'}
+
+
+@pytest.mark.parametrize('accept, html', [
+    (None, False), ('*/*', False), ('text/*', False), ('application/json', False),
+    ('application/xhtml+xml', False), ('text/html;q=0,*/*;q=1', False),
+    ('text/html;q=invalid', False), ('text/html;q=1.1', False),
+    ('text/html;q=0;q=1', False), ('text/html', True), ('TEXT/HTML;q=0.5', True),
+    ('application/json,text/html;q=0.1', True),
+])
+def test_callback_error_requires_explicit_acceptable_html(accept, html):
+    headers = [] if accept is None else [(b'accept', accept.encode('ascii'))]
+    response = callback_error(Request({'type': 'http', 'headers': headers}), 'synthetic-detail', status=400)
+    assert response.status_code == 400
+    if html:
+        assert response.media_type == 'text/html'
+        assert b'synthetic-detail' not in response.body
+    else:
+        assert response.media_type == 'application/json'
+        assert json.loads(response.body) == {'detail': 'synthetic-detail'}
+
+
+async def test_browser_accept_does_not_change_mobile_exchange_or_successful_callback(tmp_path):
+    async with lab(tmp_path) as (*_, provider, app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url=ORIGIN,
+                                    headers={'Accept': 'text/html'}) as client:
+            response = await client.post('/auth/mobile/exchange', json={})
+            assert response.status_code == 400
+            assert response.headers['content-type'] == 'application/json'
+            assert response.json() == {'detail': '登录关联已失效，请重新登录。'}
+            assert (await login(client, provider)).status_code == 303
+            assert (await client.get('/auth/session')).status_code == 200
 
 
 async def test_wrong_route_credential_unavailable_worker_and_bounded_body(tmp_path):

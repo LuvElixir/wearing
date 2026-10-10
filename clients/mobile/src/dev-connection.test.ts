@@ -7,12 +7,17 @@ const token = 'a'.repeat(43);
 const paired = (address = 'http://192.168.1.25:8795/'): Connection => ({endpoint: address, identity: 'daily', development: {accessToken: token, expiresAt: new Date(now + 4 * 60 * 60 * 1000).toISOString()}});
 let devDescriptor: PropertyDescriptor | undefined;
 let realNow: typeof Date.now;
+let previousDevelopmentFlag: string | undefined;
 beforeEach(() => {
+  previousDevelopmentFlag = process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS;
+  process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = 'true';
   devDescriptor = Object.getOwnPropertyDescriptor(globalThis, '__DEV__');
   Object.defineProperty(globalThis, '__DEV__', {configurable: true, value: true});
   realNow = Date.now; Date.now = () => now;
 });
 afterEach(() => {
+  if (previousDevelopmentFlag === undefined) delete process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS;
+  else process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = previousDevelopmentFlag;
   Date.now = realNow;
   if (devDescriptor) Object.defineProperty(globalThis, '__DEV__', devDescriptor);
   else Reflect.deleteProperty(globalThis, '__DEV__');
@@ -38,9 +43,12 @@ test('only explicit RFC1918 IPv4 pairing permits LAN HTTP', () => {
 
 test('production builds and an absent development flag reject paired LAN connections', () => {
   Object.defineProperty(globalThis, '__DEV__', {configurable: true, value: false});
-  assert.throws(() => connectionEndpoint(paired()), /仅供开发版/);
+  assert.throws(() => connectionEndpoint(paired()), /仅供已启用开发连接/);
   Reflect.deleteProperty(globalThis, '__DEV__');
-  assert.throws(() => connectionEndpoint(paired()), /仅供开发版/);
+  assert.throws(() => connectionEndpoint(paired()), /仅供已启用开发连接/);
+  Object.defineProperty(globalThis, '__DEV__', {configurable: true, value: true});
+  delete process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS;
+  assert.throws(() => connectionEndpoint(paired()), /仅供已启用开发连接/);
 });
 
 test('pairing requires a well-formed short lived token and ISO expiry', () => {

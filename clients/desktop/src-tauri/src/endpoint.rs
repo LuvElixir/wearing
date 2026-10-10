@@ -28,6 +28,81 @@ impl Default for Connection {
     }
 }
 
+pub fn development_endpoints_enabled() -> bool {
+    cfg!(all(debug_assertions, feature = "development-endpoints"))
+}
+
+pub fn development_connection(value: &str) -> Result<Connection, String> {
+    if !development_endpoints_enabled() {
+        return Err("自定义连接仅限开发构建。请使用官方登录入口。".into());
+    }
+    connection_for_mode(value, true)
+}
+
+/// A release build never accepts a custom endpoint, including one saved by an older build.
+pub fn connection_for_mode(value: &str, development: bool) -> Result<Connection, String> {
+    let url = server_url(value)?;
+    if !development && !official_origin(&url) {
+        return Err("请使用 Pajio 的官方登录入口。".into());
+    }
+    Ok(Connection {
+        url: url.to_string(),
+    })
+}
+
+/// Callers select an intent, never a URL, code, credential, or redirect destination.
+pub fn account_entry(intent: &str) -> Result<Url, String> {
+    let path = match intent {
+        "join" => "join",
+        "login" => "auth/login",
+        "continue" => "",
+        _ => return Err("请选择邀请码入口或已有账号登录。".into()),
+    };
+    Url::parse(DEFAULT_SERVER)
+        .unwrap()
+        .join(path)
+        .map_err(|_| "登录入口暂时不可用。".into())
+}
+
+pub struct StartupConnection {
+    pub connection: Connection,
+    pub warning: Option<String>,
+    pub auto_connect: bool,
+}
+
+pub fn startup(path: &Path, development: bool) -> StartupConnection {
+    let existed = path.exists();
+    match load(path) {
+        Ok(saved) => match connection_for_mode(&saved.url, development) {
+            Ok(connection) => StartupConnection {
+                connection,
+                warning: None,
+                auto_connect: existed,
+            },
+            Err(_) => {
+                // No request is sent to the old origin. Only the URL setting is migrated;
+                // browser cookies remain origin-scoped and are never copied or forwarded.
+                let connection = Connection::default();
+                let warning = if save(path, &connection).is_ok() {
+                    "Pajio 已统一使用官方入口，请重新登录。旧服务上的记录没有迁移。"
+                } else {
+                    "Pajio 已统一使用官方入口。旧连接设置无法更新，原文件已保留；请重新登录。"
+                };
+                StartupConnection {
+                    connection,
+                    warning: Some(warning.into()),
+                    auto_connect: false,
+                }
+            }
+        },
+        Err(error) => StartupConnection {
+            connection: Connection::default(),
+            warning: Some(format!("{error} 原设置已保留，请从官方入口登录。")),
+            auto_connect: false,
+        },
+    }
+}
+
 pub fn server_url(value: &str) -> Result<Url, String> {
     let url = Url::parse(value.trim()).map_err(|_| "请填写完整的 Pajio 地址。")?;
     let loopback = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
@@ -189,6 +264,102 @@ pub fn verify_probe(url: &Url, official_entry: bool) -> Result<(), String> {
 mod tests {
     use super::*;
     #[test]
+    fn account_intents_only_open_fixed_official_paths() {
+        for (intent, expected) in [
+            ("join", "/join"),
+            ("login", "/auth/login"),
+            ("continue", "/"),
+        ] {
+            let url = account_entry(intent).unwrap();
+            assert!(official_origin(&url));
+            assert_eq!(url.path(), expected);
+            assert!(url.query().is_none() && url.fragment().is_none());
+        }
+        for value in [
+            "https://evil.example",
+            "join?code=private",
+            "//evil.example",
+            "logout",
+            "",
+        ] {
+            assert!(account_entry(value).is_err());
+        }
+    }
+    #[test]
+    fn production_rejects_custom_endpoints_even_if_https() {
+        assert!(connection_for_mode(DEFAULT_SERVER, false).is_ok());
+        for value in [
+            LOCAL_SERVER,
+            "https://example.com/",
+            "https://pajio.luckyloading.com:8443/",
+        ] {
+            assert!(connection_for_mode(value, false).is_err());
+            assert!(connection_for_mode(value, true).is_ok());
+        }
+        assert_eq!(
+            development_endpoints_enabled(),
+            cfg!(all(debug_assertions, feature = "development-endpoints"))
+        );
+        assert_eq!(
+            development_connection(LOCAL_SERVER).is_ok(),
+            development_endpoints_enabled()
+        );
+    }
+    #[test]
+    fn first_launch_offers_account_actions_without_automatic_navigation() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("connection.json");
+        let first = startup(&path, false);
+        assert_eq!(first.connection.url, DEFAULT_SERVER);
+        assert!(!first.auto_connect);
+        assert!(!path.exists());
+    }
+    #[test]
+    fn legacy_custom_url_migrates_locally_without_network_or_credentials() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("connection.json");
+        save(
+            &path,
+            &Connection {
+                url: "https://old-service.invalid/".into(),
+            },
+        )
+        .unwrap();
+        let initial = startup(&path, false);
+        assert_eq!(initial.connection.url, DEFAULT_SERVER);
+        assert!(!initial.auto_connect);
+        assert!(initial.warning.is_some());
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            format!("{{\"url\":\"{DEFAULT_SERVER}\"}}")
+        );
+        let next = startup(&path, false);
+        assert!(next.auto_connect);
+        assert!(next.warning.is_none());
+    }
+    #[test]
+    fn development_keeps_custom_url_but_invalid_saved_credentials_are_never_imported() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("connection.json");
+        save(
+            &path,
+            &Connection {
+                url: LOCAL_SERVER.into(),
+            },
+        )
+        .unwrap();
+        let dev = startup(&path, true);
+        assert_eq!(dev.connection.url, LOCAL_SERVER);
+        assert!(dev.auto_connect);
+        let invalid = br#"{"url":"https://old-service.invalid/","token":"synthetic-secret"}"#;
+        fs::write(&path, invalid).unwrap();
+        let production = startup(&path, false);
+        assert_eq!(production.connection.url, DEFAULT_SERVER);
+        assert!(!production.auto_connect);
+        assert!(!production.warning.unwrap().contains("synthetic-secret"));
+        assert_eq!(fs::read(&path).unwrap(), invalid);
+    }
+    #[test]
     fn default_is_official_and_local_still_allowed() {
         assert!(official_origin(&server_url(DEFAULT_SERVER).unwrap()));
         for s in [
@@ -254,7 +425,9 @@ mod tests {
             };
             assert!(!official_origin(&url), "{s}");
         }
-        assert!(official_origin(&server_url("https://pajio.luckyloading.com/").unwrap()));
+        assert!(official_origin(
+            &server_url("https://pajio.luckyloading.com/").unwrap()
+        ));
     }
     #[test]
     fn idp_login_allows_only_official_realm() {
@@ -265,27 +438,35 @@ mod tests {
             assert!(idp_login_url_allowed(&Url::parse(s).unwrap()), "{s}");
         }
         for s in [
-            "http://id.pajio.luckyloading.com/realms/pajio/auth",                    // 非 https
-            "https://id.pajio.luckyloading.com:8443/realms/pajio/auth",              // 端口
-            "https://evil.example/realms/pajio/auth",                                 // 主机
-            "https://id.pajio.luckyloading.com/realms/other/auth",                   // 错 realm
-            "https://id.pajio.luckyloading.com/admin/console",                       // 错路径
-            "https://user@id.pajio.luckyloading.com/realms/pajio/auth",              // userinfo
-            "https://id.pajio.luckyloading.com/realms/pajio/auth#frag",              // fragment
+            "http://id.pajio.luckyloading.com/realms/pajio/auth", // 非 https
+            "https://id.pajio.luckyloading.com:8443/realms/pajio/auth", // 端口
+            "https://evil.example/realms/pajio/auth",             // 主机
+            "https://id.pajio.luckyloading.com/realms/other/auth", // 错 realm
+            "https://id.pajio.luckyloading.com/admin/console",    // 错路径
+            "https://user@id.pajio.luckyloading.com/realms/pajio/auth", // userinfo
+            "https://id.pajio.luckyloading.com/realms/pajio/auth#frag", // fragment
         ] {
             assert!(!idp_login_url_allowed(&Url::parse(s).unwrap()), "{s}");
         }
     }
     #[test]
     fn login_navigation_only_when_connected_to_official() {
-        let official = Connection { url: "https://pajio.luckyloading.com/".into() };
-        let local = Connection { url: LOCAL_SERVER.into() };
-        let idp = Url::parse("https://id.pajio.luckyloading.com/realms/pajio/auth?state=1").unwrap();
+        let official = Connection {
+            url: "https://pajio.luckyloading.com/".into(),
+        };
+        let local = Connection {
+            url: LOCAL_SERVER.into(),
+        };
+        let idp =
+            Url::parse("https://id.pajio.luckyloading.com/realms/pajio/auth?state=1").unwrap();
         let evil = Url::parse("https://evil.example/realms/pajio/auth").unwrap();
         assert!(login_navigation_allowed(&official, &idp));
         assert!(!login_navigation_allowed(&local, &idp));
         assert!(!login_navigation_allowed(&official, &evil));
-        assert!(!login_navigation_allowed(&official, &Url::parse("https://id.pajio.luckyloading.com/admin").unwrap()));
+        assert!(!login_navigation_allowed(
+            &official,
+            &Url::parse("https://id.pajio.luckyloading.com/admin").unwrap()
+        ));
     }
     #[test]
     fn invalid_saved_settings_are_reported_and_not_replaced() {
@@ -319,7 +500,12 @@ mod tests {
     fn probe_response(status: &str, body: &str, extra: &str) -> Result<(), String> {
         probe_response_as(status, body, extra, false)
     }
-    fn probe_response_as(status: &str, body: &str, extra: &str, official_entry: bool) -> Result<(), String> {
+    fn probe_response_as(
+        status: &str,
+        body: &str,
+        extra: &str,
+        official_entry: bool,
+    ) -> Result<(), String> {
         use std::net::TcpListener;
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let url = Url::parse(&format!("http://{}/", listener.local_addr().unwrap())).unwrap();
@@ -344,7 +530,13 @@ mod tests {
         // 自定义地址（official_entry=false）维持严格 200。
         assert!(probe_response_as("401 Unauthorized", "", "", true).is_ok());
         assert!(probe_response_as("401 Unauthorized", "", "", false).is_err());
-        assert!(probe_response_as("302 Found", "", "Location: https://pajio.luckyloading.com/\r\n", true).is_err());
+        assert!(probe_response_as(
+            "302 Found",
+            "",
+            "Location: https://pajio.luckyloading.com/\r\n",
+            true
+        )
+        .is_err());
     }
     #[test]
     fn handshake_requires_a_wearing_response() {

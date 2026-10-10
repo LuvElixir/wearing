@@ -98,6 +98,18 @@ def main():
     gateway_member.add_argument("--subject", required=True)
     gateway_member.add_argument("--tenant-id", required=True)
     gateway_member.add_argument("--revoke", action="store_true")
+    gateway_invite = gateway_sub.add_parser("invite", help="为全新独立空间发行一次性邀请码；明码仅写入私有文件")
+    invite_sub = gateway_invite.add_subparsers(dest="operation", required=True)
+    for operation in ("reserve", "issue", "status", "revoke"):
+        invite_command = invite_sub.add_parser(operation)
+        invite_command.add_argument("--root", type=Path, required=True)
+        if operation in ("reserve", "issue"):
+            invite_command.add_argument("--tenant-id", required=True)
+        else:
+            invite_command.add_argument("--invitation-id", required=True)
+        if operation == "issue":
+            invite_command.add_argument("--output", type=Path, required=True)
+            invite_command.add_argument("--expires-in", type=int, default=7 * 86400)
     gateway_route = gateway_sub.add_parser("route")
     gateway_route.add_argument("--root", type=Path, required=True)
     gateway_route.add_argument("--tenant-root", type=Path, required=True)
@@ -254,6 +266,25 @@ def main():
                 finally:
                     store.close()
                 print("会员授权已更新。")
+            elif args.action == "invite":
+                from .cloud.invitations import InvitationStore, issue_to_file
+                config = load_gateway(args.root)
+                store = operator_store(config)
+                try:
+                    invitations = InvitationStore(store)
+                    if args.operation == "reserve":
+                        result = invitations.reserve_tenant(TypeAdapter(Identifier).validate_python(args.tenant_id))
+                    elif args.operation == "issue":
+                        result = issue_to_file(store, issuer=config.issuer,
+                            tenant_id=TypeAdapter(Identifier).validate_python(args.tenant_id), output=args.output,
+                            lifetime=args.expires_in)
+                    elif args.operation == "revoke":
+                        result = invitations.revoke(args.invitation_id)
+                    else:
+                        result = invitations.status(args.invitation_id)
+                finally:
+                    store.close()
+                print(json.dumps(result, ensure_ascii=False, indent=2))
             elif args.action == "route":
                 register_route(args.root, args.tenant_root, args.url)
                 print("实例路由已登记；内部密钥未输出。")

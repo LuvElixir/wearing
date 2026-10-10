@@ -289,10 +289,34 @@ document.addEventListener("submit",async event=>{
   event.preventDefault();const id=form.dataset.verifyForm||form.dataset.resolve;
   await busy(form.querySelector("button"),async()=>{await api(`/api/tasks/${id}/${form.dataset.resolve?"resolve":"verify"}`,{method:"POST",body:JSON.stringify({note:form.elements.note.value})});await loadConversation(true);if(state.selectedKeep===id)await loadKeep(id);});
 });
-$("connection-form").addEventListener("submit",async event=>{
-  event.preventDefault();const button=$("connect-button");button.disabled=true;$("connection-feedback").textContent="正在连接……";
-  try{const result=await api("/api/connection",{method:"POST",body:JSON.stringify({url:$("hermes-url").value,key:$("hermes-key").value})});$("hermes-key").value="";$("connection-feedback").className="inline-feedback";$("connection-feedback").textContent=result.message;await loadStatus();await loadConversation(true);}catch(error){$("connection-feedback").className="inline-feedback error";$("connection-feedback").textContent=error.message;}finally{button.disabled=false;}
-});
+let developmentConnectionEnabled=false,developmentConnectionForm=null;
+function localDevelopmentEntry(){
+  return state.deployment==="local" && ["http:","https:"].includes(location.protocol) &&
+    ["localhost","127.0.0.1","[::1]"].includes(location.hostname) && new URLSearchParams(location.search).get("development")==="1";
+}
+function clearDevelopmentSecret(){const input=developmentConnectionForm?.querySelector("#hermes-key");if(input)input.value="";}
+$("settings-panel").addEventListener("close",clearDevelopmentSecret);
+function configureDevelopmentConnection(bootstrap){
+  developmentConnectionEnabled=bootstrap.deployment==="local" && localDevelopmentEntry();
+  const host=$("development-connection-host");
+  clearDevelopmentSecret();
+  developmentConnectionForm=null;host.replaceChildren();
+  if(!developmentConnectionEnabled)return;
+  host.append($("development-connection-template").content.cloneNode(true));
+  const form=host.querySelector("#connection-form"),server=form.querySelector("#hermes-url"),key=form.querySelector("#hermes-key"),button=form.querySelector("#connect-button"),feedback=form.querySelector("#connection-feedback");
+  developmentConnectionForm=form;server.value=bootstrap.hermes_url||"";
+  form.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(form!==developmentConnectionForm || !developmentConnectionEnabled || !localDevelopmentEntry() || button.disabled)return;
+    const epoch=state.identityEpoch;button.disabled=true;feedback.textContent="正在连接开发服务……";
+    try{
+      await api("/api/connection",{method:"POST",body:JSON.stringify({url:server.value,key:key.value})});
+      if(epoch!==state.identityEpoch || form!==developmentConnectionForm)return;
+      feedback.className="inline-feedback";feedback.textContent="开发服务已连接。";await loadStatus();if(epoch!==state.identityEpoch || form!==developmentConnectionForm)return;await loadConversation(true);
+    }catch(error){if(!(error instanceof StaleIdentity) && epoch===state.identityEpoch && form===developmentConnectionForm){feedback.className="inline-feedback error";feedback.textContent="开发服务连接未确认，请检查本地配置后重试。";}}
+    finally{key.value="";button.disabled=false;}
+  });
+}
 $("inspect-host").addEventListener("click",()=>busy($("inspect-host"),async()=>renderReport($("host-report"),await api("/api/doctor"),"当前这台电脑")));
 $("import-report").addEventListener("click",()=>$("report-file").click());
 $("report-file").addEventListener("change",async()=>{const file=$("report-file").files[0];if(!file)return;await busy($("import-report"),async()=>{if(file.size>32000)throw new Error("请选择检测脚本生成的 JSON 小文件。");await api("/api/device-report",{method:"POST",body:await file.text()});await loadStatus();});$("report-file").value="";});
@@ -772,7 +796,7 @@ $("device-pair-form").addEventListener("submit",event=>{event.preventDefault();b
   $("device-pair-feedback").textContent="配对文件已生成。请点击下载，仅交给你选择的设备所在电脑。";$("device-pair-next").hidden=false;
 },$("device-pair-feedback"));});
 $("device-tools-refresh").addEventListener("click",()=>busy($("device-tools-refresh"),async()=>{const result=await api("/api/devices/refresh-tools",{method:"POST",body:"{}"});$("device-pair-feedback").textContent=result.message;},$("device-pair-feedback")));
-async function initialize(){try{const bootstrap=await api("/api/bootstrap");state.token=bootstrap.token;state.goalPolicy=bootstrap.goal_policy||state.goalPolicy;state.deployment=bootstrap.deployment||"local";bindScopedStorage(bootstrap);configureDeployment();window.WearingDeletion?.start();state.identities=bootstrap.identities;let remembered;try{remembered=sessionStorage.getItem("wearing-identity");}catch{}const requested=new URLSearchParams(location.search).get("identity");if(requested&&!state.identities.some(i=>i.id===requested))throw new Error("入口身份不存在");state.identityId=requested||(state.identities.some(i=>i.id===remembered)?remembered:bootstrap.default_identity_id);renderIdentityContext();window.WearingLife?.identityChanged();activateComposer(composerDrafts.last(state.identityId)||{identity:state.identityId},$("message-input").value);$("open-identities").disabled=false;$("hermes-url").value=bootstrap.hermes_url;await loadStatus();await loadConversation();await loadGoalUpdates();await window.WearingActivity?.load(true);await loadCharacter();loadComputer();await window.WearingLife?.openFromLink();const activityTask=new URLSearchParams(location.search).get("activity_task");if(activityTask)await window.WearingActivity?.openTask(activityTask);window.WearingOnboarding?.maybeOffer();}catch{notice("暂时没有连接上 Pajio。请检查入口和连接，再刷新页面。",true);}}
+async function initialize(){try{const bootstrap=await api("/api/bootstrap");state.token=bootstrap.token;state.goalPolicy=bootstrap.goal_policy||state.goalPolicy;state.deployment=bootstrap.deployment||"local";bindScopedStorage(bootstrap);configureDevelopmentConnection(bootstrap);configureDeployment();window.WearingDeletion?.start();state.identities=bootstrap.identities;let remembered;try{remembered=sessionStorage.getItem("wearing-identity");}catch{}const requested=new URLSearchParams(location.search).get("identity");if(requested&&!state.identities.some(i=>i.id===requested))throw new Error("入口身份不存在");state.identityId=requested||(state.identities.some(i=>i.id===remembered)?remembered:bootstrap.default_identity_id);renderIdentityContext();window.WearingLife?.identityChanged();activateComposer(composerDrafts.last(state.identityId)||{identity:state.identityId},$("message-input").value);$("open-identities").disabled=false;await loadStatus();await loadConversation();await loadGoalUpdates();await window.WearingActivity?.load(true);await loadCharacter();loadComputer();await window.WearingLife?.openFromLink();const activityTask=new URLSearchParams(location.search).get("activity_task");if(activityTask)await window.WearingActivity?.openTask(activityTask);window.WearingOnboarding?.maybeOffer();}catch{notice("暂时没有连接上 Pajio。请检查入口和连接，再刷新页面。",true);}}
 async function pollConversation(){
   if(window.WearingDeletion && window.WearingDeletion.workAllowed() === false) return; // 注销受理后停止本账户业务轮询
 
@@ -832,7 +856,7 @@ async function switchIdentity(id){
   if(state.sending)return;
   if(!state.identities.some(i=>i.id===id))return;
   if(id===state.identityId){closePanel("identity-panel");return;}
-  rememberComposer();composerReady=false;
+  clearDevelopmentSecret();rememberComposer();composerReady=false;
   state.identityId=id;state.identityEpoch++;state.messages=[];state.signature="";state.selectedKeep=null;state.computer=null;state.lastStatus=0;state.connected=false;
   window.WearingArtifacts.identityChanged();
   window.WearingLife?.identityChanged();

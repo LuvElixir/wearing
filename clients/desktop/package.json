@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "tauri": "tauri",
-    "dev": "tauri dev",
+    "dev": "tauri dev --features development-endpoints",
     "build": "tauri build",
-    "test": "cargo test --manifest-path src-tauri/Cargo.toml --locked"
+    "test": "node --test tests/*.test.cjs && cargo test --manifest-path src-tauri/Cargo.toml --locked"
   },
   "devDependencies": {"@tauri-apps/cli": "2.12.1"}
 }

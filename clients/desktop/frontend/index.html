@@ -3,10 +3,10 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pajio</title><link rel="stylesheet" href="connection.css"><script src="connection.js" defer></script></head>
 <body>
 <!--
-THESIS: Pajio stays reachable from the desktop; connection recovery keeps the same records and companion.
+THESIS: Pajio opens one official account entry; invitation and login happen on the trusted gateway.
 OWN-WORLD: Pajio outlined wordmark, single four-point star, near-neutral day/night surfaces, native reading fonts.
-STORY: Recognize Pajio, connect the existing service, continue the same life records; failures keep the last connection and offer a retry.
-FIRST VIEWPORT: A 460px reading column, unchanged wordmark and the pajama bear, address field and one primary action, shortcut and close behavior below.
+STORY: Recognize Pajio, choose invitation or existing account, and continue through the official login.
+FIRST VIEWPORT: A 460px reading column, unchanged wordmark and the pajama bear, invitation and login actions, shortcut and close behavior below.
 FORM: Existing-world Operate extension, a quiet connection page inside standard OS chrome. No replacement world or generated comp.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
 -->
@@ -14,13 +14,11 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <svg class="wordmark" viewBox="12 20 574 240" width="112" height="47" role="img" aria-label="Pajio" fill="currentColor"><path fill-rule="evenodd" d="M36 32H94C132 32 156 54 156 90C156 125 134 148 96 148H56V196C56 203 51 206 41 206C31 206 26 203 26 196V43C26 36 30 32 36 32ZM56 59V121H94C115 121 128 109 128 90C128 70 115 59 94 59Z"/><path fill-rule="evenodd" d="M219 77C184 77 161 103 161 143C161 182 184 208 219 208C240 208 254 198 262 184V193C262 201 267 206 276 206C285 206 290 201 290 193V93C290 85 285 80 276 80C267 80 262 85 262 93V102C254 87 240 77 219 77ZM224 104C202 104 189 120 189 143C189 166 202 181 224 181C247 181 262 166 262 143C262 120 247 104 224 104Z"/><path fill-rule="evenodd" d="M322 93C322 85 327 81 336 81C345 81 350 85 350 93V202C350 234 331 252 300 252C286 252 277 247 277 237C277 230 282 225 289 225C294 225 296 226 300 226C314 226 322 217 322 202ZM351 47A15 15 0 1 1 321 47A15 15 0 1 1 351 47Z"/><path fill-rule="evenodd" d="M384 93C384 85 389 81 398 81C407 81 412 85 412 93V195C412 203 407 206 398 206C389 206 384 203 384 195ZM413 47A15 15 0 1 1 383 47A15 15 0 1 1 413 47Z"/><path fill-rule="evenodd" d="M508 77C548 77 572 103 572 143C572 183 548 209 508 209C468 209 444 183 444 143C444 103 468 77 508 77ZM508 104C486 104 472 120 472 143C472 167 486 182 508 182C530 182 544 167 544 143C544 120 530 104 508 104Z"/></svg>
   <img class="companion" src="bear/mist-blue.png" width="112" height="112" alt="Pajio 穿着雾蓝条纹">
   <h1 id="heading">我在这里。</h1>
-  <p class="intro" id="intro">连接上，我们就能接着聊，也能接着记。</p>
-  <form id="connection-form">
-    <label for="server">Pajio 地址</label>
-    <input id="server" type="url" required maxlength="2000" value="http://127.0.0.1:8765/" autocomplete="url" spellcheck="false">
-    <p class="help">本机服务或你的私人 Pajio 地址。首次连接正式服务时，会先打开官方登录页面，登录后会自动回到 Pajio。</p>
-    <button id="connect" type="submit">连接 Pajio</button>
-  </form>
+  <p class="intro" id="intro">Pajio 正在邀请体验。拿到邀请码后，就可以开始了。</p>
+  <div class="account-actions"><button id="join" type="button" disabled>使用邀请码</button><button id="login" class="secondary" type="button" disabled>已有账号登录</button></div>
+  <p class="help">邀请码和账号登录将在 Pajio 官方页面完成。</p>
+  <div id="development-host"></div>
+  <template id="development-template"><details class="development"><summary>开发设置</summary><form id="connection-form"><label for="server">开发服务地址</label><input id="server" type="url" required maxlength="2000" autocomplete="off" spellcheck="false"><p class="help">仅用于本地开发构建，与正式账号入口分开。</p><button id="connect" type="submit">连接开发服务</button></form></details></template>
   <p id="status" role="status" aria-live="polite"></p>
   <p class="footnote" id="shortcut"></p>
   <p class="footnote">关闭窗口或退出客户端不会停止后台任务。要暂停一件事，可以回到 Pajio 里操作。</p>

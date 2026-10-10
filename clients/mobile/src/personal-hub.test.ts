@@ -84,6 +84,9 @@ test('device empty state is reserved for a successfully observed empty inventory
 test('read-only API keeps identity and auth in headers, never URLs, and encodes file paths', async context => {
   const dev = Object.getOwnPropertyDescriptor(globalThis, '__DEV__');
   Object.defineProperty(globalThis, '__DEV__', {configurable: true, value: true});
+  const previousDevelopmentFlag = process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS;
+  process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = 'true';
+  context.after(() => {if (previousDevelopmentFlag === undefined) delete process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS; else process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = previousDevelopmentFlag;});
   context.after(() => {if (dev) Object.defineProperty(globalThis, '__DEV__', dev); else Reflect.deleteProperty(globalThis, '__DEV__');});
   const calls: {url: string; init?: RequestInit}[] = [];
   const api = new PersonalHubApi({endpoint: 'http://192.168.1.25:8795/', identity: 'daily', development: {accessToken: 'x'.repeat(48), expiresAt: new Date(Date.now() + 3600000).toISOString()}}, (async (url, init) => {

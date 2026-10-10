@@ -22,6 +22,7 @@ struct DesktopState {
     connection: Mutex<Connection>,
     path: PathBuf,
     warning: Option<String>,
+    auto_connect: bool,
     shortcut_ready: AtomicBool,
     connecting: AtomicBool,
     pending_capture: AtomicBool,
@@ -43,6 +44,7 @@ fn caller(window: &WebviewWindow) -> Result<(), String> {
 struct ConnectionInfo {
     url: String,
     auto_connect: bool,
+    development_endpoints: bool,
     warning: Option<String>,
     shortcut_ready: bool,
     shortcut_label: &'static str,
@@ -60,7 +62,8 @@ fn connection_info(window: WebviewWindow, app: AppHandle) -> Result<ConnectionIn
         .clone();
     Ok(ConnectionInfo {
         url,
-        auto_connect: window.label() == "main" && state.warning.is_none(),
+        auto_connect: window.label() == "main" && state.auto_connect && state.warning.is_none(),
+        development_endpoints: endpoint::development_endpoints_enabled(),
         warning: state.warning.clone(),
         shortcut_ready: state.shortcut_ready.load(Ordering::Relaxed),
         shortcut_label: if cfg!(target_os = "macos") {
@@ -79,12 +82,29 @@ async fn connect_server(
     persist: bool,
 ) -> Result<(), String> {
     caller(&window)?;
-    let url = endpoint::server_url(&value)?;
+    let connection = endpoint::development_connection(&value)?;
+    connect_to(window, app, endpoint::server_url(&connection.url)?, persist).await
+}
+
+#[tauri::command]
+async fn open_account(window: WebviewWindow, app: AppHandle, intent: String) -> Result<(), String> {
+    caller(&window)?;
+    connect_to(window, app, endpoint::account_entry(&intent)?, true).await
+}
+
+async fn connect_to(
+    window: WebviewWindow,
+    app: AppHandle,
+    url: url::Url,
+    persist: bool,
+) -> Result<(), String> {
+    let mut server = url.clone();
+    server.set_path("/");
     let state = app.state::<DesktopState>();
     if state.connecting.swap(true, Ordering::SeqCst) {
         return Err("已经在连接，请稍等一下。".into());
     }
-    let probe_url = url.clone();
+    let probe_url = server.clone();
     let result = tauri::async_runtime::spawn_blocking(move || endpoint::verify(&probe_url))
         .await
         .map_err(|_| "连接暂时没有完成。".to_owned())
@@ -94,7 +114,7 @@ async fn connect_server(
         return Err(error);
     }
     let connection = Connection {
-        url: url.to_string(),
+        url: server.to_string(),
     };
     if persist {
         if let Err(error) = endpoint::save(&state.path, &connection) {
@@ -171,7 +191,7 @@ fn connection_panel(app: &AppHandle) {
         return;
     }
     let _ = WebviewWindowBuilder::new(app, "connection", WebviewUrl::App("index.html".into()))
-        .title("连接 Pajio")
+        .title("Pajio · 账号")
         .inner_size(480.0, 740.0)
         .min_inner_size(360.0, 620.0)
         .resizable(true)
@@ -198,7 +218,7 @@ fn install_menu(app: &AppHandle) -> tauri::Result<()> {
         true,
         Some("CmdOrCtrl+Shift+Space"),
     )?;
-    let settings = MenuItem::with_id(app, "connection", "连接设置…", true, Some("CmdOrCtrl+,"))?;
+    let settings = MenuItem::with_id(app, "connection", "账号与登录…", true, Some("CmdOrCtrl+,"))?;
     let quit = MenuItem::with_id(app, "quit-client", "退出桌面端", true, Some("CmdOrCtrl+Q"))?;
     let sep = PredefinedMenuItem::separator(app)?;
     let product = Submenu::with_items(
@@ -253,7 +273,7 @@ fn build_main(app: &AppHandle) -> tauri::Result<()> {
         .title("Pajio")
         .inner_size(1180.0, 820.0)
         .min_inner_size(760.0, 600.0)
-                .on_navigation(move |url| {
+        .on_navigation(move |url| {
             endpoint::bundled_origin(url)
                 || service_origin(&nav_app, url)
                 || official_login_origin(&nav_app, url)
@@ -319,21 +339,20 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![connection_info, connect_server])
+        .invoke_handler(tauri::generate_handler![
+            connection_info,
+            connect_server,
+            open_account
+        ])
         .on_menu_event(|app, event| menu_action(app, event.id.as_ref()))
         .setup(|app| {
             let path = app.path().app_config_dir()?.join("connection.json");
-            let (connection, warning) = match endpoint::load(&path) {
-                Ok(value) => (value, None),
-                Err(error) => (
-                    Connection::default(),
-                    Some(format!("{error} 原设置已保留，可以重新连接。")),
-                ),
-            };
+            let startup = endpoint::startup(&path, endpoint::development_endpoints_enabled());
             app.manage(DesktopState {
-                connection: Mutex::new(connection),
+                connection: Mutex::new(startup.connection),
                 path,
-                warning,
+                warning: startup.warning,
+                auto_connect: startup.auto_connect,
                 shortcut_ready: AtomicBool::new(false),
                 connecting: AtomicBool::new(false),
                 pending_capture: AtomicBool::new(false),

@@ -1,6 +1,7 @@
 import {commitRecordReceipt} from './record-sync';
 import {isBookmarkUrl} from './bookmark-url';
 import {memoryHistoryId, validMemoryHistory, type MemoryHistory} from './memory-history';
+import {developmentConnectionsEnabled} from './development-access';
 /** Canonical records remain on the service; creations and edits have separate durable queues. */
 export type Kind = 'note' | 'task' | 'event';
 export type Draft = {kind: Kind; title: string; content: string; timezone: string; start_at?: string; end_at?: string; all_day?: boolean; due_at?: string | null; url?: string | null};
@@ -40,7 +41,7 @@ export function connectionEndpoint(connection: Connection, allowExpired = false)
     return address;
   }
   if (!connection.development) return endpoint(connection.endpoint);
-  if (typeof __DEV__ === 'undefined' || !__DEV__) throw new ApiError('短期 LAN 配对仅供开发版验收使用。', 403);
+  if (!developmentConnectionsEnabled()) throw new ApiError('短期 LAN 配对仅供已启用开发连接的开发版验收使用。', 403);
   let url: URL;
   try {url = new URL(connection.endpoint.trim());} catch {throw new ApiError('配对地址不完整，请重新打开配对链接。', 422);}
   if (url.protocol !== 'http:' || !privateIPv4(url.hostname) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new ApiError('开发配对需要同一可信 Wi-Fi 内的私人 IPv4 根地址。', 422);

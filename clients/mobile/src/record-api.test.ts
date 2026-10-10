@@ -148,6 +148,9 @@ test('capture retries preserve conflict errors and validate the returned origina
 test('development bearer credentials stay in headers for read and write while identity remains scoped', async context => {
   const prior = Object.getOwnPropertyDescriptor(globalThis, '__DEV__');
   Object.defineProperty(globalThis, '__DEV__', {value: true, configurable: true});
+  const previousDevelopmentFlag = process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS;
+  process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = 'true';
+  context.after(() => {if (previousDevelopmentFlag === undefined) delete process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS; else process.env.EXPO_PUBLIC_ALLOW_DEVELOPMENT_CONNECTIONS = previousDevelopmentFlag;});
   context.after(() => {if (prior) Object.defineProperty(globalThis, '__DEV__', prior); else Reflect.deleteProperty(globalThis, '__DEV__');});
   const development: Connection = {endpoint: 'http://192.168.1.25:8795/', identity: 'audit-only', development: {accessToken: 'q'.repeat(48), expiresAt: new Date(Date.now() + 600000).toISOString()}};
   const {api, calls} = harness([() => response(record()), () => response(bootstrap()), () => response(record({revision: 8}))], development);
