@@ -86,3 +86,11 @@ Real invitation redemption, account creation, a confirmed three-environment
 provisioning result, and remote access to the personal Linux and Android devices
 remain unverified. Neither physical installation nor the welcome screen proves
 that the service is ready for external users.
+
+Build 2 physical-device interaction checks also confirmed empty-invite validation,
+tab selection with input focus dismissed, and the native privacy link opening the
+live personal-invitation privacy page in iPhone Safari, then returning to Pajio.
+The welcome and privacy captures were retained privately with SHA-256
+`4d9a2e8fd2d6524119efd722a36603d8e0bd3005450157d1e97e65ecd00f949c` and
+`51efd5f7b7eaa25cfeed2124d0b039b6521e8dd8f068f09c6f91cffca86764b9`.
+These checks do not prove an authenticated user session or device provisioning.
