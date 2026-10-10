@@ -1,3 +1,4 @@
+import {Segment} from './experience/selection';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {StyleSheet,Text,View} from 'react-native';
 import {ChevronLeft,ChevronRight,Plus,SlidersHorizontal} from 'lucide-react-native';
@@ -34,7 +35,7 @@ function Panel({connection,records,selected,today,isCurrent,onSelect,onRecord,on
   function select(day:CalendarDate){setLimit(100);onSelect(day);}
   const views:{id:CalendarView;label:string}[]=[{id:'month',label:'月'},{id:'week',label:'周'},{id:'agenda',label:'议程'}];
   return <View style={{gap:18}}>
-    <View accessibilityRole="tablist" style={{flexDirection:'row',padding:4,borderRadius:16,backgroundColor:c.soft}}>{views.map(item=><TactilePressable key={item.id} accessibilityRole="tab" accessibilityState={{selected:view===item.id}} accessibilityLabel={item.label+'视图'} disabled={!ready} onPress={()=>change({view:item.id})} style={{flex:1,minHeight:44,borderRadius:13,alignItems:'center',justifyContent:'center',backgroundColor:view===item.id?c.surface:'transparent'}}><Text style={{fontSize:15,fontWeight:view===item.id?'600':'400',color:view===item.id?c.ink:c.muted}}>{item.label}</Text></TactilePressable>)}</View>
+    <View accessibilityRole="tablist" style={{flexDirection:'row',borderBottomWidth:1,borderBottomColor:c.line}}>{views.map(item=><Segment key={item.id}  selected={view===item.id} accessibilityLabel={item.label+'视图'} disabled={!ready} onPress={()=>change({view:item.id})} style={{flex:1,minHeight:44,borderRadius:13,alignItems:'center',justifyContent:'center',backgroundColor:view===item.id?c.surface:'transparent'}}><Text style={{fontSize:15,fontWeight:view===item.id?'600':'400',color:view===item.id?c.ink:c.muted}}>{item.label}</Text></Segment>)}</View>
     <CalendarSourceFilter index={sources.index} value={preferences.source} onChange={source=>change({source})} stale={sources.stale} error={sources.error} busy={sources.busy} onRefresh={sources.refresh}/>
     <Text style={{fontSize:12,lineHeight:20,color:c.muted}}>时间按本机时区显示 · {Intl.DateTimeFormat().resolvedOptions().timeZone}。系统来源是最近同步的副本。</Text>
     {view==='month'?<MonthCalendar selected={selected} today={today} onSelect={select} eventCount={day=>eventsForDay(events,day).length}/>:selected?<>

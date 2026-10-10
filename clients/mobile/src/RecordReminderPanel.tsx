@@ -1,6 +1,7 @@
+import {Choice,StateSwitch} from './experience/selection';
 import {useEffect,useRef,useState} from 'react';
 import {View} from 'react-native';
-import {Button,Switch,Text} from 'react-native-paper';
+import {Button,Text} from 'react-native-paper';
 import * as Crypto from 'expo-crypto';
 import {scopeOf,type Connection,type RecordItem} from './core';
 import {storage} from './storage';
@@ -39,8 +40,8 @@ function Panel({connection,record,blocked=false}:Props){
     <Text style={{fontSize:17,fontWeight:'600',color:c.ink}}>{record.id.startsWith('recurrence_')?'这一次的提醒':'到期提醒'}</Text>
     <Text style={{color:c.muted,lineHeight:22}}>{value?reminderMessage(value):'读取当前记录的提醒设置。'}{!online&&value?' 当前显示上次读取的设置。':''}</Text>
     {blocked&&<Text style={{color:c.muted}}>请先保存或核对记录修改，再设置提醒。</Text>}
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><Text style={{color:c.ink}}>提醒我</Text><Switch value={enabled} disabled={disabled||!!unavailable} onValueChange={setEnabled} accessibilityLabel="开启这条记录的提醒"/></View>
-    <View style={{flexDirection:'row',flexWrap:'wrap',gap:4}}>{reminderAdvances.map(minutes=><Button key={minutes} accessibilityState={{selected:advance===minutes}} mode={advance===minutes?'contained-tonal':'text'} disabled={disabled||!enabled||!!unavailable} onPress={()=>setAdvance(minutes)}>{minutes===0?'准时':minutes===1440?'提前 1 天':`提前 ${minutes} 分钟`}</Button>)}</View>
+    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><Text style={{color:c.ink}}>提醒我</Text><StateSwitch value={enabled} disabled={disabled||!!unavailable} onValueChange={setEnabled} accessibilityLabel="开启这条记录的提醒"/></View>
+    <View style={{flexDirection:'row',flexWrap:'wrap',gap:4}}>{reminderAdvances.map(minutes=><Choice variant="chip" key={minutes} selected={advance===minutes} disabled={disabled||!enabled||!!unavailable} onPress={()=>setAdvance(minutes)}><Text style={{color:c.ink}}>{minutes===0?'准时':minutes===1440?'提前 1 天':`提前 ${minutes} 分钟`}</Text></Choice>)}</View>
     <Button mode="contained" disabled={disabled||!!unavailable||!value?.record_revision||enabled===value?.enabled&&advance===value?.advance_minutes} loading={busy} onPress={()=>void run(async()=>{if(!value?.record_revision)return;await submit({revision:value.revision,record_revision:value.record_revision,enabled,advance_minutes:advance,request_key:Crypto.randomUUID()});})}>保存提醒设置</Button>
     {!!waiting&&<><Text style={{color:c.muted,lineHeight:22}}>{waiting.error||'上次操作还未确认。输入留在本机，不会重复创建提醒。'}</Text>{waiting.phase==='pending'&&<Button disabled={busy} onPress={()=>void run(()=>submit())}>取回上次设置回执</Button>}</>}
     <Button disabled={busy||waiting?.phase==='pending'} onPress={()=>void run(async()=>{const fresh=await api().get(record.id);if(!active())return;await adoptReminderRead(storage,scope,record.id,fresh);if(active()){setValue(fresh);setWaiting(null);setOnline(true);setNotice('已读取最新状态，所选输入仍保留，请核对后保存。');}})}>读取最新设置，保留选择</Button>

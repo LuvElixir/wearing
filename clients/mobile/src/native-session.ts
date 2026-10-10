@@ -7,22 +7,47 @@ import {Platform} from 'react-native';
 import {ApiError, Connection, connectionEndpoint} from './core';
 import {AccountDeletionClient} from './account-deletion-client';
 import {storage, withNativeState} from './storage';
-import {registerAccountCredential, upsertState} from './account-cleanup-state';
+import {commitNativeConnection} from './native-connection-commit';
 import {serviceFetch} from './transport';
 import {clearDiagnosticErrors} from './diagnostics-client';
 import {assertNativeServiceAddress, initialConnection, PUBLIC_PAJIO_ENDPOINT} from './connection-default';
 import {AUTH_CALLBACK, AuthorizationFlow, authorizationURL, forgetSession, loadConnection, saveConnection, sessionReceipt, type SignInEntry, Vault} from './session-protocol';
+import {EnrollmentFlow} from './enrollment-client';
+import {base64urlBytes, EnrollmentError} from './enrollment-model';
 
 const options = {keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY};
 const vault: Vault = {get: key => SecureStore.getItemAsync(key, options), put: (key,value) => SecureStore.setItemAsync(key,value,options), remove: key => SecureStore.deleteItemAsync(key,options)};
+let authGeneration = 0;
+export const createNativeEnrollment = () => {
+  return new EnrollmentFlow({vault, fetcher: serviceFetch,
+  proof: async () => {
+    const bytes = await Crypto.getRandomBytesAsync(32);
+    const verifier = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    const state = Array.from(await Crypto.getRandomBytesAsync(24), byte => byte.toString(16).padStart(2, '0')).join('');
+    const base64url = (value: string) => value.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/,'');
+    const challenge = base64url(await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, verifier, {encoding: Crypto.CryptoEncoding.BASE64}));
+    // An independently random recovery proof; not derived from the PKCE verifier.
+    const receipt = base64urlBytes(await Crypto.getRandomBytesAsync(32));
+    return {operation_id: Crypto.randomUUID().replace(/-/g, ''), receipt, verifier, challenge, state};
+  },
+  finish: async (pending, handoff, isCurrent) => {
+    const generation = authGeneration;
+    if (browserOpen || !isCurrent()) throw new EnrollmentError('enrollment_inactive');
+    assertNativeServiceAddress(pending.origin);
+    const response = await boundedFetch(new URL('/auth/mobile/exchange', pending.origin).toString(), {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({code: handoff.code, verifier: pending.verifier, state: pending.state})});
+    if (!response.ok) throw new EnrollmentError('enrollment_unconfirmed');
+    const next = sessionReceipt(pending.origin, await response.json(), Crypto.randomUUID().replace(/-/g,''));
+    if (!isCurrent() || generation !== authGeneration) throw new EnrollmentError('enrollment_inactive');
+    await persistNativeConnection(next, () => isCurrent() && generation === authGeneration);
+    return next;
+  },
+});};
 export const restoreNativeConnection = () => loadConnection(storage, vault, stored => Platform.OS === 'web' ? stored : initialConnection(stored, Platform.OS));
-export const persistNativeConnection = (connection: Connection) => {
+export const persistNativeConnection = (connection: Connection, isCurrent: () => boolean = () => true) => {
   if (Platform.OS === 'web') return saveConnection(connection, storage, vault);
   assertNativeServiceAddress(connection.endpoint);
-  return withNativeState(async db => {
-    await registerAccountCredential(db, connection);
-    await saveConnection(connection, {put: async (key, value) => {await upsertState(db, key, value);}}, vault);
-  });
+  return withNativeState(db => commitNativeConnection(db, vault, connection, isCurrent));
 };
 export const clearNativeSession = async (connection: Connection) => {
   await clearChatImportPrivateDrafts(connection);
@@ -60,6 +85,7 @@ async function openSignIn(address: string, expectedConnection?: Connection, entr
   if (Platform.OS === 'web') throw new Error('账户登录请在 Pajio App 中打开；当前为开发预览。');
   assertNativeServiceAddress(address);
   if (browserOpen) throw new Error('登录窗口已经打开，请先完成这次登录。');
+  authGeneration += 1;
   browserOpen = true;
   try {
     const verifier = Array.from(await Crypto.getRandomBytesAsync(32), b => b.toString(16).padStart(2,'0')).join('');
@@ -75,6 +101,7 @@ async function openSignIn(address: string, expectedConnection?: Connection, entr
   } finally {browserOpen = false;}
 }
 export async function signOut(connection: Connection) {
+  authGeneration += 1;
   await authorization.cancel();
   if (!connection.session?.accessToken) return clearNativeSession(connection);
   if(notificationProject() && Date.parse(connection.session.expiresAt)>Date.now()) await disableInstallationNotifications(connection);

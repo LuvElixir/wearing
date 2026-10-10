@@ -1,0 +1,21 @@
+{
+  "keycloak_sdk": "26.7.4",
+  "java_release": 21,
+  "compiler": "javac -Xlint:all -Werror",
+  "sdk_behavior_tests": 11,
+  "startup_mode_tests": 4,
+  "tests_kind": "Strict real SDK interface proxies; no production state mutations",
+  "jar_sha256": "cc53dfc6bba84d6d528327fa289653b1d79b1978f23192dc4d8c52c15d377bc6",
+  "source_sha256": {
+    "META-INF/services/org.keycloak.events.EventListenerProviderFactory": "0f412d7e06757e582dd33673a3895d6252cfc41d905dfd010f642e0a87e85b86",
+    "README.md": "009aadfcbe9326fdedd4f7fc6e418718a3b30f446f1a7e127c1175defce005db",
+    "build.sh": "3121bb52949d6bdb6bc29ff98a4bc2a711d7e4ec90a1b5d86e77214cdac571b4",
+    "prepare-flag.py": "2b0010f1cbed37b8b58f1c4f16ee62a202f14529d0b2d7e216824b98929e5c49",
+    "src/io/pajio/cleanup/QACleanup.java": "5c5a2574b204434a59429584d264f6a9b1e47d4d66b6d14f099d9fcd4af47ef6",
+    "src/io/pajio/cleanup/QACleanupFactory.java": "e34c738d94614bb5dd986f6588d3b22aa4ad98df4ffb413c80edf5a233811b59",
+    "test/io/pajio/cleanup/QACleanupFactoryTest.java": "9c695e37df7c00c04bd38253de50d05e3a690b83df2b7b4055681793568037f4",
+    "test/io/pajio/cleanup/QACleanupTest.java": "438db69594d9de166ea4f647ff4bda86cf5433af90f1229d4aed4f9a950b3be5"
+  },
+  "deployed": false,
+  "theme_or_locale_mutation": false
+}

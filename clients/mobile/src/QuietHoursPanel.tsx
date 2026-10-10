@@ -1,5 +1,6 @@
+import {StateSwitch} from './experience/selection';
 import {useEffect, useRef, useState} from 'react';
-import {StyleSheet, Switch, Text, TextInput, View} from 'react-native';
+import {StyleSheet, Text, TextInput, View} from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {type Connection, scopeOf} from './core';
 import {storage} from './storage';
@@ -46,7 +47,7 @@ function QuietHoursSession({connection}: {connection: Connection}) {
     finally {locked.current = false; if (live.current) setBusy(false);}
   }
   return <View style={s.card}>
-    <View style={s.row}><Text style={s.title}>安静时段</Text><Switch accessibilityLabel="启用安静时段" value={enabled} disabled={busy || !saved} onValueChange={setEnabled} trackColor={{true:c.accent}}/></View>
+    <View style={s.row}><Text style={s.title}>安静时段</Text><StateSwitch accessibilityLabel="启用安静时段" value={enabled} disabled={busy || !saved} onValueChange={setEnabled} trackColor={{true:c.accent}}/></View>
     <Text style={s.copy}>这台手机在当前身份的通知安排。任务照常推进，确认和结果会留在 App 内。已经交给系统的推送无法撤回。</Text>
     <View style={s.row}><View style={s.field}><Text style={s.label}>开始</Text><TextInput accessibilityLabel="安静时段开始" value={start} onChangeText={setStart} editable={!busy && !!saved} placeholder="22:00" maxLength={5} style={s.input}/></View><View style={s.field}><Text style={s.label}>结束</Text><TextInput accessibilityLabel="安静时段结束" value={end} onChangeText={setEnd} editable={!busy && !!saved} placeholder="08:00" maxLength={5} style={s.input}/></View></View>
     <Text style={s.label}>时区</Text><TextInput accessibilityLabel="安静时段时区" value={zone} onChangeText={setZone} autoCapitalize="none" autoCorrect={false} editable={!busy && !!saved} style={s.input}/>

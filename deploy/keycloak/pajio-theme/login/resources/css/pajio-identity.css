@@ -1,0 +1,45 @@
+/* Extend official Keycloak forms without replacing authentication templates. */
+html,body{background:var(--bg)!important}
+body#keycloak-bg{padding:64px 28px 28px!important}
+.pf-v5-c-login{display:block;min-height:0;width:min(100%,360px);background:none!important;padding:0}
+.pf-v5-c-login__container{display:block;width:100%;margin:0;padding:0;grid-template-columns:1fr}
+.pf-v5-c-login__header{position:static;margin:0 0 98px;padding:0}
+.pf-v5-c-brand{display:block;width:56px;height:24px;background:url('../img/pajio-wordmark.svg') left center/contain no-repeat;font-size:0!important}
+.pf-v5-c-login__main{position:relative;overflow:visible;margin:0;padding:0;background:transparent;color:var(--ink);border:0;border-radius:0;box-shadow:none;max-width:none;width:100%}
+.pf-v5-c-login__main-header,.pf-v5-c-login__main-body,.pf-v5-c-login__main-footer{padding:0;background:transparent;color:var(--ink)}
+#keycloak-bg .pf-v5-c-login__main-header{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:none;row-gap:12px;margin-bottom:30px;border:0}
+#kc-page-title.pf-v5-c-title{grid-column:1;grid-row:1;width:100%;min-width:0;margin:0;font-size:32px;font-weight:700}
+#keycloak-bg .pf-v5-c-login__main-header-utilities{grid-column:1;grid-row:2;justify-self:start;width:auto;max-width:100%;margin:0}
+#login-select-toggle{width:auto;max-width:100%;min-height:44px;padding-inline:0 26px;border:0;border-radius:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+#login-select-toggle:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.pf-v5-c-title{font-family:inherit;font-size:32px;font-weight:700;letter-spacing:-.035em;line-height:1.2;color:var(--ink)}
+.pf-v5-c-form{gap:20px;color:var(--ink)}
+.pf-v5-c-form__group-label{padding:0;margin:0 0 10px}
+.pf-v5-c-form__label{margin:0;color:var(--ink);font-size:14px;font-weight:600}
+.pf-v5-c-form-control{background:transparent;border:0;color:var(--ink)}
+.pf-v5-c-form-control::before,.pf-v5-c-form-control::after{display:none}
+.pf-v5-c-form-control input{background:var(--field)!important;color:var(--ink)!important;min-height:52px!important;border:1px solid var(--line)!important;padding:13px 14px!important;border-radius:12px!important}
+.pf-v5-c-input-group{gap:0}
+.pf-v5-c-input-group .pf-v5-c-input-group__item:first-child input{border-radius:12px 0 0 12px!important;border-right:0!important}
+.pf-v5-c-button.pf-m-control{border:1px solid var(--line);border-left:0;border-radius:0 12px 12px 0;background:var(--field);color:var(--muted);min-width:48px;min-height:52px}
+.pf-v5-c-form__actions{display:block;width:100%;margin-inline:0;padding-inline:0}
+#kc-login.pf-v5-c-button{display:block;width:100%;max-width:none;margin-inline:0;box-sizing:border-box}
+.pf-v5-c-button.pf-m-primary{background:var(--button)!important;color:var(--button-ink)!important;min-height:52px;border-radius:12px;border:0;font-weight:600;font-size:16px;margin:8px 0 0;padding:13px 16px;box-shadow:none}
+.pf-v5-c-button.pf-m-primary:hover,.pf-v5-c-button.pf-m-primary:active{background:var(--button-pressed)!important}
+.pf-v5-c-button:after{display:none}
+.pf-v5-c-button:focus-visible,.pf-v5-c-form-control input:focus-visible,a:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.pf-v5-c-helper-text__item-text,.pf-v5-c-form__helper-text{color:var(--muted);font-size:13px}
+.pf-m-error,.pf-v5-c-helper-text__item-text.pf-m-error{color:var(--error)!important}
+.pf-v5-c-alert{border:0;border-left:3px solid var(--error);border-radius:0;background:transparent;padding:4px 0 4px 12px;color:var(--ink)}
+.pf-v5-c-alert__title{color:var(--ink);font-size:14px}
+.pf-v5-c-login__main-footer-band{background:transparent}
+.pf-v5-c-check__label{color:var(--muted);font-size:14px}
+.pf-v5-c-check__input{accent-color:var(--selection-indicator)}
+.pf-v5-c-check__input:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.pf-v5-c-login__main-footer:empty{display:none}#kc-info{margin:16px 0 0}#kc-info-wrapper{padding:0}
+a{color:var(--selection-ink)!important}
+#kc-page-title::after{content:'登录后，继续你的日常。';display:block;margin-top:10px;color:var(--muted);font-size:16px;line-height:1.6;font-weight:400;letter-spacing:0}
+body:not([data-page-id='login-login']) #kc-page-title::after{content:none}
+@media(prefers-color-scheme:dark){.pf-v5-c-brand{filter:brightness(0) invert(.94)}}
+@media(max-height:680px){body#keycloak-bg{padding-top:28px!important}.pf-v5-c-login__header{margin-bottom:48px}}
+@media(max-width:360px){body#keycloak-bg{padding-inline:24px!important}#kc-page-title.pf-v5-c-title{font-size:32px}}

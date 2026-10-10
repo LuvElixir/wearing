@@ -28,6 +28,7 @@ from .voice import voice_endpoint, PATH as VOICE_PATH
 
 from .join import JoinFlow, callback_error, native_ready
 from .registration import RegistrationClient
+from .native_enrollment import NativeEnrollment, EnrollmentError
 from .invitations import InvitationStore
 from .commands import Identifier, Record
 from .control import ControlError, ControlStore, OIDCStateCache, users
@@ -373,11 +374,17 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
             if len(raw) > 2048:
                 return JSONResponse({"detail": "登录请求过大。"}, status_code=413)
         try:
-            proof = await exchange_handoff(cache, json.loads(raw))
+            body = json.loads(raw)
+            proof = await exchange_handoff(cache, body)
         except (ValueError, TypeError):
             proof = None
         if not proof:
             return JSONResponse({"detail": "登录关联已失效，请重新登录。"}, status_code=400)
+        if proof.get('enrollment_operation'):
+            try:
+                enrollment.consume_handoff(proof['enrollment_operation'], body['code'])
+            except EnrollmentError:
+                return JSONResponse({"detail": "登录关联已失效，请重新登录。"}, status_code=400)
         sid = store.login(config.issuer, proof['subject'], auth_time=proof.get('auth_time'))
         if proof.get('tenant_id'):
             store.switch(sid, proof['tenant_id'])
@@ -445,8 +452,9 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
         request.session['sid'] = sid
         return RedirectResponse('/', status_code=303)
 
-    join = JoinFlow(config, store, cache, login, join_finish,
-                    RegistrationClient(os.environ.get('PAJIO_REGISTRATION_SOCKET'), transport=registration_transport), session)
+    registration = RegistrationClient(os.environ.get('PAJIO_REGISTRATION_SOCKET'), transport=registration_transport)
+    join = JoinFlow(config, store, cache, login, join_finish, registration, session)
+    enrollment = NativeEnrollment(config, store, cache, registration)
 
     async def account(request):
         current = session(request)
@@ -537,7 +545,7 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
     receipt_codec = ReceiptCodec(config.session_key.get_secret_value())
     voice = voice_endpoint(config.public_origin, store, credentials, ssl_context=upstream_tls,
                            **({"connector": voice_connector} if voice_connector else {}))
-    app = Starlette(routes=[*join.routes(), *deletion_routes(deletion, receipt_codec, session, unsafe_allowed, reauth=deletion_reauth),
+    app = Starlette(routes=[*join.routes(), *enrollment.routes(), *deletion_routes(deletion, receipt_codec, session, unsafe_allowed, reauth=deletion_reauth),
                            Route(PREFIX + '/reauth/start', deletion_reauth_start), WebSocketRoute(VOICE_PATH, voice), Route("/auth/login", login), Route("/auth/callback", callback),
                            Route("/auth/mobile/start", mobile_start), Route("/auth/mobile/exchange", mobile_exchange, methods=["POST"]),
                            Route("/auth/session", account), Route("/auth/logout", logout, methods=["POST"]),

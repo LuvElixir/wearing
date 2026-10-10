@@ -1,3 +1,4 @@
+import {Choice} from './experience/selection';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, Platform, StyleSheet, Text, TextInput, View} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -143,11 +144,11 @@ export default function TaskManagementForm({api, scope, kind, item, prefill, onS
       <Input title="安排名称" value={schedule.title} onChange={value => updateSchedule('title', value)} placeholder="例如：每日优先事项简报" maxLength={100} disabled={locked}/>
       <Input title="届时要做的事" value={schedule.instruction} onChange={value => updateSchedule('instruction', value)} placeholder="写清信息来源、范围和你希望收到的结果" maxLength={6000} multiline disabled={locked}/>
       <Text style={s.label}>重复方式</Text><View accessibilityRole="radiogroup" style={s.choices}>
-        {([{id: 'once', title: '一次'}, {id: 'daily', title: '每天'}, {id: 'weekly', title: '每周'}] as const).map(option => <TactilePressable key={option.id} accessibilityRole="radio" accessibilityState={{checked: schedule.repeat === option.id, disabled: locked}} disabled={locked} onPress={() => updateSchedule('repeat', option.id)} style={[s.choice, schedule.repeat === option.id && s.selected]}><Text style={s.choiceText}>{option.title}</Text></TactilePressable>)}
-        {item && initialScheduleForm(undefined, item).repeat === 'existing' ? <TactilePressable accessibilityRole="radio" accessibilityState={{checked: schedule.repeat === 'existing', disabled: locked}} disabled={locked} onPress={() => updateSchedule('repeat', 'existing')} style={[s.choice, schedule.repeat === 'existing' && s.selected]}><Text style={s.choiceText}>保留原规则</Text></TactilePressable> : null}
+        {([{id: 'once', title: '一次'}, {id: 'daily', title: '每天'}, {id: 'weekly', title: '每周'}] as const).map(option => <Choice key={option.id}  selected={schedule.repeat === option.id} disabled={locked} onPress={() => updateSchedule('repeat', option.id)} style={[s.choice, schedule.repeat === option.id && s.selected]}><Text style={s.choiceText}>{option.title}</Text></Choice>)}
+        {item && initialScheduleForm(undefined, item).repeat === 'existing' ? <Choice  selected={schedule.repeat === 'existing'} disabled={locked} onPress={() => updateSchedule('repeat', 'existing')} style={[s.choice, schedule.repeat === 'existing' && s.selected]}><Text style={s.choiceText}>保留原规则</Text></Choice> : null}
       </View>
       {schedule.repeat === 'existing' && base ? <Text style={s.secondary}>{scheduleRule(base)}。保留原有触发范围和执行限制。</Text> : <>
-        {schedule.repeat === 'weekly' ? <View accessibilityRole="radiogroup" style={s.choices}>{[1, 2, 3, 4, 5, 6, 0].map(day => <TactilePressable key={day} accessibilityRole="radio" accessibilityLabel={'每周' + '日一二三四五六'[day]} accessibilityState={{checked: schedule.weekday === day, disabled: locked}} disabled={locked} onPress={() => updateSchedule('weekday', day)} style={[s.day, schedule.weekday === day && s.selected]}><Text style={s.choiceText}>{'日一二三四五六'[day]}</Text></TactilePressable>)}</View> : null}
+        {schedule.repeat === 'weekly' ? <View accessibilityRole="radiogroup" style={s.choices}>{[1, 2, 3, 4, 5, 6, 0].map(day => <Choice key={day}  accessibilityLabel={'每周' + '日一二三四五六'[day]} selected={schedule.weekday === day} disabled={locked} onPress={() => updateSchedule('weekday', day)} style={[s.day, schedule.weekday === day && s.selected]}><Text style={s.choiceText}>{'日一二三四五六'[day]}</Text></Choice>)}</View> : null}
         <Text style={s.label}>执行时间</Text><View style={s.choices}>
           {schedule.repeat === 'once' ? <TactilePressable accessibilityLabel={'选择执行日期，' + schedule.date} disabled={locked || !validTimezone(schedule.timezone)} onPress={() => setPicker('date')} style={s.clock}><CalendarDays size={18} color={c.accent}/><Text style={s.choiceText}>{schedule.date}</Text></TactilePressable> : null}
           <TactilePressable accessibilityLabel={'选择执行时间，' + schedule.time} disabled={locked || !validTimezone(schedule.timezone)} onPress={() => setPicker('time')} style={s.clock}><Clock3 size={18} color={c.accent}/><Text style={s.choiceText}>{schedule.time}</Text></TactilePressable>
@@ -180,7 +181,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
   multiline: {minHeight: 100, textAlignVertical: 'top'}, choices: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   choice: {minHeight: 44, paddingHorizontal: 16, justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: c.line, backgroundColor: c.canvas},
   day: {width: 40, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.canvas},
-  selected: {borderColor: c.accent, backgroundColor: c.accentSoft}, choiceText: {fontSize: 15, color: c.ink},
+  selected: {borderColor: c.selectionBorder, backgroundColor: c.selectionSurface}, choiceText: {fontSize: 15, color: c.ink},
   clock: {flexDirection: 'row', alignItems: 'center', gap: 9, minHeight: 48, paddingHorizontal: 14, borderRadius: 13, backgroundColor: c.canvas},
   error: {fontSize: 14, lineHeight: 23, color: c.danger}, notice: {fontSize: 14, lineHeight: 23, color: c.accent},
 });

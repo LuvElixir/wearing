@@ -1,14 +1,14 @@
+import {Choice} from './experience/selection';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import * as Crypto from 'expo-crypto';
-import {Check, ChevronRight} from 'lucide-react-native';
 import {ApiError, type Connection, scopeOf} from './core';
 import type {ArtifactMetadata} from './artifact-client';
 import {ArtifactChoiceApi, choicePendingKey, choiceTaskPending, validChoiceRequest, type ChoiceRequest, type ChoiceState} from './artifact-choices';
 import {storage} from './storage';
 import {serviceFetch} from './transport';
 import {useAppTheme, useThemedStyles, type AppColors} from './app-theme';
-import {PrimaryButton, TactilePressable} from './experience/primitives';
+import {PrimaryButton} from './experience/primitives';
 
 type Props = {connection: Connection; artifact: ArtifactMetadata; onTask?: (id: string) => void; onArtifact?: (id: string) => void};
 export default function ArtifactChoicePanel(props: Props) {
@@ -70,11 +70,11 @@ function ChoiceSession({connection, artifact, onTask, onArtifact}: Props) {
     </View> : null}
     {pending ? <><Text style={s.body}>上次选择还在等待回执，先找回这一次提交。</Text><PrimaryButton label="取回上次选择回执" loading={saving} disabled={!loaded || loading} onPress={() => {void submit();}}/></> : null}
     {state?.newer_id ? <><Text style={s.caption}>这份结果已有新版本。</Text>{onArtifact ? <PrimaryButton label="打开最新一版" tone="quiet" disabled={saving} onPress={() => onArtifact(state.newer_id!)}/> : null}</> : null}
-    {loaded && state && !state.newer_id && !pending && !choiceTaskPending(state.selection) ? state.choices.map(choice => <TactilePressable key={choice.id}
-      accessibilityRole="radio" accessibilityState={{checked: selected === choice.id}} accessibilityLabel={choice.label} disabled={saving}
-      onPress={() => setSelected(choice.id)} style={[s.option, selected === choice.id && {borderColor: c.accent}]}>
-      <Text style={s.body}>{choice.label}</Text>{selected === choice.id ? <Check size={18} color={c.accent}/> : <ChevronRight size={18} color={c.muted}/>}
-    </TactilePressable>) : null}
+    {loaded && state && !state.newer_id && !pending && !choiceTaskPending(state.selection) ? state.choices.map(choice => <Choice key={choice.id}
+       selected={selected === choice.id} accessibilityLabel={choice.label} disabled={saving}
+      onPress={() => setSelected(choice.id)} style={[s.option, selected === choice.id && {borderColor: c.selectionBorder}]}>
+      <Text style={s.body}>{choice.label}</Text>
+    </Choice>) : null}
     {option && !pending && loaded && !state?.newer_id && !choiceTaskPending(state?.selection || null) ? <View style={s.receipt}>
       <Text style={s.caption}>确认后，将这段要求交给 Pajio 继续处理：</Text><Text selectable style={s.body}>{option.instruction}</Text>
       <PrimaryButton label="确认选择，继续处理" loading={saving} onPress={() => {void submit();}}/>

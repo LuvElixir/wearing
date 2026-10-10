@@ -1,3 +1,4 @@
+import {Choice,ToggleRow} from './experience/selection';
 import {useEffect,useRef,useState} from 'react';
 import {Platform,Text,View} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -33,12 +34,12 @@ function Panel({connection,preferencesRevision,isCurrent}:{connection:Connection
  return <View style={{gap:12,paddingTop:16,borderTopWidth:1,borderColor:c.line}}>
   <Text accessibilityRole="header" style={{color:c.ink,fontSize:17,fontWeight:'600'}}>每天自动准备简报</Text>
   <Text style={muted}>在服务端执行，关闭 App 后仍可运行。服务离线时只在允许补做时间内整理当天这一份；超时或跨天会跳过。同一天已有你的手动简报时沿用原回执。</Text>
-  <PrimaryButton tone="quiet" label={enabled?'✓ 每天准备简报':'每天准备简报'} disabled={disabled} onPress={()=>setEnabled(v=>!v)}/>
+  <ToggleRow label="每天准备简报" value={enabled} disabled={disabled} onValueChange={setEnabled}/>
   <PrimaryButton tone="quiet" label={'每天 '+time+' 准备'} disabled={disabled||!validTimezone(zone)} onPress={()=>setPicker(true)}/>
   {picker&&validTimezone(zone)&&<View><DateTimePicker value={pickerValue} mode="time" timeZoneName={zone} is24Hour locale="zh-CN" themeVariant={appearance==='night'?'dark':'light'} display={Platform.OS==='ios'?'spinner':'default'} onChange={(event,value)=>{if(Platform.OS!=='ios')setPicker(false);if(event.type==='set'&&value)setTime(wallClock(value,zone).time);}}/>{Platform.OS==='ios'&&<PrimaryButton label="选好了" tone="quiet" onPress={()=>setPicker(false)}/>}</View>}
   <PrimaryButton tone="quiet" label={advanced?'收起时区设置':'高级：时间所在时区'} disabled={busy} onPress={()=>setAdvanced(v=>!v)}/>
   {advanced&&<TextInput mode="outlined" label="时区（默认使用这台设备的时区）" value={zone} onChangeText={value=>{setPicker(false);setZone(value);}} disabled={disabled} autoCapitalize="none"/>}
-  <Text style={muted}>错过时间后，允许当天补做多久</Text><View style={{flexDirection:'row',gap:8,flexWrap:'wrap'}}>{[30,60,120].map(value=><PrimaryButton key={value} label={(grace===value?'✓ ':'')+value+' 分钟'} tone="quiet" disabled={disabled} onPress={()=>setGrace(value)}/>)}</View>
+  <Text style={muted}>错过时间后，允许当天补做多久</Text><View style={{flexDirection:'row',gap:8,flexWrap:'wrap'}}>{[30,60,120].map(value=><Choice variant="chip" key={value} selected={grace===value} label={value+' 分钟'} disabled={disabled} onPress={()=>setGrace(value)}/>)}</View>
   <Text style={muted}>点击保存后生效。当前服务：{state?.enabled&&state.schedule_status==='active'?'已开启':'未开启或已暂停'}。保存后固定使用所选时区，旅行时不会自动改变。</Text>
   <Text style={muted}>安静时段只延后通知，简报仍会准备。通知关闭或未授权不妨碍在今天页查看结果。</Text>
   {state?.preferences_revision!==null&&state?.preferences_revision!==undefined&&<Text style={muted}>自动安排使用偏好版本 {state.preferences_revision}{preferencesRevision!==state.preferences_revision?'；上方偏好已有变化，请点保存将新偏好用于之后的简报。':'。'}</Text>}

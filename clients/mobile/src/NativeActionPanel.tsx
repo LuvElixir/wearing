@@ -1,5 +1,6 @@
+import {StateSwitch} from './experience/selection';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {AppState, Linking, Platform, StyleSheet, Switch, Text, View} from 'react-native';
+import {AppState, Linking, Platform, StyleSheet, Text, View} from 'react-native';
 import {scopeOf, type Connection} from './core';
 import {useThemedStyles, type AppColors} from './app-theme';
 import {PrimaryButton} from './experience/primitives';
@@ -61,15 +62,15 @@ function NativeActionPanelContent({connection}: {connection:Connection}) {
     <Text style={s.body}>{device?.enabled ? device.online ? '已开启 · 最近连接在前台' : '已开启 · 等待前台连接' : '尚未开启'}</Text>
     <PrimaryButton label="重新读取设置和请求" tone="quiet" disabled={!!busy} onPress={() => void run('刷新',refresh)}/>
     <PrimaryButton label="选择允许读取的系统日历" tone="quiet" disabled={!!busy || !loaded || !driver} onPress={() => void run('日历',()=>lists('calendar'))}/>
-    {calendars.map(c=><View key={c.id} style={s.row}><Text style={s.flex}>{c.title}{!c.writable ? ' · 只读' : ''}</Text><Switch accessibilityLabel={'允许任务读取日历：'+c.title} value={policy.calendars.some(l=>l.id===c.id)} disabled={!!busy} onValueChange={()=>choose('calendars',c)}/></View>)}
+    {calendars.map(c=><View key={c.id} style={s.row}><Text style={s.flex}>{c.title}{!c.writable ? ' · 只读' : ''}</Text><StateSwitch accessibilityLabel={'允许任务读取日历：'+c.title} value={policy.calendars.some(l=>l.id===c.id)} disabled={!!busy} onValueChange={()=>choose('calendars',c)}/></View>)}
     <PrimaryButton label="选择允许读取的提醒列表" tone="quiet" disabled={!!busy || !loaded || !driver} onPress={() => void run('提醒',()=>lists('reminders'))}/>
-    {reminders.map(c=><View key={c.id} style={s.row}><Text style={s.flex}>{c.title}{!c.writable ? ' · 只读' : ''}</Text><Switch accessibilityLabel={'允许任务读取提醒列表：'+c.title} value={policy.reminders.some(l=>l.id===c.id)} disabled={!!busy} onValueChange={()=>choose('reminders',c)}/></View>)}
-    <View style={s.row}><Text style={s.flex}>每次确认后新建日程</Text><Switch accessibilityLabel="允许手机确认后新建日程" disabled={!!busy || !policy.calendars.some(c=>c.writable)} value={policy.calendar_create} onValueChange={v=>setPolicy(p=>({...p,calendar_create:v}))}/></View>
-    <View style={s.row}><Text style={s.flex}>每次确认后新建提醒</Text><Switch accessibilityLabel="允许手机确认后新建提醒" disabled={!!busy || !policy.reminders.some(c=>c.writable)} value={policy.reminder_create} onValueChange={v=>setPolicy(p=>({...p,reminder_create:v}))}/></View>
-    <View style={s.row}><Text style={s.flex}>每次确认后修改或删除日程</Text><Switch accessibilityLabel="允许手机确认后修改删除单次日程" disabled={!!busy || !policy.calendars.some(c=>c.writable)} value={policy.calendar_edit} onValueChange={v=>setPolicy(p=>({...p,calendar_edit:v}))}/></View>
-    <View style={s.row}><Text style={s.flex}>每次确认后修改或删除提醒</Text><Switch accessibilityLabel="允许手机确认后修改删除提醒" disabled={!!busy || !policy.reminders.some(c=>c.writable)} value={policy.reminder_edit} onValueChange={v=>setPolicy(p=>({...p,reminder_edit:v}))}/></View>
+    {reminders.map(c=><View key={c.id} style={s.row}><Text style={s.flex}>{c.title}{!c.writable ? ' · 只读' : ''}</Text><StateSwitch accessibilityLabel={'允许任务读取提醒列表：'+c.title} value={policy.reminders.some(l=>l.id===c.id)} disabled={!!busy} onValueChange={()=>choose('reminders',c)}/></View>)}
+    <View style={s.row}><Text style={s.flex}>每次确认后新建日程</Text><StateSwitch accessibilityLabel="允许手机确认后新建日程" disabled={!!busy || !policy.calendars.some(c=>c.writable)} value={policy.calendar_create} onValueChange={v=>setPolicy(p=>({...p,calendar_create:v}))}/></View>
+    <View style={s.row}><Text style={s.flex}>每次确认后新建提醒</Text><StateSwitch accessibilityLabel="允许手机确认后新建提醒" disabled={!!busy || !policy.reminders.some(c=>c.writable)} value={policy.reminder_create} onValueChange={v=>setPolicy(p=>({...p,reminder_create:v}))}/></View>
+    <View style={s.row}><Text style={s.flex}>每次确认后修改或删除日程</Text><StateSwitch accessibilityLabel="允许手机确认后修改删除单次日程" disabled={!!busy || !policy.calendars.some(c=>c.writable)} value={policy.calendar_edit} onValueChange={v=>setPolicy(p=>({...p,calendar_edit:v}))}/></View>
+    <View style={s.row}><Text style={s.flex}>每次确认后修改或删除提醒</Text><StateSwitch accessibilityLabel="允许手机确认后修改删除提醒" disabled={!!busy || !policy.reminders.some(c=>c.writable)} value={policy.reminder_edit} onValueChange={v=>setPolicy(p=>({...p,reminder_edit:v}))}/></View>
     <Text style={s.description}>已有记录须先读取，再引用它修改。重复日程只处理具体一次；重复提醒和提醒日期修改请在系统应用中处理。</Text>
-    <View style={s.row}><Text style={s.flex}>每次确认后读取一次位置</Text><Switch accessibilityLabel="允许手机确认后读取一次位置" disabled={!!busy || !driver} value={policy.location} onValueChange={v=>{if (!v) setPolicy(p=>({...p,location:false}));else void run('位置权限',async()=>{if (!await driver?.permission('location',true)) throw new Error('permission');if (active()) setPolicy(p=>({...p,location:true}));});}}/></View>
+    <View style={s.row}><Text style={s.flex}>每次确认后读取一次位置</Text><StateSwitch accessibilityLabel="允许手机确认后读取一次位置" disabled={!!busy || !driver} value={policy.location} onValueChange={v=>{if (!v) setPolicy(p=>({...p,location:false}));else void run('位置权限',async()=>{if (!await driver?.permission('location',true)) throw new Error('permission');if (active()) setPolicy(p=>({...p,location:true}));});}}/></View>
     <PrimaryButton label={device?.enabled ? '保存所选范围' : '启用所选能力'} loading={busy==='保存'} disabled={!!busy || !loaded || !driver || !(policy.calendars.length || policy.reminders.length || policy.location)} onPress={()=>void run('保存',()=>save(true))}/>
     {device?.enabled && <PrimaryButton label="停用这台手机的任务执行" tone="quiet" disabled={!!busy} onPress={()=>void run('停用',()=>save(false))}/>}
     <PrimaryButton label="打开系统权限设置" tone="quiet" disabled={!!busy} onPress={()=>void run('系统设置',async()=>{await Linking.openSettings();})}/>

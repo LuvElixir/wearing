@@ -54,7 +54,7 @@ test('every Pajio style rule is gated away from the App host', () => {
   }
   assert.doesNotMatch(css, /acceeb|ffe0bb|f4e7d9/i);
   assert.match(css, /\[data-app-theme="night"\]/);
-  assert.match(css, /--page:#14161A/);
+  assert.match(css, /--page:#191D22/);
 });
 
 test('appearance and wardrobe persist with the shared keys and v2 shape', () => {

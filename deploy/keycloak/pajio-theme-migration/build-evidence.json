@@ -1,0 +1,24 @@
+{
+  "keycloak_sdk": "26.7.4",
+  "java_release": 21,
+  "compiler": "javac -Xlint:all -Werror",
+  "sdk_behavior_tests": 12,
+  "startup_mode_tests": 4,
+  "flag_preparation_tests": 9,
+  "tests_kind": "Strict real SDK interface proxies and local artifact preparation; no live database or browser acceptance",
+  "jar_sha256": "c4a974c45820baffebef1ca9b1e83e74997321ba74d2bde65ec23e45766c4f28",
+  "theme_sha256": "bb5ff492f8de0a51bba75d00f42ce8eed15d86865f54d595c8b64ddf6562f3ad",
+  "source_sha256": {
+    "META-INF/services/org.keycloak.events.EventListenerProviderFactory": "11eba0e04c0b7064cbd1afa5605246cbc0a0fa6f127f797a54d3e7879d47a46c",
+    "README.md": "a779b16a57527a6b932fd20444331e64246889bc7c21db6068d3c150ec607845",
+    "build.sh": "ca8192e07ffaf79871c7374b3745effb6d9a506c2e35a36209b3604dc0339c16",
+    "prepare-flag.py": "3ecb508036a37ec92ab3f24b8be01615475a2a043758435bea874d6d3bf942b9",
+    "src/io/pajio/theme/ThemeMigration.java": "4bb6bb7cfa9e99545dd1fbad9db122ac0059739335ffa85d94cdb607ca8cc848",
+    "src/io/pajio/theme/ThemeMigrationFactory.java": "8ba8934708a7104f29ec924262a47c315d24a1f90ba1b4320fade281c543f061",
+    "test/io/pajio/theme/ThemeMigrationFactoryTest.java": "5a911ba07ab6432948b46e3fb56b8fa83b47a067ca2ee3e28fa66f09eac0ef5b",
+    "test/io/pajio/theme/ThemeMigrationTest.java": "09266291551eee411e289e889a32aaba5878bc2c13389ced5ad8ca9f6d8de754",
+    "test_prepare_flag.py": "b853d64e2607da65777ca39efd7ee0ba1f8a6c7330ab7535f6c66c86d63d07f6"
+  },
+  "deployed": false,
+  "scope": "realm pajio presentation only"
+}

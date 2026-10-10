@@ -8,6 +8,7 @@ export const radii = {small: 12, control: 16, card: 24, sheet: 32, pill: 999} as
 export const motion = {
   press: 110,
   release: 180,
+  selection: 180,
   enter: 280,
   exit: 200,
   crossfade: 140,

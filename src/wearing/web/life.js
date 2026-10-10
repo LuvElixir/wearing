@@ -119,7 +119,7 @@
     if(life.calendar){life.calendar.destroy();life.calendar=null;}
     const all=events.filter(i=>!i.deleted_at);
     // 月视图沿用 FullCalendar；周/议程为原生条目列表
-    if(calViews.mode==="month"){el("life-content").innerHTML='<div class="life-calendar"><div class="life-calendar-views" aria-label="日历视图"><button class="text-button" data-cal-view="dayGridMonth" aria-pressed="true">月</button><button class="text-button" data-cal-view="timeGridWeek">周</button><button class="text-button" data-cal-view="agenda">议程</button></div><div id="life-calendar-root"></div></div><p class="life-help">点日期安排日程，点日程修改。重复日程用右上「重复日程」管理；打开日程可按开始时间设置提醒。</p>';
+    if(calViews.mode==="month"){el("life-content").innerHTML='<div class="life-calendar"><div class="life-calendar-views" aria-label="日历视图"><button class="text-button" data-cal-view="dayGridMonth" aria-pressed="true">月</button><button class="text-button" data-cal-view="timeGridWeek" aria-pressed="false">周</button><button class="text-button" data-cal-view="agenda" aria-pressed="false">议程</button></div><div id="life-calendar-root"></div></div><p class="life-help">点日期安排日程，点日程修改。重复日程用右上「重复日程」管理；打开日程可按开始时间设置提醒。</p>';
       mountFullCalendar(all);return;}
     const isWeek=calViews.mode==="timeGridWeek";
     const anchor=new Date(calViews.anchor);
@@ -148,7 +148,7 @@
         rendered++;
       }
     }
-    el("life-content").innerHTML=`<div class="life-calendar"><div class="life-calendar-views" aria-label="日历视图"><button class="text-button" data-cal-view="dayGridMonth">月</button><button class="text-button" data-cal-view="timeGridWeek" ${isWeek?'aria-pressed="true"':""}>周</button><button class="text-button" data-cal-view="agenda" ${!isWeek?'aria-pressed="true"':""}>议程</button></div>
+    el("life-content").innerHTML=`<div class="life-calendar"><div class="life-calendar-views" aria-label="日历视图"><button class="text-button" data-cal-view="dayGridMonth" aria-pressed="false">月</button><button class="text-button" data-cal-view="timeGridWeek" aria-pressed="${isWeek}">周</button><button class="text-button" data-cal-view="agenda" aria-pressed="${!isWeek}">议程</button></div>
       <div class="cal-nav"><button class="text-button" data-cal-prev>上一${isWeek?"周":"段"}</button><button class="text-button" data-cal-today>回到今天</button><button class="text-button" data-cal-next>下一${isWeek?"周":"段"}</button></div>
       <div class="cal-entries">${rows||'<p class="life-empty">这个范围还没有日程。</p>'}</div>
       ${rendered>=calViews.shown?`<button class="text-button" data-cal-more>继续查看（已显示 ${rendered} 条，去重后共 ${seen.size} 条）</button>`:""}
@@ -175,7 +175,7 @@
   }
   function renderCalendar(events){
     if(life.calendar&&el("life-calendar-root")){life.calendar.batchRendering(()=>{life.calendar.removeAllEvents();events.forEach(item=>life.calendar.addEvent(calendarEvent(item)));});return;}
-    el("life-content").innerHTML='<div class="life-calendar"><div class="life-calendar-views" aria-label="日历视图"><button class="text-button" data-cal-view="dayGridMonth">月</button><button class="text-button" data-cal-view="timeGridWeek">周</button><button class="text-button" data-cal-view="listWeek">一周安排</button><button class="text-button" data-cal-today>回到今天</button></div><div id="life-calendar-root"></div></div><p class="life-help">点日期安排日程，点日程修改。桌面上也可以拖动调整时间。打开日程可按开始时间设置提醒。</p>';
+    el("life-content").innerHTML='<div class="life-calendar"><div class="life-calendar-views" aria-label="日历视图"><button class="text-button" data-cal-view="dayGridMonth" aria-pressed="false">月</button><button class="text-button" data-cal-view="timeGridWeek" aria-pressed="false">周</button><button class="text-button" data-cal-view="listWeek" aria-pressed="false">一周安排</button><button class="text-button" data-cal-today>回到今天</button></div><div id="life-calendar-root"></div></div><p class="life-help">点日期安排日程，点日程修改。桌面上也可以拖动调整时间。打开日程可按开始时间设置提醒。</p>';
     life.calendar=new FullCalendar.Calendar(el("life-calendar-root"),{initialView:life.calendarView,initialDate:life.calendarDate||new Date(),locale:"zh-cn",firstDay:1,height:"auto",contentHeight:560,headerToolbar:{left:"title",center:"",right:"prev,next"},allDayText:"全天",noEventsContent:"这一周还没有安排。给一件小事留点时间吧。",editable:true,selectable:true,selectMirror:true,dayMaxEvents:3,nowIndicator:true,events:events.map(calendarEvent),
       eventClick:info=>openEditor(life.items.find(i=>i.id===info.event.id)),
       dateClick:info=>{const day=info.dateStr.slice(0,10);openEditor(null,"event",day);},

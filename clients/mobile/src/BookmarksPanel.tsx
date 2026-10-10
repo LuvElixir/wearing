@@ -1,3 +1,4 @@
+import {Segment} from './experience/selection';
 import {useEffect, useRef, useState} from 'react';
 import {Text, View} from 'react-native';
 import {TextInput} from 'react-native-paper';
@@ -58,7 +59,7 @@ function Bookmarks(props: Props) {
     <Text style={{color:c.muted,lineHeight:22}}>留下值得再看的网页，也可以写下自己的备注。</Text>
     <PrimaryButton label="收藏新链接" onPress={() => setCreating(true)}/>
     <TextInput mode="outlined" label="搜索标题、网址或备注" value={query} maxLength={120} onChangeText={setQuery} onSubmitEditing={() => void refresh()} disabled={busy}/>
-    <View style={{flexDirection:'row',gap:10}}>{[false,true].map(value => <TactilePressable key={String(value)} accessibilityRole="tab" accessibilityState={{selected:archived===value}} disabled={busy} onPress={() => void refresh(query,value)} style={{padding:12,borderRadius:16,backgroundColor:archived===value?c.soft:c.surface}}><Text style={{color:c.ink}}>{value?'已归档':'收藏'}</Text></TactilePressable>)}</View>
+    <View style={{flexDirection:'row',gap:10}}>{[false,true].map(value => <Segment key={String(value)}  selected={archived===value} disabled={busy} onPress={() => void refresh(query,value)} style={{padding:12,borderRadius:16,backgroundColor:archived===value?c.soft:c.surface}}><Text style={{color:c.ink}}>{value?'已归档':'收藏'}</Text></Segment>)}</View>
     <PrimaryButton label={busy?'读取中…':'搜索 / 刷新'} tone="quiet" disabled={busy} onPress={() => void refresh()}/>
     {!!error&&<Text accessibilityRole="alert" style={{color:c.danger}}>{error}</Text>}
     {offline&&<Text style={{color:c.muted}}>当前显示本机已看过的最多 30 条收藏，可能不是全部。连接恢复后请刷新。</Text>}

@@ -35,10 +35,15 @@ type TactileProps = Omit<PressableProps, 'children' | 'style'> & {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   pressScale?: number;
+  pressedColor?: string;
 };
 
 /** A press remains interruptible; navigation never waits for the release animation. */
-export function TactilePressable({children, style, pressScale = 0.975, disabled, onPressIn, onPressOut, accessibilityState, ...props}: TactileProps) {
+export function TactilePressable({children, style, pressScale = 0.975, pressedColor, disabled, onPressIn, onPressOut, onFocus, onBlur, accessibilityState, ...props}: TactileProps) {
+  const {colors} = useAppTheme();
+  const [focused, setFocused] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const background = StyleSheet.flatten(style)?.backgroundColor;
   const reduced = useReducedMotion();
   const [progress] = useState(() => new Animated.Value(0));
   const animate = (pressed: boolean) => {
@@ -49,17 +54,18 @@ export function TactilePressable({children, style, pressScale = 0.975, disabled,
       easing: Easing.out(Easing.cubic), useNativeDriver: nativeDriver,
     }).start();
   };
-  useEffect(() => {if (disabled) progress.setValue(0); return () => progress.stopAnimation();}, [disabled, progress]);
+  useEffect(() => {if (disabled) {progress.setValue(0);} return () => progress.stopAnimation();}, [disabled, progress]);
   // RN Web forwards aria-selected, but drops the grouped native accessibilityState.
   const webSelection = Platform.OS === 'web'
-    ? {'aria-selected': props['aria-selected'] ?? accessibilityState?.selected}
+    ? {'aria-selected': props['aria-selected'] ?? accessibilityState?.selected, 'aria-checked': props['aria-checked'] ?? accessibilityState?.checked, 'aria-expanded': props['aria-expanded'] ?? accessibilityState?.expanded, 'aria-busy': props['aria-busy'] ?? accessibilityState?.busy}
     : {};
   return <AnimatedPressable accessibilityRole="button" {...props} {...webSelection} disabled={disabled}
     accessibilityState={{...accessibilityState, disabled: !!disabled}}
-    onPressIn={event => {animate(true); onPressIn?.(event);}}
-    onPressOut={event => {animate(false); onPressOut?.(event);}}
-    style={[style, {
-      opacity: disabled ? 0.44 : progress.interpolate({inputRange: [0, 1], outputRange: [1, 0.72]}),
+    onFocus={event => {setFocused(true); onFocus?.(event);}} onBlur={event => {setFocused(false); onBlur?.(event);}}
+    onPressIn={event => {setPressed(true); animate(true); onPressIn?.(event);}}
+    onPressOut={event => {setPressed(false); animate(false); onPressOut?.(event);}}
+    style={[style, pressed && !disabled && background && background !== 'transparent' && {backgroundColor: pressedColor || colors.pressedSurface}, focused && {outlineColor: colors.focusRing, outlineWidth: 2, outlineOffset: 2}, {
+      opacity: disabled ? 0.55 : progress.interpolate({inputRange: [0, 1], outputRange: [1, 0.72]}),
       transform: [{scale: reduced ? 1 : progress.interpolate({inputRange: [0, 1], outputRange: [1, pressScale]})}],
     }]}>{children}</AnimatedPressable>;
 }
@@ -80,7 +86,7 @@ export function IconButton({label, onPress, children, disabled, selected, varian
   const styles = useThemedStyles(makeStyles);
 
   return <TactilePressable accessibilityRole="button" accessibilityLabel={label}
-    accessibilityState={{selected}} disabled={disabled} onPress={onPress} testID={testID}
+    accessibilityState={{selected}} aria-pressed={selected} disabled={disabled} onPress={onPress} testID={testID}
     style={[styles.icon, {width: Math.max(44, size), height: Math.max(44, size)},
       variant === 'soft' && styles.iconSoft, selected && styles.iconSelected, style]}>
     {children}
@@ -102,11 +108,11 @@ export function PrimaryButton({label, onPress, leading, disabled, loading, tone 
   const {colors: colors} = useAppTheme();
   const styles = useThemedStyles(makeStyles);
 
-  const foreground = tone === 'accent' ? colors.onAccent : tone === 'danger' ? colors.danger : colors.ink;
-  return <TactilePressable accessibilityRole="button" accessibilityLabel={label}
+  const foreground = disabled ? colors.disabledInk : tone === 'accent' ? colors.onAction : tone === 'danger' ? colors.danger : colors.ink;
+  return <TactilePressable pressedColor={tone === 'accent' ? colors.actionPressed : colors.pressedSurface} accessibilityRole="button" accessibilityLabel={label}
     accessibilityState={{busy: loading}} disabled={disabled || loading} onPress={onPress} testID={testID}
-    style={[styles.button, tone === 'accent' ? styles.buttonAccent : tone === 'danger' ? styles.buttonDanger : styles.buttonQuiet, style]}>
-    {loading ? <ActivityIndicator size="small" color={foreground}/> : leading}
+    style={[styles.button, tone === 'accent' ? styles.buttonAccent : tone === 'danger' ? styles.buttonDanger : styles.buttonQuiet, style, disabled && {backgroundColor: colors.disabledSurface}]}>
+    {loading ? <ActivityIndicator size="small" color={foreground}/> : React.isValidElement<{color?:string}>(leading) && leading.props.color ? React.cloneElement(leading, {color:foreground}) : leading}
     <Text style={[styles.buttonLabel, {color: foreground}]}>{label}</Text>
   </TactilePressable>;
 }
@@ -246,10 +252,10 @@ export function Entrance({children, style, transitionKey}: {children: ReactNode;
 const makeStyles = (colors: AppColors) => StyleSheet.create({
   icon: {alignItems: 'center', justifyContent: 'center', borderRadius: radii.pill},
   iconSoft: {backgroundColor: colors.soft},
-  iconSelected: {backgroundColor: colors.accentSoft},
+  iconSelected: {backgroundColor: colors.selectionSurface, borderWidth: 1, borderColor: colors.selectionBorder},
   button: {minHeight: 52, borderRadius: radii.control, paddingHorizontal: spacing.xl, paddingVertical: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm},
-  buttonAccent: {backgroundColor: colors.accent},
+  buttonAccent: {backgroundColor: colors.action},
   buttonQuiet: {backgroundColor: colors.soft},
   buttonDanger: {backgroundColor: colors.dangerSoft},
   buttonLabel: {fontSize: 16, fontWeight: '600', lineHeight: 22, flexShrink: 1, textAlign: 'center'},

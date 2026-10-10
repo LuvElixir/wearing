@@ -17,7 +17,7 @@ from .registration import RegistrationError, credentials
 from .mobile_auth import CALLBACK
 
 
-WORDMARK = (Path(__file__).parent.parent / 'web/pajio-wordmark.svg').read_text(encoding='utf-8').replace('fill="#202228"', 'fill="currentColor"').replace('<svg ', '<svg class="wordmark" role="img" aria-label="Pajio" ', 1)
+from .auth_pages import WORDMARK, STYLE, page, auth_asset
 
 
 ERRORS = {
@@ -28,38 +28,6 @@ ERRORS = {
     'registration_pending': '正在确认上次创建的结果，请稍后用相同账号和密码重试。',
     'registration_unavailable': '账号服务暂时未就绪，你的邀请码不会因此被消耗。请稍后再试。',
 }
-
-STYLE = '''
-:root{color-scheme:light dark;--bg:#f6f5f2;--card:#fff;--ink:#292b32;--muted:#737781;--line:#dce0e6;--focus:#4c5fb0;--button:#303848}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100svh;display:grid;place-items:center;padding:28px 20px}main{width:min(100%,440px)}header{display:flex;align-items:center;gap:10px;margin:0 0 42px;font-size:27px;font-weight:700;letter-spacing:-1px}.wordmark{width:104px;height:46px}section{padding:32px;background:var(--card);border:1px solid var(--line);border-radius:24px}small{display:block;color:var(--muted);font-size:12px;letter-spacing:1px}h1{font-size:29px;letter-spacing:-.6px;line-height:1.3;margin:12px 0}p{color:var(--muted);margin:0 0 28px}label{display:block;font-size:14px;margin:18px 0 8px;font-weight:550}input{width:100%;min-height:50px;padding:12px 14px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px}input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--focus);outline-offset:3px}button{width:100%;min-height:50px;border:0;border-radius:12px;background:var(--button);color:#fff;font-family:inherit;font-size:16px;font-weight:600;line-height:1.4;cursor:pointer;margin-top:24px;padding:12px}button.secondary{background:transparent;color:var(--muted);font-size:14px;margin-top:10px;font-weight:400}button:active{transform:scale(.99)}.note{font-size:12px;color:var(--muted);margin-top:10px}.error{padding:12px;border-radius:10px;background:var(--bg);color:var(--ink);font-size:14px;margin:18px 0}.foot{text-align:center;color:var(--muted);font-size:13px;margin:24px 0}a{color:inherit;text-underline-offset:3px}.legal{font-size:12px;color:var(--muted);line-height:1.8;margin:20px 0 0}@media(prefers-color-scheme:dark){:root{--bg:#191c23;--card:#222630;--ink:#ececf0;--muted:#afb3bf;--line:#3b4150;--focus:#b3bfff;--button:#485773}}@media(max-width:380px){section{padding:24px}h1{font-size:26px}}@media(prefers-reduced-motion:reduce){button:active{transform:none}}
-'''
-
-
-def page(ticket, *, stage='invite', error=None, status=200, username='', issuer_origin=''):
-    hidden = '<input type="hidden" name="ticket" value="' + escape(ticket, quote=True) + '">'
-    alert = '<div class="error" role="alert">' + escape(error) + '</div>' if error else ''
-    if stage == 'account':
-        title, intro, step = '认识一下吧', '创建你的账号，以后在任何设备上都能找到 Pajio。', '02 / 创建账号'
-        form = f'''<form method="post" action="/join/create">{hidden}
-<label for="username">账号名</label><input id="username" name="username" value="{escape(username, quote=True)}" required minlength="4" maxlength="32" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-z][a-z0-9_.\\-]{{3,31}}" placeholder="例如 linlin2026">
-<div class="note">4–32 位小写字母和数字，可加点、下划线、短横线。</div>
-<label for="password">密码</label><input id="password" name="password" type="password" required autocomplete="new-password" placeholder="至少 12 位，推荐使用密码管理器">
-<button type="submit">创建账号，进入 Pajio</button></form>
-<form method="post" action="/join/login">{hidden}<button class="secondary" type="submit">已有账号？登录并激活</button></form>'''
-    else:
-        title, intro, step = '你好，我是 Pajio', '把事情交给我，给自己留点时间。', '01 / 邀请码激活'
-        form = f'''<form method="post" action="/join/check">{hidden}
-<label for="code">邀请码</label><input id="code" name="code" required maxlength="80" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="粘贴收到的邀请码">
-<button type="submit">继续</button></form>
-<form method="post" action="/join/existing">{hidden}<button class="secondary" type="submit">已加入 Pajio？直接登录</button></form>'''
-    nonce = secrets.token_urlsafe(24)
-    document = f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>加入 Pajio</title><style nonce="{nonce}">{STYLE}</style></head><body><main><header>{WORDMARK}</header><section><small>{step}</small><h1>{title}</h1><p>{intro}</p>{alert}{form}</section><div class="foot">你休息，我来。</div></main></body></html>'''
-    return HTMLResponse(document, status_code=status, headers={
-        # no-referrer also turns a native HTML form POST's Origin into "null".
-        # Keep same-origin forms verifiable without disclosing cross-origin URLs.
-        'Cache-Control': 'no-store', 'Referrer-Policy': 'same-origin',
-        'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY',
-        'Content-Security-Policy': f"default-src 'none'; style-src 'nonce-{nonce}'; form-action 'self' {issuer_origin}; frame-ancestors 'none'; base-uri 'none'"})
 
 
 def native_ready(callback):
@@ -80,12 +48,12 @@ def native_ready(callback):
     # Reconstruct the href from the fixed destination and validated proof only.
     href = escape(CALLBACK + '?' + urlencode({key: pairs[key][0] for key in ('code', 'state')}), quote=True)
     nonce = secrets.token_urlsafe(24)
-    link_style = '.return-link{display:block;text-align:center;background:var(--button);color:#fff;border-radius:12px;padding:12px;margin-top:24px;text-decoration:none;font-weight:600}'
-    document = f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>账号已准备好 · Pajio</title><style nonce="{nonce}">{STYLE}{link_style}</style></head><body><main><header>{WORDMARK}</header><section><h1>账号已准备好</h1><p>回到 App，就可以开始了。</p><a class="return-link" href="{href}">返回 Pajio</a><div class="note">若返回后提示登录过期，请在 App 中选择已有账号登录。</div></section></main></body></html>'''
+    link_style = '.return-link{display:block;text-align:center;background:var(--button);color:var(--button-ink);border-radius:12px;padding:12px;margin-top:24px;text-decoration:none;font-weight:600}'
+    document = f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>账号已准备好 · Pajio</title><style nonce="{nonce}">{STYLE}{link_style}</style></head><body><header class="brand">{WORDMARK}</header><main class="auth-stack"><section class="auth-card"><h1>账号已准备好</h1><p>回到 App，就可以开始了。</p><a class="return-link" href="{href}">返回 Pajio</a><div class="note">若返回后提示登录过期，请在 App 中选择已有账号登录。</div></section></main></body></html>'''
     return HTMLResponse(document, headers={
         'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
         'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY',
-        'Content-Security-Policy': f"default-src 'none'; style-src 'nonce-{nonce}'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"})
+        'Content-Security-Policy': f"default-src 'none'; img-src 'self'; style-src 'nonce-{nonce}'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"})
 
 
 def callback_error(request, detail, *, status):
@@ -107,11 +75,11 @@ def callback_error(request, detail, *, status):
     nonce = secrets.token_urlsafe(24)
     # No callback query, provider error, state or proof belongs in this page.
     # A new native PKCE flow must start from the App, not from this browser.
-    document = f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>登录未完成 · Pajio</title><style nonce="{nonce}">{STYLE}</style></head><body><main><header>{WORDMARK}</header><section><h1>这次登录没有完成</h1><p>登录信息可能已过期，或尚未通过验证。</p><p>如果你从 App 打开了此窗口，请关闭窗口，回到 Pajio 后重新点「已有账号登录」。</p><a href="/join">返回网页登录入口</a></section></main></body></html>'''
+    document = f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>登录未完成 · Pajio</title><style nonce="{nonce}">{STYLE}</style></head><body><header class="brand">{WORDMARK}</header><main class="auth-stack"><section class="auth-card"><h1>这次登录没有完成</h1><p>登录信息可能已过期，或尚未通过验证。</p><p>如果你从 App 打开了此窗口，请关闭窗口，回到 Pajio 后重新点「已有账号登录」。</p><a href="/join">返回网页登录入口</a></section></main></body></html>'''
     return HTMLResponse(document, status_code=status, headers={
         'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
         'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY',
-        'Content-Security-Policy': f"default-src 'none'; style-src 'nonce-{nonce}'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"})
+        'Content-Security-Policy': f"default-src 'none'; img-src 'self'; style-src 'nonce-{nonce}'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"})
 
 
 class JoinFlow:
@@ -216,5 +184,5 @@ class JoinFlow:
                                      username=data.get('username', '')[:32])
 
     def routes(self):
-        return [Route('/join', self.start), *[Route('/join/' + name, self.post, methods=['POST'])
+        return [Route('/auth/art/{name}', auth_asset, methods=['GET', 'HEAD']), Route('/join', self.start), *[Route('/join/' + name, self.post, methods=['POST'])
                 for name in ('check', 'create', 'login', 'existing')]]

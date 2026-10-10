@@ -1,7 +1,8 @@
+import {Choice} from './experience/selection';
 import {useEffect,useRef,useState} from 'react';
 import {Platform,Text,View} from 'react-native';
 import {useAppTheme} from './app-theme';
-import {PrimaryButton,TactilePressable} from './experience/primitives';
+import {PrimaryButton} from './experience/primitives';
 import {scopeOf,type Connection} from './core';
 import {storage} from './storage';
 import {syncKey,sourceKey,type SyncLocal,type SyncSource} from './native-sync-model';
@@ -35,7 +36,7 @@ function Content({connection}:{connection:Connection}) {
     <Text style={{fontSize:13,lineHeight:21,color:c.muted}}>副本保存在当前身份，沿用这个身份的可见范围。</Text>
     <PrimaryButton label="选择系统日历" tone="quiet" disabled={busy||!ready} onPress={()=>void discover('event')}/>
     {Platform.OS==='ios'&&<PrimaryButton label="选择提醒事项列表" tone="quiet" disabled={busy||!ready} onPress={()=>void discover('reminder')}/>}
-    {sources.map(source=>{const checked=selected.some(s=>sourceKey(s)===sourceKey(source));return <TactilePressable key={sourceKey(source)} accessibilityRole="checkbox" accessibilityState={{checked}} disabled={busy} onPress={()=>setSelected(current=>checked?current.filter(s=>sourceKey(s)!==sourceKey(source)):[...current,source])} style={{paddingVertical:12,minHeight:44}}><Text style={{fontSize:16,color:c.ink}}>{checked?'✓  ':'○  '}{source.title}</Text><Text style={{fontSize:12,color:c.muted}}>{source.kind==='event'?'系统日历':'系统提醒事项'}{unavailable.includes(sourceKey(source))?' · 暂时不可用':''}</Text></TactilePressable>;})}
+    {sources.map(source=>{const checked=selected.some(s=>sourceKey(s)===sourceKey(source));return <Choice key={sourceKey(source)} selected={checked} multiple disabled={busy} onPress={()=>setSelected(current=>checked?current.filter(s=>sourceKey(s)!==sourceKey(source)):[...current,source])} style={{paddingVertical:12,minHeight:44}}><View style={{flex:1,gap:4}}><Text style={{fontSize:16,color:c.ink}}>{source.title}</Text><Text style={{fontSize:12,color:c.muted}}>{source.kind==='event'?'系统日历':'系统提醒事项'}{unavailable.includes(sourceKey(source))?' · 暂时不可用':''}</Text></View></Choice>;})}
     <PrimaryButton label={state?.desired.enabled?'保存来源选择':'启用所选来源同步'} disabled={busy||!ready||!selected.length||(!!state?.desired.enabled&&!changed)} loading={busy} onPress={()=>void save(true)}/>
     {state?.desired.enabled&&<><PrimaryButton label="立即更新所选来源" tone="quiet" disabled={busy||changed} onPress={()=>{requestNativeSync(scope);setNotice('已请求重新读取所选来源。');}}/><PrimaryButton label="停止同步" tone="quiet" disabled={busy} onPress={()=>void save(false)}/></>}
     <Text accessibilityLiveRegion="polite" style={{fontSize:13,lineHeight:21,color:c.muted}}>{state?.desired.enabled?'已启用 · App 前台更新':'未启用同步'}{state?.pending?' · 有一批更新等待连接恢复':''}</Text>

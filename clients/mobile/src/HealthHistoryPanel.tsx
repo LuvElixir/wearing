@@ -1,9 +1,10 @@
+import {Choice} from './experience/selection';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View} from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {Connection, scopeOf} from './core';
 import {AppColors, useAppTheme, useThemedStyles} from './app-theme';
-import {PrimaryButton, TactilePressable} from './experience/primitives';
+import {PrimaryButton} from './experience/primitives';
 import {storage} from './storage';
 import {serviceFetch} from './transport';
 import {digestArtifact} from './artifact-share';
@@ -39,7 +40,7 @@ function History({connection}:{connection:Connection}) {
         <Text style={s.foot}>定期检查只能证明采样时刻的状态；没有记录的时段不能视为正常运行。</Text>
       </>:<PrimaryButton label="读取检查记录" disabled={busy} onPress={()=>{void load();}}/>}
       <View style={s.separator}/><Text style={s.name}>导出运行历史</Text><Text style={s.copy}>只包含检查时间、任务编号与状态，不包含对话、文件正文、地址或密钥。文件保留 24 小时。</Text>
-      <View style={s.choices}>{categories.map(value=><TactilePressable key={value} accessibilityRole="radio" accessibilityState={{checked:category===value,disabled:busy||pending}} disabled={busy||pending} onPress={()=>setCategory(value)} style={[s.choice,category===value&&s.selected]}><Text style={category===value?s.selectedText:s.copy}>{labels[value]}</Text></TactilePressable>)}</View>
+      <View style={s.choices}>{categories.map(value=><Choice key={value}  selected={category===value} disabled={busy||pending} onPress={()=>setCategory(value)} style={[s.choice,category===value&&s.selected]}><Text style={category===value?s.selectedText:s.copy}>{labels[value]}</Text></Choice>)}</View>
       <PrimaryButton label={contents?'重新读取本次诊断':pending?'取回上次诊断':'生成并预览诊断'} disabled={busy} onPress={()=>{void generate();}}/>
       {contents&&report?<><Text style={s.foot}>生成于 {time(report.created_at)} · 未发送</Text><ScrollView style={s.preview} nestedScrollEnabled><Text selectable style={s.code}>{JSON.stringify(contents,null,2)}</Text></ScrollView><PrimaryButton label="保存或分享这份诊断" disabled={busy} onPress={()=>{void share();}}/></>:null}
       {report?<PrimaryButton label="准备一份新的诊断" tone="quiet" disabled={busy} onPress={()=>{void run(async()=>{await request.reset();if(active.current){setPending(false);setReport(null);setContents(null);}});}}/>:null}
@@ -47,4 +48,4 @@ function History({connection}:{connection:Connection}) {
     {busy?<ActivityIndicator color={colors.accent}/>:null}{error?<Text style={s.copy} accessibilityLiveRegion="polite">{error}</Text>:null}{notice?<Text style={s.copy} accessibilityLiveRegion="polite">{notice}</Text>:null}
   </View>;
 }
-const styles=(c:AppColors)=>StyleSheet.create({card:{backgroundColor:c.surface,borderRadius:24,padding:20,gap:12},title:{color:c.ink,fontSize:19,fontWeight:'600'},name:{color:c.ink,fontSize:14,fontWeight:'600'},copy:{color:c.muted,fontSize:14,lineHeight:22},foot:{color:c.muted,fontSize:12,lineHeight:19},line:{flexDirection:'row',justifyContent:'space-between',gap:12},event:{paddingVertical:10,borderBottomWidth:1,borderColor:c.line,gap:4},separator:{height:1,backgroundColor:c.line,marginVertical:8},choices:{flexDirection:'row',flexWrap:'wrap',gap:8},choice:{padding:10,borderRadius:14,borderWidth:1,borderColor:c.line},selected:{backgroundColor:c.accentSoft,borderColor:c.accent},selectedText:{color:c.accent,fontSize:14,lineHeight:22},preview:{maxHeight:300,backgroundColor:c.canvas,padding:12,borderRadius:12},code:{fontSize:11,lineHeight:17,color:c.ink,fontFamily:Platform.OS==='ios'?'Menlo':'monospace'}});
+const styles=(c:AppColors)=>StyleSheet.create({card:{backgroundColor:c.surface,borderRadius:24,padding:20,gap:12},title:{color:c.ink,fontSize:19,fontWeight:'600'},name:{color:c.ink,fontSize:14,fontWeight:'600'},copy:{color:c.muted,fontSize:14,lineHeight:22},foot:{color:c.muted,fontSize:12,lineHeight:19},line:{flexDirection:'row',justifyContent:'space-between',gap:12},event:{paddingVertical:10,borderBottomWidth:1,borderColor:c.line,gap:4},separator:{height:1,backgroundColor:c.line,marginVertical:8},choices:{flexDirection:'row',flexWrap:'wrap',gap:8},choice:{padding:10,borderRadius:14,borderWidth:1,borderColor:c.line},selected:{backgroundColor:c.selectionSurface,borderColor:c.selectionBorder},selectedText:{color:c.accent,fontSize:14,lineHeight:22},preview:{maxHeight:300,backgroundColor:c.canvas,padding:12,borderRadius:12},code:{fontSize:11,lineHeight:17,color:c.ink,fontFamily:Platform.OS==='ios'?'Menlo':'monospace'}});

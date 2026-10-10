@@ -1,6 +1,8 @@
 #!/bin/sh
 # Atomic update; do not flush unrelated Proxmox firewall tables.
 set -eu
+# Keep newly created runtime locks private after a host restart as well.
+umask 077
 exec 9>/run/lock/pajio-device-network.lock
 flock -n 9 || { echo 'Another device network update is in progress.' >&2; exit 1; }
 rules=/etc/pajio/lab-network.nft

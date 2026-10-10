@@ -1,0 +1,30 @@
+{
+  "device": "iPhone Air, iOS 27.0",
+  "bundle_id": "io.luckyloading.wearing.mobile",
+  "configuration": "Release, arm64, signed",
+  "source_sync_manifest": "d6a45143cec4db1ec65c3dd929feca2b525a0165c8892891e56cbcf5ba3d7cbc",
+  "focus_delta_manifest": "862d2f4e6b64e9d84942a95905a30453995da8adcf12ef39b09a67975fa00e3f",
+  "build_exit": 0,
+  "codesign_strict_verified": true,
+  "device_install_success": true,
+  "device_launch_success": true,
+  "ui_verified": [
+    "native invitation form",
+    "night theme",
+    "entry selection underline",
+    "input focus appears on click",
+    "focus cleared after switching entry and returning",
+    "existing-account launches official HTTPS OIDC page in system authentication sheet",
+    "official OIDC night theme, focused field and aligned primary action",
+    "cancel system authentication returns to native screen",
+    "empty invitation shows inline error without navigation"
+  ],
+  "software_keyboard_verified": false,
+  "real_registration_verified": false,
+  "screenshot": "iphone-night-login-final.png",
+  "screenshot_sha256": "6447d576f7292b1c65f986abbbc2c5a2da53dcfd20c1216aee59af1dd1b5b455",
+  "bundle_sha256": "87d65da5a35fef8d1fcdacc8cca6c5ed60352bd0af5b4b25e5ffe10c5136d06c",
+  "timestamp": "2026-10-10T09:54:44.501185+00:00",
+  "oidc_screenshot": "iphone-oidc-night.png",
+  "oidc_screenshot_sha256": "9bb8bb62a73911daae95fe666c4b04dcce2fa028cb88987653d0c3c03070d4f1"
+}

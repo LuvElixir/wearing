@@ -1,5 +1,6 @@
+import {StateSwitch} from './experience/selection';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {ActivityIndicator, AppState, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
+import {ActivityIndicator, AppState, Platform, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {WebView, type WebViewMessageEvent} from 'react-native-webview';
 import * as Crypto from 'expo-crypto';
 import {ArrowLeft, Keyboard, Monitor, Smartphone} from 'lucide-react-native';
@@ -236,8 +237,8 @@ export function NativeRemoteDevicePanel({connection, resource, name, kind, onBac
           <View style={styles.keyRow}>{[['Backspace', '删除'], ['Enter', '回车']].map(([key, label]) => <TactilePressable key={key} accessibilityLabel={`远程${label}`} style={styles.key} onPress={() => sendKey(key)}><Text style={styles.keyText}>{label}</Text></TactilePressable>)}</View>
         </View>}
         {confirmReturn && <View style={styles.confirmation}><Text style={styles.title}>确认交还</Text><Text style={styles.caption}>设备确认后，Pajio 会恢复读取与操作。</Text>
-          <View style={styles.row}><Text style={styles.flexText}>已离开密码、验证码等私密页面</Text><Switch accessibilityLabel="已离开私密页面" value={safeScreen} onValueChange={setSafeScreen}/></View>
-          <View style={styles.row}><Text style={styles.flexText}>允许 Pajio 继续操作这台设备</Text><Switch accessibilityLabel="允许 Pajio 继续操作" value={scopeConfirmed} onValueChange={setScopeConfirmed}/></View>
+          <View style={styles.row}><Text style={styles.flexText}>已离开密码、验证码等私密页面</Text><StateSwitch accessibilityLabel="已离开私密页面" value={safeScreen} onValueChange={setSafeScreen}/></View>
+          <View style={styles.row}><Text style={styles.flexText}>允许 Pajio 继续操作这台设备</Text><StateSwitch accessibilityLabel="允许 Pajio 继续操作" value={scopeConfirmed} onValueChange={setScopeConfirmed}/></View>
           <View style={styles.row}><PrimaryButton style={styles.flex} label="确认交还" disabled={!safeScreen || !scopeConfirmed} onPress={() => {void giveBack();}}/><PrimaryButton label="继续接管" tone="quiet" onPress={() => setConfirmReturn(false)}/></View>
         </View>}
         <PrimaryButton label="结束连接，保持暂停" tone="quiet" onPress={() => stop('closed')}/>

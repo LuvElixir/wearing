@@ -27,8 +27,8 @@ test("wiring: panel, dual entries, vendor fflate (local, no CDN), versions, rese
   assert.match(html, /vendor\/fflate\/index\.js\?v=0\.8\.3/);
   assert.doesNotMatch(html, /cdn\./);
   assert.match(html, /app\.js\?v=59/);
-  assert.match(html, /views\.js\?v=17/);
-  assert.match(html, /pajio\.css\?v=22/);
+  assert.match(html, /views\.js\?v=18/);
+  assert.match(html, /pajio\.css\?v=23/);
   assert.match(html, /account-deletion\.js\?v=8/);
   assert.match(app, /window\.WearingChatImport\?\.reset\(\);/);
   assert.match(views, /chat_import: "聊天来源"/);

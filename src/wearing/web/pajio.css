@@ -1,13 +1,10 @@
-/* 2026-10-07 Pajio Web/桌面主题（对齐 clients/mobile/src/appearance.ts 的语义配色）。
+/* 2026-10-10 Pajio Web/桌面主题（对齐共享 interaction-tokens.json）。
    每条规则都挂在 html:not(.mobile-host) 上：App WebView（?host=mobile）不加载任何新观感，
    其宿主样式由只读的 mobile-host.css 接管。日夜由 <html data-app-theme> 切换，
    首帧由 index.html 内联脚本按已保存偏好设定。 */
-html:not(.mobile-host){--page:#F6F7F9;--surface:#FFFFFF;--raised:#FFFFFF;--soft:#ECEEF2;
-  --ink:#202228;--muted:#565C68;--blue:#3156C8;--blue-deep:#2545A5;--blue-light:#EDF1FF;
-  --line:#DDE1E7;--danger:#B42338;--success:#176449;--attention:#6546A2;color-scheme:light}
-html:not(.mobile-host)[data-app-theme="night"]{--page:#14161A;--surface:#1C1F25;--raised:#262A32;--soft:#282D36;
-  --ink:#F0F2F5;--muted:#B8BEC9;--blue:#A3B7FF;--blue-deep:#D1DBFF;--blue-light:#263253;
-  --line:#353B46;--danger:#FFA7B3;--success:#8FD6B0;--attention:#C8B1F2;color-scheme:dark}
+/* Canonical palette: design/brand/pajio/interaction-tokens.json. */
+html:not(.mobile-host){--page:#F8F7F3;--surface:#FFFFFF;--raised:#FFFFFF;--soft:#EFEEE9;--ink:#25282B;--muted:#676D70;--faint:#737A7D;--action:#3D5B67;--action-pressed:#314D59;--on-action:#FFFFFF;--accent:#3D5B67;--accent-soft:#E7ECEE;--accent-ink:#314D59;--on-accent:#FFFFFF;--line:#D8DCDB;--outline:#77858A;--selection-surface:#E7ECEE;--selection-ink:#314D59;--selection-border:#B5C5CB;--selection-indicator:#3D5B67;--focus-ring:#3D5B67;--pressed-surface:#E6E8E6;--disabled-surface:#EFEEE9;--disabled-ink:#7C8385;--blue:var(--accent);--blue-deep:var(--accent-ink);--blue-light:var(--accent-soft);--danger:#B42338;--success:#176449;--attention:#6546A2;color-scheme:light}
+html:not(.mobile-host)[data-app-theme="night"]{--page:#191D22;--surface:#22282E;--raised:#2B333A;--soft:#2B333A;--ink:#EEEFEA;--muted:#B5BEC1;--faint:#A7B1B6;--action:#CBDCE2;--action-pressed:#AEC5CF;--on-action:#1C2E36;--accent:#A7C3CD;--accent-soft:#293B43;--accent-ink:#D0E1E6;--on-accent:#1C2E36;--line:#414B52;--outline:#8B9DA5;--selection-surface:#293B43;--selection-ink:#D0E1E6;--selection-border:#647F8B;--selection-indicator:#A7C3CD;--focus-ring:#A7C3CD;--pressed-surface:#35414A;--disabled-surface:#2B333A;--disabled-ink:#85939A;--blue:var(--accent);--blue-deep:var(--accent-ink);--blue-light:var(--accent-soft);--danger:#FFA7B3;--success:#8FD6B0;--attention:#C8B1F2;color-scheme:dark}
 html:not(.mobile-host) body{background:var(--page);color:var(--ink)}
 html:not(.mobile-host) body::before{content:none}
 html:not(.mobile-host) .pajio-wordmark{color:var(--ink);display:inline-block;vertical-align:middle}
@@ -247,7 +244,7 @@ html:not(.mobile-host) .wardrobe-rail-heading{display:flex;align-items:center;ju
 html:not(.mobile-host) .wardrobe-rail{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:9px;margin-bottom:14px}
 html:not(.mobile-host) .wardrobe-option{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border:1px solid transparent;border-radius:18px;background:var(--surface);color:var(--ink)}
 html:not(.mobile-host) .wardrobe-option:hover{background:var(--soft)}
-html:not(.mobile-host) .wardrobe-option[aria-pressed="true"]{border-color:var(--blue)}
+html:not(.mobile-host) .wardrobe-option[aria-checked="true"]{border-color:var(--selection-border);background:var(--selection-surface);color:var(--selection-ink)}
 html:not(.mobile-host) .wardrobe-option .swatch{width:9px;height:9px;border-radius:5px}
 html:not(.mobile-host) .wardrobe-option .pj-name{display:flex;align-items:center;gap:6px;font-size:12px}
 html:not(.mobile-host) .wardrobe-apply{display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;width:100%;border:0;border-radius:24px;background:var(--soft);color:var(--ink);font-size:15px;font-weight:500}
@@ -275,7 +272,7 @@ html:not(.mobile-host) .web-search-hit:hover{background:var(--blue-light)}
 html:not(.mobile-host) .web-search-hit strong{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html:not(.mobile-host) .web-search-hit small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html:not(.mobile-host) .web-search-kind{font-size:10px;color:var(--blue-deep)}
-html:not(.mobile-host) .web-search-match{box-shadow:inset 0 0 0 1.5px rgb(49 86 200 / .45)}
+html:not(.mobile-host) .web-search-match{box-shadow:inset 0 0 0 1px var(--selection-border)}
 html:not(.mobile-host) .web-search-current{box-shadow:inset 0 0 0 2px var(--blue);background:var(--blue-light)}
 
 /* ---------- 窄屏：五入口落到底部，输入坞上移 ---------- */
@@ -378,3 +375,71 @@ html:not(.mobile-host) .rd-check{display:flex;gap:10px;align-items:center;font-s
 
 /* 云设备行：远程接管 + 暂停/恢复双按钮纵排 */
 html:not(.mobile-host) .cloud-device-actions{display:flex;flex-direction:column;gap:8px;justify-content:center}
+
+/* ---------- Shared interaction language: navigation / choice / focus / press ---------- */
+/* Existing state attributes stay authoritative; these rules never imply a saved result. */
+html:not(.mobile-host) :is(.app-header .app-nav,.life-nav,.review-switcher){background:transparent;box-shadow:none}
+html:not(.mobile-host) :is(.app-header .app-nav button,.life-nav button,.review-switcher button,.life-calendar-views button){position:relative;border-radius:8px;box-shadow:none;background:transparent;color:var(--muted)}
+html:not(.mobile-host) :is(.app-header .app-nav button,.life-nav button,.review-switcher button)[aria-current="page"],
+html:not(.mobile-host) .life-calendar-views button[aria-pressed="true"]{background:transparent;color:var(--selection-ink);font-weight:600;box-shadow:none}
+html:not(.mobile-host) :is(.app-header .app-nav button,.life-nav button,.review-switcher button)[aria-current="page"]::after,
+html:not(.mobile-host) .life-calendar-views button[aria-pressed="true"]::after{content:"";position:absolute;bottom:0;left:calc(50% - 10px);width:20px;height:2px;border-radius:2px;background:var(--selection-indicator);pointer-events:none}
+html:not(.mobile-host) :is(.app-header .app-nav button,.life-nav button,.review-switcher button,.life-calendar-views button):hover:not(:disabled){background:var(--soft);color:var(--ink)}
+html:not(.mobile-host) .app-header .app-nav{border:0;border-radius:0;gap:6px}
+html:not(.mobile-host) .app-header .app-nav button{padding-bottom:10px}
+html:not(.mobile-host) .life-kind{background:var(--soft)}
+html:not(.mobile-host) .life-kind button{border:1px solid transparent;display:inline-flex;align-items:center;gap:7px}
+html:not(.mobile-host) .life-kind button[aria-pressed="true"]{background:var(--selection-surface);color:var(--selection-ink);border-color:var(--selection-border);box-shadow:none}
+html:not(.mobile-host) .life-kind button::before{content:"";width:7px;height:7px;border:1px solid var(--outline);border-radius:50%;flex-shrink:0}
+html:not(.mobile-host) .life-kind button[aria-pressed="true"]::before{background:var(--selection-indicator);border-color:var(--selection-indicator);box-shadow:inset 0 0 0 2px var(--selection-surface)}
+html:not(.mobile-host) .pj-option{padding:10px 12px;border-radius:10px}
+html:not(.mobile-host) .pj-option[aria-checked="true"]{background:var(--selection-surface);color:var(--selection-ink)}
+html:not(.mobile-host) .pj-option[aria-checked="true"] svg{color:var(--selection-ink)}
+html:not(.mobile-host) .pj-option+.pj-option{border-top:0;margin-top:4px}
+html:not(.mobile-host) .wardrobe-option .wardrobe-check{position:absolute;top:9px;right:9px;width:18px;height:18px;color:var(--selection-ink);visibility:hidden;stroke:currentColor;stroke-width:2;fill:none}
+html:not(.mobile-host) .wardrobe-option[aria-checked="true"] .wardrobe-check{visibility:visible}
+html:not(.mobile-host) .ob-choice[aria-pressed]{position:relative;gap:9px}
+html:not(.mobile-host) .ob-choice[aria-pressed]::before{content:"";width:15px;height:15px;flex:0 0 15px;border:1px solid var(--outline);border-radius:4px;background:var(--surface)}
+html:not(.mobile-host) .ob-choice[aria-pressed="true"]{background:var(--selection-surface);border-color:var(--selection-border);color:var(--selection-ink);font-weight:500}
+html:not(.mobile-host) .ob-choice[aria-pressed="true"]::before{background:var(--selection-indicator);border-color:var(--selection-indicator)}
+html:not(.mobile-host) .ob-choice[aria-pressed="true"]::after{content:"";position:absolute;left:19px;top:calc(50% - 5px);width:5px;height:8px;border:solid var(--on-accent);border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+html:not(.mobile-host) :is(.se-week,.schedule-kind-options) label:has(input:checked){background:var(--selection-surface);color:var(--selection-ink);border-color:var(--selection-border)}
+html:not(.mobile-host) :is(input[type="checkbox"],input[type="radio"]){accent-color:var(--selection-indicator)}
+html:not(.mobile-host) .life-toggle span{border-color:var(--outline)}
+html:not(.mobile-host) .life-toggle[aria-pressed="true"] span{background:var(--selection-indicator);border-color:var(--selection-indicator)}
+html:not(.mobile-host) .life-toggle svg{stroke:var(--on-accent)}
+html:not(.mobile-host) .identity-row.current{background:var(--selection-surface);border-color:var(--selection-border)}
+html:not(.mobile-host) .identity-select[aria-current="true"]{color:var(--selection-ink)}
+html:not(.mobile-host) .life-note-item[aria-current="true"]{background:var(--selection-surface);border-radius:12px;padding-left:12px;padding-right:12px}
+html:not(.mobile-host) .life-note-item[aria-current="true"] strong{color:var(--selection-ink)}
+html:not(.mobile-host) .life-note-item[aria-current="true"] strong::after{content:"";display:inline-block;vertical-align:middle;margin-left:10px;width:5px;height:9px;border:solid var(--selection-indicator);border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+html:not(.mobile-host) :is(.primary,.send-button){background:var(--action);color:var(--on-action)}
+html:not(.mobile-host) :is(.primary,.send-button):hover:not(:disabled){background:var(--action-pressed)}
+html:not(.mobile-host) :is(button,[role="button"],input,textarea,select,a){transition:background-color 180ms,color 180ms,border-color 180ms}
+html:not(.mobile-host) :is(button,[role="button"]):active:not(:disabled):not([aria-disabled="true"]){background:var(--pressed-surface);box-shadow:none;transform:none;transition-duration:110ms}
+html:not(.mobile-host) :is(.primary,.send-button):active:not(:disabled){background:var(--action-pressed)}
+html:not(.mobile-host) :is(button,input,textarea,select,.ob-choice,.wardrobe-apply,.pj-option):disabled,
+html:not(.mobile-host) :is(button,[role="button"])[aria-disabled="true"]{background:var(--disabled-surface);color:var(--disabled-ink);border-color:var(--line);opacity:1;cursor:default;box-shadow:none}
+html:not(.mobile-host) input::placeholder,html:not(.mobile-host) textarea::placeholder{color:var(--muted);opacity:1}
+/* Keyboard focus is independent from selection; use neither elevation nor blue selection outlines. */
+html:not(.mobile-host) :is(button,[role="button"],input,textarea,select,a,[tabindex]):focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;box-shadow:none}
+html:not(.mobile-host) .life-main :focus-visible,html:not(.mobile-host) .life-nav :focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+html:not(.mobile-host) :is(.composer,.life-capture):focus-within{border-color:var(--outline);box-shadow:none}
+html:not(.mobile-host) .life-calendar #life-calendar-root{
+  --fc-monarch-background:var(--surface);--fc-monarch-foreground:var(--ink);--fc-monarch-border:var(--line);
+  --fc-monarch-muted:var(--soft);--fc-monarch-muted-foreground:var(--muted);--fc-monarch-faint:var(--page);--fc-monarch-faint-foreground:var(--muted);
+  --fc-monarch-primary:var(--action);--fc-monarch-primary-over:var(--action-pressed);--fc-monarch-primary-down:var(--action-pressed);--fc-monarch-primary-foreground:var(--on-action);
+  --fc-monarch-secondary:var(--soft);--fc-monarch-secondary-foreground:var(--ink);--fc-monarch-secondary-over:var(--pressed-surface);--fc-monarch-secondary-down:var(--pressed-surface);
+  --fc-monarch-tertiary:var(--soft);--fc-monarch-tertiary-foreground:var(--ink);--fc-monarch-tertiary-over:var(--pressed-surface);--fc-monarch-tertiary-down:var(--pressed-surface);
+  --fc-monarch-selected:var(--selection-surface);--fc-monarch-selected-foreground:var(--selection-ink);--fc-monarch-selected-over:var(--selection-surface);--fc-monarch-selected-down:var(--pressed-surface);
+  --fc-monarch-highlight:var(--selection-surface);--fc-monarch-now:var(--accent);--fc-monarch-strong-border:var(--selection-border);--fc-monarch-outline:var(--outline);--fc-monarch-ring-color:var(--focus-ring);
+  --fc-monarch-strong:var(--soft);--fc-monarch-strong-foreground:var(--ink);--fc-monarch-stronger:var(--pressed-surface);--fc-monarch-strongest:var(--selection-border);--fc-monarch-popover:var(--raised);--fc-monarch-popover-foreground:var(--ink)
+}
+@media(max-width:600px){html:not(.mobile-host) .app-header .app-nav{background:var(--page);border-top:1px solid var(--line);border-radius:0}}
+@media(prefers-reduced-motion:reduce){
+  html:not(.mobile-host) :is(button,[role="button"],input,textarea,select,a){transition:none}
+  html:not(.mobile-host) :is(button,[role="button"]):active{transform:none}
+}
+
+html:not(.mobile-host) .activity-return:focus-visible,html:not(.mobile-host) .activity-item:focus-visible,html:not(.mobile-host) #activity-panel button:focus-visible,html:not(.mobile-host) .decision-receipt summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;box-shadow:none}
+html:not(.mobile-host) .wr-close:focus-visible::before{box-shadow:none}

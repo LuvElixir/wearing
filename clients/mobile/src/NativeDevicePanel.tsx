@@ -1,5 +1,6 @@
+import {Choice,StateSwitch} from './experience/selection';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {ActivityIndicator, AppState, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
+import {ActivityIndicator, AppState, StyleSheet, Text, TextInput, View} from 'react-native';
 import {File} from 'expo-file-system';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
@@ -9,7 +10,7 @@ import {NativeDeviceFilesPanel} from './NativeDeviceFilesPanel';
 import {RemoteDeviceApi, remoteStatusCopy, type RemoteAccess} from './remote-device-model';
 import {ApiError, Connection, scopeOf} from './core';
 import {useAppTheme, useThemedStyles, type AppColors} from './app-theme';
-import {PrimaryButton, TactilePressable} from './experience/primitives';
+import {PrimaryButton} from './experience/primitives';
 import {serviceFetch} from './transport';
 import {storage} from './storage';
 import {shareOriginalBytes} from './workspace-share';
@@ -209,9 +210,9 @@ function DevicePanel({connection}: Props) {
         <Text style={styles.description}>从已安装连接器的电脑导入设备清单，选择允许的范围，再把一次性配对文件发送回该电脑。配对文件有效期为 10 分钟，只交给自己的设备。</Text>
         {<DeviceAction busy={busy} run={run} label={'导入设备清单'} work={importOffer} disabled={!ready}/>}
         {offer.map(d => <View key={d.resource_id} style={styles.section}>
-          <View style={styles.between}><Text style={styles.body}>{d.name}{d.already_paired ? ' · 已接入' : ''}</Text><Switch accessibilityLabel={`选择 ${d.name}`} value={selected.includes(d.resource_id)}
+          <View style={styles.between}><Text style={styles.body}>{d.name}{d.already_paired ? ' · 已接入' : ''}</Text><StateSwitch accessibilityLabel={`选择 ${d.name}`} value={selected.includes(d.resource_id)}
             disabled={!!busy || d.already_paired} onValueChange={() => setSelected(current => toggle(current, d.resource_id))}/></View>
-          {selected.includes(d.resource_id) && <View style={styles.between}><Text style={styles.description}>{d.kind === 'computer' ? '允许确认后点击与输入' : '允许读取、点击与输入'}</Text><Switch accessibilityLabel={`${d.name} 操作权限`} value={input.includes(d.resource_id)} disabled={!!busy}
+          {selected.includes(d.resource_id) && <View style={styles.between}><Text style={styles.description}>{d.kind === 'computer' ? '允许确认后点击与输入' : '允许读取、点击与输入'}</Text><StateSwitch accessibilityLabel={`${d.name} 操作权限`} value={input.includes(d.resource_id)} disabled={!!busy}
             onValueChange={() => setInput(current => toggle(current, d.resource_id))}/></View>}
         </View>)}
         {!!offer.length && <DeviceAction busy={busy} run={run} label={'生成配对文件'} work={createPairing} disabled={!ready || !selected.length}/>}
@@ -297,8 +298,8 @@ function ReviewCard({value, busy, ready, submit}: {value: DeviceReview; busy: bo
     <Text style={styles.description}>请查看设备上的实际结果。核对后只恢复后续操作，不重发旧动作，也不会把任务标为成功。</Text>
     <TextInput value={note} onChangeText={setNote} style={styles.input} multiline maxLength={2000} editable={!busy}
       accessibilityLabel="设备操作的实际结果" placeholder="写下实际看到的结果，至少五个字" placeholderTextColor={colors.muted}/>
-    <TactilePressable style={styles.row} accessibilityRole="checkbox" accessibilityState={{checked}} disabled={busy || !value.can_review}
-      onPress={() => setCheckedRevision(checked ? '' : value.revision)}><Text style={styles.body}>{checked ? '☑' : '☐'} 我已查看设备，确认旧动作已结束</Text></TactilePressable>
+    <Choice style={styles.row} selected={checked} multiple disabled={busy || !value.can_review}
+      onPress={() => setCheckedRevision(checked ? '' : value.revision)}><Text style={styles.body}>我已查看设备，确认旧动作已结束</Text></Choice>
     {!value.can_review && <Text style={styles.description}>等待旧动作结束、设备重新在线后才能提交。</Text>}
     <PrimaryButton label="保存核对结果" disabled={busy || !ready || !value.can_review || !checked || note.trim().length < 5} onPress={() => void submit(note, checked)}/>
   </View>;

@@ -44,7 +44,7 @@ function NavigationItem({destination, selected, reduced, onSelect}: {
     // A new selection reverses from the current value, including rapid re-taps.
     const animation = Animated.timing(selection, {
       toValue: selected ? 1 : 0,
-      duration: selected ? motion.release : motion.crossfade,
+      duration: motion.selection,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: Platform.OS !== 'web',
       isInteraction: false,
@@ -67,7 +67,7 @@ function NavigationItem({destination, selected, reduced, onSelect}: {
     }]}/>
     <View pointerEvents="none" accessible={false} accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants" style={s.content}>
-      {Icon ? <Icon size={24} strokeWidth={1.65} color={selected ? c.accentInk : c.muted}/>
+      {Icon ? <Icon size={24} strokeWidth={1.65} color={selected ? c.ink : c.muted}/>
         : null}
       <Text style={[s.label, selected && s.selectedLabel]}>{destination.label}</Text>
     </View>
@@ -89,9 +89,9 @@ export function BottomNavigation({selected, onSelect}: BottomNavigationProps) {
 const makeStyles = (c: AppColors) => StyleSheet.create({
   bar: {minHeight: 60, paddingHorizontal: 10, paddingVertical: 4, flexDirection: 'row', backgroundColor: 'transparent'},
   item: {flex: 1, minWidth: 44, minHeight: 52, alignItems: 'center', justifyContent: 'center'},
-  selection: {position: 'absolute', top: 2, bottom: 2, left: 4, right: 4, borderRadius: 16, backgroundColor: c.soft},
+  selection: {position: 'absolute', bottom: 0, width: 24, height: 3, borderRadius: 2, backgroundColor: c.selectionIndicator},
   content: {alignItems: 'center', justifyContent: 'center', gap: 3, paddingVertical: 5, paddingHorizontal: 2},
   portrait: {width: 22, height: 22, borderRadius: 8},
   label: {fontSize: 11, lineHeight: 16, fontWeight: '500', color: c.muted, textAlign: 'center'},
-  selectedLabel: {color: c.accentInk},
+  selectedLabel: {color: c.ink, fontWeight: '600'},
 });

@@ -1,0 +1,32 @@
+{
+  "operation": "IdP single CSS alignment hotfix",
+  "manifest_sha256": "98aaadd8488ff4ea85961156872c489aeec5fda16a481a352e8e5a92a5906328",
+  "source_file": "deploy/keycloak/pajio-theme/login/resources/css/pajio-identity.css",
+  "before_sha256": "5f8a593f5fe020fad6b97f92b655a4e7025eeed85c7d3b5e8d1ae63f7cc66ec5",
+  "after_sha256": "877ba8305120480785ee8e51d498e7b0b33a56796a652cd2619c7388c0e6a791",
+  "theme_manifest_after_sha256": "8bf4ace67d4822ea53a3c5ba1413d07750988d461287df28fa2dbaa567c0fc32",
+  "changes": [
+    "Remove official header top border.",
+    "Use one header column and retain locale selector as its own secondary row.",
+    "Keep title at 32px/700 including narrow screens.",
+    "Remove action inline margins and give login control full form width."
+  ],
+  "root_reviewed_css_apply": true,
+  "root_reviewed_exact_gzip_invalidation": true,
+  "cache_file": "/opt/keycloak-26.7.4/data/tmp/kc-gzip-cache/ymsnl/login/pajio/css/pajio-identity.css.gz",
+  "original_cache_inode": 800792,
+  "original_gzip_sha256": "f9b88c2485ddb6c507fc6b0c357d15a3f0003c9c3b9983573d7674cd7f3d81ac",
+  "public_static_asset": {
+    "at": 1791626221.4265049,
+    "status": 200,
+    "sha256": "877ba8305120480785ee8e51d498e7b0b33a56796a652cd2619c7388c0e6a791",
+    "content_encoding": "gzip",
+    "matches_candidate": true
+  },
+  "realm_or_authentication_changed": false,
+  "idp_restarted": false,
+  "authentication_template_changed": false,
+  "global_cache_purged": false,
+  "tests": "3 existing auth presentation checks passed; Python scripts compiled.",
+  "visual_acceptance": "Parent task will verify actual OIDC DOM via CUA; no rendered acceptance claimed here."
+}

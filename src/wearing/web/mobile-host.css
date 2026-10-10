@@ -17,9 +17,12 @@
 .native-composer-host .composer-dock {display:none!important}
 .native-composer-host .conversation {padding-bottom:28px}
 
-/* Match the native App's shared reading surface, not the desktop header. */
-.native-composer-host{--page:transparent;--ink:#202228;--muted:#565C68;--blue:#3156C8;--blue-deep:#3156C8;--line:#DDE1E7;--host-surface:#FFFFFF;--host-raised:#FFFFFF;--host-soft:#ECEEF2;--host-highlight:#EDF1FF;--host-panel:#F6F7F9;--surface:var(--host-surface);--surface-soft:var(--host-soft);--soft:var(--host-soft);color-scheme:light;touch-action:pan-x pan-y}
-.native-composer-host[data-app-theme="night"]{--ink:#F0F2F5;--muted:#B8BEC9;--blue:#A3B7FF;--blue-deep:#A3B7FF;--line:#353B46;--host-surface:#1C1F25;--host-raised:#262A32;--host-soft:#282D36;--host-highlight:#263253;--host-panel:#14161A;color-scheme:dark}
+/* Canonical interaction tokens; mirrored here because this page is served by Core.
+   The trusted native theme enum selects the same palette without reloading drafts. */
+.mobile-host{--canvas:#F8F7F3;--surface:#FFFFFF;--raised:#FFFFFF;--soft:#EFEEE9;--ink:#25282B;--muted:#676D70;--faint:#737A7D;--action:#3D5B67;--action-pressed:#314D59;--on-action:#FFFFFF;--accent:#3D5B67;--accent-soft:#E7ECEE;--accent-ink:#314D59;--on-accent:#FFFFFF;--line:#D8DCDB;--outline:#77858A;--selection-surface:#E7ECEE;--selection-ink:#314D59;--selection-border:#B5C5CB;--selection-indicator:#3D5B67;--focus-ring:#3D5B67;--pressed-surface:#E6E8E6;--disabled-surface:#EFEEE9;--disabled-ink:#7C8385;color-scheme:light}
+.mobile-host[data-app-theme="night"]{--canvas:#191D22;--surface:#22282E;--raised:#2B333A;--soft:#2B333A;--ink:#EEEFEA;--muted:#B5BEC1;--faint:#A7B1B6;--action:#CBDCE2;--action-pressed:#AEC5CF;--on-action:#1C2E36;--accent:#A7C3CD;--accent-soft:#293B43;--accent-ink:#D0E1E6;--on-accent:#1C2E36;--line:#414B52;--outline:#8B9DA5;--selection-surface:#293B43;--selection-ink:#D0E1E6;--selection-border:#647F8B;--selection-indicator:#A7C3CD;--focus-ring:#A7C3CD;--pressed-surface:#35414A;--disabled-surface:#2B333A;--disabled-ink:#85939A;color-scheme:dark}
+.mobile-host{--page:var(--canvas);--blue:var(--accent);--blue-deep:var(--accent-ink);--blue-light:var(--accent-soft);--surface-soft:var(--soft);--host-surface:var(--surface);--host-raised:var(--raised);--host-soft:var(--soft);--host-highlight:var(--selection-surface);--host-panel:var(--canvas)}
+.native-composer-host{--page:transparent;touch-action:pan-x pan-y}
 .native-composer-host .app-header,.native-composer-host .conversation-intro{display:none}
 .native-composer-host body{background:transparent;padding:0;overflow-x:hidden;touch-action:pan-x pan-y}
 .native-composer-host #conversation-main{max-width:100%;padding:0}
@@ -54,8 +57,6 @@
 .native-composer-host .decision-card{background:var(--host-surface);border-radius:18px;border-color:var(--line)}
 .native-composer-host .side-panel{inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);border:1px solid var(--line);border-radius:28px;background:var(--host-panel);padding:24px 20px}
 .native-composer-host input,.native-composer-host textarea,.native-composer-host select{font-size:calc(16px * var(--app-font-scale,1))}
-.native-composer-host button:focus-visible,.native-composer-host a:focus-visible,.native-composer-host summary:focus-visible{outline:0;box-shadow:0 0 0 2px var(--blue)}
-.native-composer-host input:focus,.native-composer-host textarea:focus{outline:0;box-shadow:inset 0 0 0 1px var(--blue)}
 .native-composer-host button,.native-composer-host a,.native-composer-host input{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .native-composer-host .host-event-chip{display:flex;width:max-content;max-width:100%;align-items:center;gap:8px;min-height:44px;margin:8px 0 0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--host-surface);font-size:calc(12px * var(--app-font-scale,1));line-height:1.4;color:var(--muted);text-align:left}
 .native-composer-host .host-event-chip>span:last-child{margin-left:4px;opacity:.65;font-size:calc(18px * var(--app-font-scale,1))}
@@ -71,8 +72,8 @@
 .native-composer-host .host-search-navigation{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:calc(12px * var(--app-font-scale,1));min-height:38px}
 .native-composer-host .host-search-navigation>span{flex:1;padding-left:10px;color:var(--muted)}
 .native-composer-host .host-search-navigation button{min-height:44px;font-size:calc(12px * var(--app-font-scale,1))}
-.native-composer-host .host-search-match{box-shadow:inset 0 0 0 1.5px var(--blue)}
-.native-composer-host .host-search-current{box-shadow:inset 0 0 0 2px var(--blue);background:var(--host-highlight)}
+.native-composer-host .host-search-match{box-shadow:inset 0 0 0 1px var(--selection-border)}
+.native-composer-host .host-search-current{box-shadow:inset 3px 0 0 var(--selection-indicator);background:var(--selection-surface);color:var(--selection-ink)}
 @keyframes host-pulse{50%{opacity:.35}}
 @keyframes host-arrive{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.native-composer-host .host-new-turn,.native-composer-host .host-event-dot,.native-composer-host .response-wait::before{animation:none!important}}
@@ -90,3 +91,44 @@
 .native-composer-host .host-search-field input{width:0}
 .native-composer-host .host-search-navigation button{min-width:44px}
 .native-composer-host .host-event-chip>span:not(.host-event-dot){min-width:0}
+
+/* Reachable conversation/review controls. Selected, pressed, focus and disabled
+   are separate states; these rules do not change any host navigation or events. */
+html.mobile-host :is(input[type="checkbox"],input[type="radio"],select){accent-color:var(--selection-indicator)}
+html.mobile-host option:checked{background:var(--selection-surface);color:var(--selection-ink)}
+html.mobile-host :is(.se-week,.schedule-kind-options) label:has(input:checked){background:var(--selection-surface);color:var(--selection-ink);border-color:var(--selection-border)}
+html.mobile-host .life-kind button[aria-pressed="true"]{background:var(--selection-surface);color:var(--selection-ink);border:1px solid var(--selection-border);box-shadow:none}
+html.mobile-host .life-kind button::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border:1px solid var(--outline);border-radius:50%;vertical-align:middle}
+html.mobile-host .life-kind button[aria-pressed="true"]::before{background:var(--selection-indicator);border-color:var(--selection-indicator);box-shadow:inset 0 0 0 2px var(--selection-surface)}
+html.mobile-host .life-toggle span{border-color:var(--outline)}
+html.mobile-host .life-toggle[aria-pressed="true"] span{background:var(--selection-indicator);border-color:var(--selection-indicator)}
+html.mobile-host .life-toggle svg{stroke:var(--on-accent)}
+html.mobile-host .identity-row.current{background:var(--selection-surface);border-color:var(--selection-border)}
+html.mobile-host .identity-select[aria-current="true"]{color:var(--selection-ink)}
+html.mobile-host :is(.review-switcher,.life-calendar-views){background:var(--canvas);box-shadow:none}
+html.mobile-host .schedule-form{background:var(--soft);color:var(--ink)}
+html.mobile-host :is(.review-switcher,.life-calendar-views) button{position:relative;background:transparent;box-shadow:none;color:var(--muted)}
+html.mobile-host .review-switcher button[aria-current="page"],html.mobile-host .life-calendar-views button[aria-pressed="true"]{background:transparent;color:var(--selection-ink);font-weight:600;box-shadow:none}
+html.mobile-host .review-switcher button[aria-current="page"]::after,html.mobile-host .life-calendar-views button[aria-pressed="true"]::after{content:"";position:absolute;bottom:0;left:calc(50% - 10px);width:20px;height:2px;border-radius:2px;background:var(--selection-indicator);pointer-events:none}
+html.mobile-host :is(.primary,.send-button){background:var(--action);color:var(--on-action)}
+html.mobile-host :is(.primary,.send-button):hover:not(:disabled){background:var(--action-pressed)}
+html.mobile-host :is(.secondary,.newest-message){background:var(--surface);border-color:var(--line)}
+html.mobile-host :is(.secondary,.icon-button):hover:not(:disabled){background:var(--soft)}
+html.mobile-host :is(button,[role="button"]):active:not(:disabled):not([aria-disabled="true"]){background:var(--pressed-surface);box-shadow:none;transform:none}
+html.mobile-host :is(.primary,.send-button):active:not(:disabled){background:var(--action-pressed);color:var(--on-action)}
+html.mobile-host :is(button,input,textarea,select):disabled,html.mobile-host :is(button,[role="button"])[aria-disabled="true"]{background:var(--disabled-surface);color:var(--disabled-ink);border-color:var(--line);opacity:1;cursor:default;box-shadow:none}
+html.mobile-host :is(input,textarea)::placeholder{color:var(--muted);opacity:1}
+html.mobile-host :is(input,textarea,select):focus{border-color:var(--focus-ring);box-shadow:none}
+html.mobile-host :is(button,[role="button"],input,textarea,select,a,summary,[tabindex]):focus-visible,
+html.mobile-host #activity-panel button:focus-visible,html.mobile-host #keeps-panel textarea:focus-visible,
+html.mobile-host .life-main :focus-visible,html.mobile-host .life-nav :focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;box-shadow:none}
+html.mobile-host .life-calendar #life-calendar-root{
+  --fc-monarch-background:var(--surface);--fc-monarch-foreground:var(--ink);--fc-monarch-border:var(--line);
+  --fc-monarch-muted:var(--soft);--fc-monarch-muted-foreground:var(--muted);--fc-monarch-faint:var(--canvas);--fc-monarch-faint-foreground:var(--muted);
+  --fc-monarch-primary:var(--action);--fc-monarch-primary-over:var(--action-pressed);--fc-monarch-primary-down:var(--action-pressed);--fc-monarch-primary-foreground:var(--on-action);
+  --fc-monarch-secondary:var(--soft);--fc-monarch-secondary-foreground:var(--ink);--fc-monarch-secondary-over:var(--pressed-surface);--fc-monarch-secondary-down:var(--pressed-surface);
+  --fc-monarch-tertiary:var(--soft);--fc-monarch-tertiary-foreground:var(--ink);--fc-monarch-tertiary-over:var(--pressed-surface);--fc-monarch-tertiary-down:var(--pressed-surface);
+  --fc-monarch-selected:var(--selection-surface);--fc-monarch-selected-foreground:var(--selection-ink);--fc-monarch-selected-over:var(--selection-surface);--fc-monarch-selected-down:var(--pressed-surface);
+  --fc-monarch-highlight:var(--selection-surface);--fc-monarch-now:var(--accent);--fc-monarch-strong-border:var(--selection-border);--fc-monarch-outline:var(--outline);--fc-monarch-ring-color:var(--focus-ring);
+  --fc-monarch-strong:var(--soft);--fc-monarch-strong-foreground:var(--ink);--fc-monarch-stronger:var(--pressed-surface);--fc-monarch-strongest:var(--selection-border);--fc-monarch-popover:var(--raised);--fc-monarch-popover-foreground:var(--ink)
+}

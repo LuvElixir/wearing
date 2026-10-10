@@ -23,7 +23,7 @@
     const apply = () => {
       const value = mode();
       document.documentElement.dataset.appTheme = value;
-      $("theme-color-meta")?.setAttribute("content", value === "night" ? "#14161A" : "#F6F7F9");
+      $("theme-color-meta")?.setAttribute("content", value === "night" ? "#191D22" : "#F8F7F3");
       listeners.forEach(listener => listener());
     };
     const onSystem = () => { if (preference === "system") apply(); };

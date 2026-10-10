@@ -1,0 +1,28 @@
+{
+  "operation": "QA account cleanup",
+  "plan_sha256": "4712184e71ed2d1143c9492256d0ebbfbcd96f2e34663a2ba2da9c5c60e671fa",
+  "jar_sha256": "cc53dfc6bba84d6d528327fa289653b1d79b1978f23192dc4d8c52c15d377bc6",
+  "postcommit_receipt": {
+    "deleted_count": 3,
+    "plan_sha256": "4712184e71ed2d1143c9492256d0ebbfbcd96f2e34663a2ba2da9c5c60e671fa",
+    "realm_id_sha256": "6db574417b9717bf7a1a5ac1b33cb64fa2b51b889bbba2c9bed4947bff3a9db3",
+    "state": "applied",
+    "version": 1
+  },
+  "activation_disabled_for_next_restart": true,
+  "backup_offhost_verified": true,
+  "public_probes": {
+    "issuer": {
+      "200": 6,
+      "502": 4
+    },
+    "join": {
+      "200": 2
+    }
+  },
+  "limitations": [
+    "Public probes validate availability, not a fresh human login.",
+    "Default pg_dump omits DATABASE TOC; initial overly-strict validation stopped before installation. Exact backup/journal CAS recovery continued without replay.",
+    "Theme activation is a separate reviewed migration."
+  ]
+}

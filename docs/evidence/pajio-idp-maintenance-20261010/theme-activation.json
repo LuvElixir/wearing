@@ -1,0 +1,63 @@
+{
+  "operation": "Pajio IdP theme presentation activation",
+  "postcommit_receipt": {
+    "plan_sha256": "4a4f584b237a6d4d566d89da0729a2f09001cc518342ccb733ba092ac5370215",
+    "presentation_sha256": "60f3f72f41344c8f575f46c81cafd42d536f389e9de09daa8ef00a8792d996b9",
+    "state": "applied",
+    "theme_sha256": "bb5ff492f8de0a51bba75d00f42ce8eed15d86865f54d595c8b64ddf6562f3ad",
+    "version": 1
+  },
+  "before": {
+    "default_locale": null,
+    "internationalization": false,
+    "login_theme": null,
+    "supported_locales": []
+  },
+  "after": {
+    "default_locale": "zh-CN",
+    "internationalization": true,
+    "login_theme": "pajio",
+    "supported_locales": [
+      "en",
+      "zh-CN"
+    ]
+  },
+  "guard_sha256": "2a79e5ce59592e7c7f1536ce7ba1417bad8ff2440fdaf6098f86983e33a3dca7",
+  "activation_disabled_for_next_restart": true,
+  "plan_backup_offhost_verified": true,
+  "additional_preapply_database_backup": true,
+  "service_final": {
+    "active": "active",
+    "substate": "running",
+    "pid": 46861,
+    "restarts": 0
+  },
+  "public_probes": {
+    "issuer": {
+      "200": 5,
+      "502": 5
+    },
+    "join": {
+      "200": 2
+    }
+  },
+  "readiness_tail": [
+    {
+      "name": "issuer",
+      "status": 200
+    },
+    {
+      "name": "issuer",
+      "status": 200
+    },
+    {
+      "name": "join",
+      "status": 200
+    },
+    {
+      "name": "issuer",
+      "status": 200
+    }
+  ],
+  "human_login_acceptance": "Pending root CUA verification; not claimed by provider receipts."
+}

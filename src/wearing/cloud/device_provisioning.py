@@ -87,6 +87,17 @@ class CorePromise(Record):
     disk_mib: int = Field(strict=True, ge=16384)
 
 
+class ResourcePromise(CorePromise):
+    expires_at: int = Field(strict=True, gt=0)
+    reservation_id: str = Field(pattern=r'^[a-f0-9]{32}$')
+    reservation_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
+    purpose: Literal['invitation', 'benchmark']
+    tenant_id: Identifier | None
+    kind: Literal['core', 'linux', 'android']
+    request_id: str = Field(pattern=r'^[a-f0-9]{32}$')
+    owner: Owner | None = None
+
+
 class Inventory(Record):
     node: Identifier
     storage: Identifier
@@ -99,17 +110,34 @@ class Inventory(Record):
     committed_storage_mib: int = Field(strict=True, ge=0)
     vms: tuple[VM, ...]
     core_promises: tuple[CorePromise, ...] = ()
+    resource_promises: tuple[ResourcePromise, ...] = ()
 
     @model_validator(mode='after')
     def checked(self):
         owners = [vm.owner for vm in self.vms if vm.owner]
         core_ids = {item.vmid for item in self.core_promises}
+        resource_ids = {item.vmid for item in self.resource_promises}
+        if len(resource_ids) != len(self.resource_promises):
+            raise ValueError('invalid_resource_promises')
+        for item in self.resource_promises:
+            current = next((v for v in self.vms if v.vmid == item.vmid), None)
+            core = next((v for v in self.core_promises if v.vmid == item.vmid), None)
+            if ((item.purpose == 'benchmark') != (item.tenant_id is None)
+                    or core and (item.kind != 'core' or any(getattr(item, k) != getattr(core, k)
+                                  for k in ('vcpus', 'memory_mib', 'disk_mib')))
+                    or current and (current.template or current.owner != item.owner)
+                    or item.owner and (item.purpose != 'invitation' or any(getattr(item.owner, k) != getattr(item, k)
+                                      for k in ('tenant_id', 'kind', 'request_id')))):
+                raise ValueError('invalid_resource_promises')
+            if item.owner and current is None:
+                owners.append(item.owner)
         if len(core_ids) != len(self.core_promises) or any(vm.vmid in core_ids and (vm.owner is not None or vm.template) for vm in self.vms):
             raise ValueError('invalid_core_promises')
         if (not math.isfinite(self.observed_at)
                 or len({vm.vmid for vm in self.vms}) != len(self.vms)
                 or len({owner.resource_id for owner in owners}) != len(owners)
                 or len({owner.request_id for owner in owners}) != len(owners)
+                or len({(owner.tenant_id, owner.kind) for owner in owners}) != len(owners)
                 or self.available_memory_mib > self.memory_mib
                 or self.available_storage_mib > self.storage_mib):
             raise ValueError('invalid_inventory')
@@ -153,33 +181,47 @@ def inspect_capacity(spec, policy, inventory, reservations, *, now=None):
             or source.locked or source.owner or source.config_sha256 != template.config_sha256
             or source.disk_mib != template.disk_mib or spec.disk_mib != template.disk_mib):
         reasons.append('reviewed_clean_template_required')
+    resource_promises = {item.vmid: item for item in inventory.resource_promises}
+    for promise in resource_promises.values():
+        if (promise.purpose == 'invitation' and promise.kind != 'core' and promise.vmid != spec.vmid
+                and (promise.request_id == spec.request_id
+                     or (promise.tenant_id, promise.kind) == (spec.tenant_id, spec.kind))):
+            reasons.append('preclaim_binding_conflict')
     core_ids = {item.vmid for item in inventory.core_promises}
     if spec.vmid in core_ids:
         reasons.append('core_vm_binding_conflict')
-    running = [v for v in inventory.vms if v.state != 'stopped' and not v.template and v.vmid not in core_ids]
+    promise_ids = core_ids | set(resource_promises)
+    running = [v for v in inventory.vms if v.state != 'stopped' and not v.template and v.vmid not in promise_ids]
     memory = sum(v.memory_mib for v in running)
     cpus = sum(v.vcpus for v in running)
     disk = inventory.committed_storage_mib
     extra_memory = extra_disk = 0
-    for core in inventory.core_promises:
+    promises = {item.vmid: item for item in inventory.core_promises}
+    promises.update(resource_promises)
+    slots = {'linux': policy.external_linux_slots, 'android': policy.external_android_slots}
+    for core in promises.values():
         current = vms.get(core.vmid)
-        memory += core.memory_mib
-        cpus += core.vcpus
-        extra_memory += core.memory_mib if current is None or current.state == 'stopped' else max(0, core.memory_mib-current.memory_mib)
+        retained = current is not None and current.retirement_sha256 is not None
+        if not retained:
+            memory += core.memory_mib
+            cpus += core.vcpus
+            extra_memory += core.memory_mib if current is None or current.state == 'stopped' else max(0, core.memory_mib-current.memory_mib)
+            if isinstance(core, ResourcePromise) and core.kind in slots:
+                slots[core.kind] += 1
         extra_disk += core.disk_mib  # Keep one full recovery copy.
         if current is None:
             extra_disk += core.disk_mib + 4
         else:
             extra_disk += max(0, core.disk_mib-current.disk_mib)
-    slots = {'linux': policy.external_linux_slots, 'android': policy.external_android_slots}
     rows = list(reservations)
     known = {r['spec']['request_id'] for r in rows}
-    for vm in inventory.vms:
-        if vm.owner and vm.owner.request_id not in known:
-            owner = vm.owner
+    bindings = [(vm.vmid, vm.owner) for vm in inventory.vms if vm.owner]
+    bindings.extend((p.vmid, p.owner) for p in inventory.resource_promises if p.owner and p.vmid not in vms)
+    for vmid, owner in bindings:
+        if owner.request_id not in known:
             registered = DeviceSpec(request_id=owner.request_id, tenant_id=owner.tenant_id,
                                     identity_id=owner.identity_id, resource_id=owner.resource_id,
-                                    kind=owner.kind, vmid=vm.vmid, vcpus=owner.vcpus,
+                                    kind=owner.kind, vmid=vmid, vcpus=owner.vcpus,
                                     memory_mib=owner.memory_mib, disk_mib=owner.disk_mib)
             rows.append({'spec': registered.model_dump(), 'owner': owner.model_dump()})
             known.add(owner.request_id)
@@ -199,6 +241,22 @@ def inspect_capacity(spec, policy, inventory, reservations, *, now=None):
         item = DeviceSpec.model_validate(row['spec'])
         current = vms.get(item.vmid)
         expected = Owner.model_validate(row['owner']) if row.get('owner') else None
+        promise = resource_promises.get(item.vmid)
+        if promise is not None:
+            if item.request_id == spec.request_id and current is None:
+                if promise.owner is not None:
+                    reasons.append('clone_outcome_unknown_no_replay')
+                elif now >= promise.expires_at:
+                    reasons.append('preclaim_expired')
+            if (promise.purpose != 'invitation'
+                    or any(getattr(promise, k) != getattr(item, k) for k in ('request_id', 'tenant_id', 'kind'))
+                    or any(getattr(item, k) != getattr(promise, k) for k in ('vcpus', 'memory_mib', 'disk_mib'))
+                    or promise.owner is not None and expected != promise.owner):
+                reasons.append('preclaim_binding_conflict')
+            if current and (expected is None or current.owner != expected):
+                reasons.append('vm_id_or_owner_conflict')
+            # This exact request already entered the durable host promise totals.
+            continue
         if current and (expected is None or current.owner != expected):
             reasons.append('vm_id_or_owner_conflict')
             continue

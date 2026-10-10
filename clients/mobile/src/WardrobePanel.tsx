@@ -1,3 +1,4 @@
+import {Choice} from './experience/selection';
 import {useAppTheme, useThemedStyles, type AppColors} from './app-theme';
 import {useState} from 'react';
 import {ActivityIndicator, ScrollView, StyleSheet, Text, View} from 'react-native';
@@ -46,12 +47,11 @@ function WardrobePreview({wardrobe, onBack}: {wardrobe: WardrobeController; onBa
     </View>
     <View style={s.collectionHeading}><Text style={s.link}>挑一套试穿</Text><Text style={s.description}>8 套 · 左右滑动</Text></View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} accessibilityRole="radiogroup" accessibilityLabel="睡衣款式">
-      {outfits.map(item => <TactilePressable key={item.id} accessibilityRole="radio" accessibilityLabel={item.name} accessibilityHint="预览这套睡衣，点穿这套后保存" accessibilityState={{checked: selected === item.id}} disabled={state.saving}
+      {outfits.map(item => <Choice variant="card" key={item.id}  accessibilityLabel={item.name} accessibilityHint="预览这套睡衣，点穿这套后保存" selected={selected === item.id} disabled={state.saving}
         onPress={() => setPreview(item.id)} style={[s.option, selected === item.id && s.optionSelected]}>
         <PajamaBear outfit={item.id} size={100}/>
         <View style={s.optionLabel}><View style={[s.swatch, {backgroundColor: item.swatch}]}/><Text style={s.optionName}>{item.name}</Text></View>
-        <View style={s.check}>{selected === item.id ? <Check size={15} color={c.ink}/> : null}</View>
-      </TactilePressable>)}
+      </Choice>)}
     </ScrollView>
     <TactilePressable disabled={!state.ready || state.saving || !changed || !previewReady} accessibilityLabel={previewReady ? changed ? `穿上${outfit.name}` : `已穿上${outfit.name}` : applyLabel} accessibilityState={{busy: state.saving || (!previewReady && !previewFailed)}}
       onPress={() => {if (previewReady) void session.save(selected);}} style={[s.apply, !changed && s.applied]}>
@@ -73,8 +73,8 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
   apply: {minHeight: 48, borderRadius: 24, padding: 12, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: c.soft},
   applied: {backgroundColor: c.surface}, applyLabel: {fontSize: 16, lineHeight: 23, color: c.ink, fontWeight: '500'},
   collectionHeading: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3},
-  rail: {gap: 9, paddingBottom: 2}, option: {width: 120, alignItems: 'center', borderRadius: 21, paddingTop: 12, paddingBottom: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: 'transparent'},
-  optionSelected: {backgroundColor: c.surface, borderColor: c.accent},
+  rail: {gap: 9, paddingBottom: 2}, option: {width: 120, alignItems: 'center', borderRadius: 21, paddingTop: 22, paddingBottom: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: 'transparent'},
+  optionSelected: {backgroundColor: c.selectionSurface, borderColor: c.selectionBorder},
   optionLabel: {flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8}, optionName: {fontSize: 13, lineHeight: 21, color: c.ink, flexShrink: 1},
   swatch: {width: 9, height: 9, borderRadius: 5}, check: {position: 'absolute', top: 10, right: 10, width: 17, height: 17},
   footnote: {fontSize: 11, lineHeight: 19, color: c.muted, textAlign: 'center', paddingHorizontal: 12},

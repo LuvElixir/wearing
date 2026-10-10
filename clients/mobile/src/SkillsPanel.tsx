@@ -1,3 +1,4 @@
+import {Segment} from './experience/selection';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, TextInput, View} from 'react-native';
 import {ArrowLeft, BookOpen, Check, ChevronRight, Download, RefreshCw} from 'lucide-react-native';
@@ -72,7 +73,7 @@ function SkillsContent({connection, fetcher}: {connection: Connection; fetcher?:
       {removal ? <View style={s.card}><Text style={s.section}>移除 {removal.name}？</Text><Text style={s.copy}>这项技能将从当前身份移除，后续任务不再使用。原文件会保留恢复副本，聊天、记忆和其他身份不会被删除。技能目录里的原版仍可重新安装。</Text><Text style={s.muted}>有正在执行或排队的任务时，需要先结束任务。</Text><PrimaryButton label="确认移除" tone="danger" loading={busy === 'remove'} disabled={!!busy} onPress={() => {void remove();}}/><PrimaryButton label="保留技能" tone="quiet" disabled={!!busy} onPress={() => {setRemoval(null); setError('');}}/></View> : null}
     </> : <>
       <View style={s.heading}><View style={s.words}><Text style={s.title}>技能</Text><Text style={s.muted}>按需要开启，Pajio 会在做事时使用。</Text></View><TactilePressable accessibilityLabel="刷新技能目录" disabled={!!busy} onPress={() => {void refresh();}} style={s.refresh}><RefreshCw size={20} color={c.ink}/></TactilePressable></View>
-      <View style={s.tabs}>{([['installed', '已安装'], ['catalog', '添加技能']] as const).map(([key, label]) => <TactilePressable key={key} accessibilityRole="tab" accessibilityState={{selected: section === key}} disabled={!!busy} onPress={() => {setSection(key); setQuery(''); setError('');}} style={[s.tab, section === key && s.selected]}><Text style={s.link}>{label}{data ? ` · ${data[key].length}` : ''}</Text></TactilePressable>)}</View>
+      <View style={s.tabs}>{([['installed', '已安装'], ['catalog', '添加技能']] as const).map(([key, label]) => <Segment key={key}  selected={section === key} disabled={!!busy} onPress={() => {setSection(key); setQuery(''); setError('');}} style={[s.tab, section === key && s.selected]}><Text style={s.link}>{label}{data ? ` · ${data[key].length}` : ''}</Text></Segment>)}</View>
       <TextInput value={query} onChangeText={setQuery} accessibilityLabel="搜索技能" placeholder="搜索名称或用途" placeholderTextColor={c.muted} style={s.search} clearButtonMode="while-editing"/>
     </>}
     {busy ? <View style={s.loading}><ActivityIndicator color={c.accent}/><Text style={s.muted}>{busy === 'save' ? '正在保存…' : busy === 'remove' ? '正在移除…' : '正在读取…'}</Text></View> : null}
@@ -90,7 +91,7 @@ export function SkillsPanel(props: {connection: Connection; fetcher?: typeof fet
 const styles = (c: AppColors) => StyleSheet.create({
   panel: {gap: 16}, heading: {flexDirection: 'row', alignItems: 'center', gap: 12}, words: {flex: 1, gap: 6}, title: {fontSize: 28, lineHeight: 37, fontWeight: '600', color: c.ink},
   copy: {fontSize: 16, lineHeight: 25, color: c.ink}, muted: {fontSize: 13, lineHeight: 21, color: c.muted}, link: {fontSize: 14, color: c.ink},
-  tabs: {flexDirection: 'row', padding: 4, gap: 6, backgroundColor: c.soft, borderRadius: 18}, tab: {flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 14}, selected: {backgroundColor: c.surface},
+  tabs: {flexDirection: 'row', gap: 6, borderBottomWidth:1,borderBottomColor:c.line}, tab: {flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 14}, selected: {backgroundColor: c.surface},
   search: {fontSize: 16, color: c.ink, minHeight: 48, paddingHorizontal: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, borderRadius: 18},
   card: {padding: 20, borderRadius: 24, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, gap: 14}, row: {padding: 18, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, flexDirection: 'row', alignItems: 'center', gap: 14},
   name: {fontSize: 18, lineHeight: 25, fontWeight: '500', color: c.ink}, state: {fontSize: 12, lineHeight: 20, color: c.accent}, back: {flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44}, refresh: {height: 46, width: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: c.surface},

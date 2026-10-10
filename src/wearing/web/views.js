@@ -261,20 +261,35 @@
       <p class="me-privacy"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 9.5 4-1.5 7-5 7-9.5V6Z"/></svg>由你选择分享什么，重要操作由你确认。</p>`;
   }
 
+  function handleRadioKey(event) {
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    const current = event.target.closest('[role="radio"]');
+    const group = current?.closest('[role="radiogroup"]');
+    if (!group || !current || current.disabled || current.getAttribute("aria-disabled") === "true") return;
+    const choices = [...group.querySelectorAll('[role="radio"]')].filter(button => !button.disabled && button.getAttribute("aria-disabled") !== "true");
+    const index = choices.indexOf(current); if (index < 0) return;
+    const backwards = event.key === "ArrowLeft" || event.key === "ArrowUp";
+    const next = event.key === "Home" ? 0 : event.key === "End" ? choices.length - 1 : (index + (backwards ? -1 : 1) + choices.length) % choices.length;
+    event.preventDefault(); choices[next].focus(); choices[next].click();
+  }
+  document.addEventListener("keydown", handleRadioKey);
+
   function renderAppearance(container) {
+    const focusedTheme = document.activeElement?.dataset?.themeOption;
     const {theme} = window.WearingPajio;
     const options = [{id: "day", label: "浅色", icon: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.4 1.4m10 10 1.4 1.4m0-12.8-1.4 1.4m-10 10L5.6 18.4"/>'},
       {id: "night", label: "深色", icon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/>'},
       {id: "system", label: "跟随系统", icon: '<rect x="3" y="4" width="14" height="12" rx="2"/><path d="M7 20h10"/>'}];
     container.innerHTML = `
       <button class="pj-back" type="button" data-me-back><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>返回我的</button>
-      <div class="pj-panel"><h3>外观</h3><p class="pj-caption">跟随系统时，随设备的显示设置切换。</p>
-        ${options.map(({id, label, icon}) => `<button class="pj-option" type="button" role="radio" aria-checked="${theme.preference === id}" data-theme-option="${id}"${theme.saving ? ' data-disabled="true"' : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span>${label}</span>${theme.preference === id ? '<svg class="pj-check" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>' : ""}</button>`).join("")}
+      <div class="pj-panel" role="radiogroup" aria-label="外观"><h3>外观</h3><p class="pj-caption">跟随系统时，随设备的显示设置切换。</p>
+        ${options.map(({id, label, icon}) => `<button class="pj-option" type="button" role="radio" aria-checked="${theme.preference === id}" tabindex="${theme.preference === id ? 0 : -1}" data-theme-option="${id}"${theme.saving ? ' data-disabled="true" aria-disabled="true" disabled' : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span>${label}</span>${theme.preference === id ? '<svg class="pj-check" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>' : ""}</button>`).join("")}
         ${theme.error ? `<p class="pj-error" role="status">${esc(theme.error)} <button class="text-button" type="button" data-theme-retry>重试</button></p>` : ""}</div>
       <button class="me-row me-wardrobe-entry" type="button" data-me-action="wardrobe">
         <div><strong>小熊的衣橱</strong><small>选一套喜欢的，陪你过今天。</small></div>
         ${window.WearingPajio.bearMarkup(window.WearingPajio.wardrobe.state.outfit, 76)}
         <svg viewBox="0 0 24 24" aria-hidden="true" class="chev"><path d="m9 6 6 6-6 6"/></svg></button>`;
+    if (focusedTheme) [...container.querySelectorAll("[data-theme-option]")].find(button => button.dataset.themeOption === focusedTheme)?.focus();
   }
 
   /* 试衣帘换装：八图常驻叠放，目标图 decode 成功后才切换；快速连点只提交最新目标。
@@ -489,7 +504,7 @@
       <div class="wardrobe-stage"><div class="wardrobe-stage-slot" data-wardrobe-stage></div><h3 data-outfit-name></h3><p data-outfit-detail></p></div>
       <div class="wardrobe-rail-heading"><span>挑一套试穿</span><span>8 套</span></div>
       <div class="wardrobe-rail" role="radiogroup" aria-label="睡衣款式">
-        ${outfits.map(item => `<button class="wardrobe-option" type="button" role="radio" aria-pressed="false" aria-label="${esc(item.name)}，预览这套睡衣，点穿这套后保存" data-outfit-preview="${item.id}">${bearMarkup(item.id, 100)}<span class="pj-name"><span class="swatch" data-swatch="${item.swatch}"></span>${esc(item.name)}</span></button>`).join("")}
+        ${outfits.map(item => `<button class="wardrobe-option" type="button" role="radio" aria-checked="false" tabindex="-1" aria-label="${esc(item.name)}，预览这套睡衣，点穿这套后保存" data-outfit-preview="${item.id}"><svg class="wardrobe-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>${bearMarkup(item.id, 100)}<span class="pj-name"><span class="swatch" data-swatch="${item.swatch}"></span>${esc(item.name)}</span></button>`).join("")}
       </div>
       <button class="wardrobe-apply" type="button" data-outfit-save></button>
       ${wardrobe.state.error ? `<p class="pj-error" role="status">${esc(wardrobe.state.error)}</p>` : ""}
@@ -501,7 +516,10 @@
       const id = preview(), outfit = outfitById(id), changed = id !== wardrobe.state.outfit;
       container.querySelector("[data-outfit-name]").textContent = outfit.name;
       container.querySelector("[data-outfit-detail]").textContent = outfit.detail;
-      container.querySelectorAll("[data-outfit-preview]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.outfitPreview === id)));
+      container.querySelectorAll("[data-outfit-preview]").forEach(button => {
+        const selected = button.dataset.outfitPreview === id;
+        button.setAttribute("aria-checked", String(selected)); button.tabIndex = selected ? 0 : -1;
+      });
       apply.disabled = !changed || wardrobe.state.saving;
       apply.textContent = wardrobe.state.saving ? "正在保存…" : changed ? `穿上${outfit.name}并显示小熊` : "已穿上";
     }

@@ -26,7 +26,7 @@ function CalendarDay({date, column, active, current, count, reduced, onSelect}: 
     selection.stopAnimation();
     if (reduced) {selection.setValue(active ? 1 : 0); return;}
     const animation = Animated.timing(selection, {
-      toValue: active ? 1 : 0, duration: active ? motion.release : motion.crossfade,
+      toValue: active ? 1 : 0, duration: motion.selection,
       easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web', isInteraction: false,
     });
     animation.start();
@@ -99,8 +99,8 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
   number: {fontSize: 16, lineHeight: 22, fontVariant: ['tabular-nums'], color: c.ink},
   current: {borderColor: c.accent},
   currentNumber: {color: c.accentInk, fontWeight: '600'},
-  selection: {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 14, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center', gap: 3},
-  white: {color: c.surface},
+  selection: {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 14, backgroundColor: c.selectionSurface, borderWidth:1, borderColor:c.selectionBorder, alignItems: 'center', justifyContent: 'center', gap: 3},
+  white: {color: c.selectionInk, fontWeight:'600'},
   dot: {width: 3, height: 3, borderRadius: 2, backgroundColor: c.accent},
-  whiteDot: {backgroundColor: c.surface},
+  whiteDot: {backgroundColor: c.selectionIndicator},
 });

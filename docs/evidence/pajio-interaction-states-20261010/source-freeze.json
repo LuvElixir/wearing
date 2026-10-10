@@ -1,0 +1,11 @@
+{
+  "src/wearing/web/pajio.css": "268bf88a2586057cf77da708fd8a6d8c77df4e021f7d17b728d91f8e7f453110",
+  "src/wearing/web/pajio.js": "b732e0352863e8d2fbf18b760f7fc62ea2303d2c2a830d233ed6a4804b60b59a",
+  "src/wearing/web/views.js": "62e2217e46de531e40bc94a6522bf60608b14151472986061f18bf7697fdee92",
+  "src/wearing/web/life.js": "b23bc86bde7e99b0b702b6a3d2c89b1a39fe3c99141fb8ea54977e5482ff1ae5",
+  "src/wearing/web/index.html": "0059bf3d98bf81ef0ff7bb25e62a8614f62716824e4ec6bafb4c7c2b625a7e5a",
+  "clients/desktop/frontend/connection.css": "0d9ec6c5464f42f118e421270f7398f337d791da792ba2e3260e477979fa4888",
+  "tests/pajio-interaction.test.cjs": "044be3833fb70df6d2a246941716f2426eae73e40200d2a2abfb0e966e75c3dc",
+  "tests/pajio-web-ui.test.cjs": "4999c8a33c4a15af5d245993c22a98880809ef59116ec4cc82627d642f97c933",
+  "tests/onboarding-ui.test.cjs": "5430cb2cddecef7a7226e3386dd39147cb30cca56ec0c78b8b2136c4baa76856"
+}

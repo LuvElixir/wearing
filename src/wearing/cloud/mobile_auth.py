@@ -37,9 +37,14 @@ def handoff_key(code, challenge, state):
     return "mobile:" + code + ":" + challenge + ":" + state
 
 
-async def issue_handoff(cache, request, subject, *, auth_time=None, tenant_id=None):
+async def issue_handoff(cache, request, subject, *, auth_time=None, tenant_id=None, enrollment_operation=None):
     code = secrets.token_urlsafe(32)
-    await cache.set(handoff_key(code, request["challenge"], request["state"]), json.dumps({"subject": subject, "auth_time": auth_time, "tenant_id": tenant_id}), 120)
+    value = {"subject": subject, "auth_time": auth_time, "tenant_id": tenant_id}
+    if enrollment_operation is not None:
+        if not isinstance(enrollment_operation, str) or not re.fullmatch(r'[a-f0-9]{32}', enrollment_operation):
+            raise ValueError('Invalid enrollment operation')
+        value['enrollment_operation'] = enrollment_operation
+    await cache.set(handoff_key(code, request["challenge"], request["state"]), json.dumps(value), 120)
     return CALLBACK + "?" + urlencode({"code": code, "state": request["state"]})
 
 

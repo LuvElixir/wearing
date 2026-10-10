@@ -141,13 +141,16 @@ class RegistrationBroker:
             raise RegistrationError('password_invalid')
         raise RegistrationError('registration_pending')
 
-    def register(self, hashed, username, password):
+    def register(self, hashed, username, password, *, recovery_binding=None):
         username, password = credentials(username, password)
+        if recovery_binding is not None and (not isinstance(recovery_binding, str)
+                or not re.fullmatch(r'[a-f0-9]{64}', recovery_binding)):
+            raise RegistrationError('invalid_request')
         if not isinstance(hashed, str) or not re.fullmatch(r'[a-f0-9]{64}', hashed):
             raise RegistrationError('invitation_unavailable')
         try:
             with FileLock(str(self.root / (hashed + '.lock')), timeout=0):
-                return self._locked(hashed, username, password)
+                return self._locked(hashed, username, password, recovery_binding=recovery_binding)
         except Timeout:
             raise RegistrationError('registration_pending') from None
         except InvitationError:
@@ -159,7 +162,7 @@ class RegistrationBroker:
             # request-validation error and never permission to resend create.
             raise RegistrationError('registration_pending') from None
 
-    def _locked(self, hashed, username, password):
+    def _locked(self, hashed, username, password, *, recovery_binding=None):
         proposed = uuid.uuid4().hex
         intent = self.invites.reserve_registration(hashed, issuer=self.issuer,
                     registration_id=proposed, username_hash=hashlib.sha256(username.encode()).hexdigest())
@@ -171,6 +174,7 @@ class RegistrationBroker:
         journal = self._read(name)
         if journal is not None:
             if (journal.get('registration_id') != ident or journal.get('code_hash') != hashed
+                    or journal.get('recovery_binding') != recovery_binding
                     or not isinstance(journal.get('fingerprint'), str)
                     or not hmac.compare_digest(journal['fingerprint'], fingerprint)
                     or journal.get('state') not in {'inflight', 'confirmed', 'rejected'}):
@@ -185,6 +189,16 @@ class RegistrationBroker:
             result = self._provider('inspect', request)
         else:
             journal = {'registration_id': ident, 'code_hash': hashed, 'fingerprint': fingerprint, 'state': 'inflight'}
+            if recovery_binding is not None:
+                journal['recovery_binding'] = recovery_binding
+                index = {'registration_id': ident, 'code_hash': hashed,
+                         'username_hash': hashlib.sha256(username.encode()).hexdigest()}
+                index_name = 'native-' + recovery_binding + '.json'
+                previous = self._read(index_name)
+                if previous is not None and previous != index:
+                    raise RegistrationError('registration_pending')
+                if previous is None:
+                    self._write(index_name, index, create=True)
             self._write(name, journal, create=True)
             if ident != proposed:
                 # Reserve may have committed before the previous process died;
@@ -205,6 +219,58 @@ class RegistrationBroker:
                                                 subject=result['subject'])
         self._write(name, {**journal, 'state': 'confirmed', 'subject': result['subject']})
         return {'subject': result['subject']}
+
+    def inspect_native(self, hashed, username, recovery_binding):
+        """Inspect a previously dispatched, capability-bound registration only.
+
+        No password is required or recoverable. The original journal must exist;
+        this path cannot create an identity or adopt a browser registration.
+        """
+        credentials(username, 'validation-only-password')
+        if (not isinstance(hashed, str) or not re.fullmatch(r'[a-f0-9]{64}', hashed)
+                or not isinstance(recovery_binding, str) or not re.fullmatch(r'[a-f0-9]{64}', recovery_binding)):
+            raise RegistrationError('invalid_request')
+        try:
+            with FileLock(str(self.root / (hashed + '.lock')), timeout=0):
+                index = self._read('native-' + recovery_binding + '.json')
+                if (not index or index.get('code_hash') != hashed
+                        or index.get('username_hash') != hashlib.sha256(username.encode()).hexdigest()
+                        or not re.fullmatch(r'[a-f0-9]{32}', index.get('registration_id', ''))):
+                    raise RegistrationError('registration_pending')
+                ident = index['registration_id']
+                journal = self._read(ident + '.json')
+                if (not journal or journal.get('registration_id') != ident or journal.get('code_hash') != hashed
+                        or not secrets.compare_digest(journal.get('recovery_binding', ''), recovery_binding)
+                        or journal.get('state') not in {'inflight', 'confirmed', 'rejected'}
+                        or not re.fullmatch(r'[a-f0-9]{64}', journal.get('fingerprint', ''))):
+                    raise RegistrationError('registration_pending')
+                if journal['state'] == 'rejected':
+                    if journal.get('code') not in {'username_unavailable', 'password_invalid'}:
+                        raise RegistrationError('registration_pending')
+                    # The definitive receipt is fsynced before releasing the
+                    # reservation. Recover a crash between those two steps by
+                    # releasing only this exact intent; never a newer attempt.
+                    try:
+                        self.invites.release_registration(hashed, issuer=self.issuer, registration_id=ident)
+                    except InvitationError:
+                        pass
+                    return {'rejected': journal['code']}
+                # A confirmed private receipt also survives invitation redemption.
+                # Admission is still rechecked by the gateway before any login.
+                if journal['state'] == 'confirmed':
+                    return {'subject': journal['subject']}
+                intent = self.invites.get_registration(hashed, issuer=self.issuer)
+                if intent['registration_id'] != ident or intent['username_hash'] != index['username_hash']:
+                    raise RegistrationError('registration_pending')
+                result = self._provider('inspect', {'username': username, 'registration_id': ident,
+                                                    'fingerprint': journal['fingerprint']})
+                if intent.get('subject') not in (None, result['subject']) or journal.get('subject') not in (None, result['subject']):
+                    raise RegistrationError('registration_pending')
+                self.invites.bind_registration_subject(hashed, issuer=self.issuer, registration_id=ident, subject=result['subject'])
+                self._write(ident + '.json', {**journal, 'state': 'confirmed', 'subject': result['subject']})
+                return {'subject': result['subject']}
+        except (Timeout, InvitationError, OSError, ValueError, TypeError):
+            raise RegistrationError('registration_pending') from None
 
 
 def create_registration_app(config_path):
@@ -237,7 +303,31 @@ def create_registration_app(config_path):
         except Exception:
             return JSONResponse({'code': 'registration_unavailable'}, status_code=503)
 
-    app = Starlette(routes=[Route('/register', register, methods=['POST'])], lifespan=lifespan,
+    async def native(request):
+        try:
+            data = await request.json()
+            creating = request.url.path.endswith('/register')
+            fields = {'code_hash', 'username', 'recovery_binding'} | ({'password'} if creating else set())
+            if not isinstance(data, dict) or set(data) != fields:
+                raise RegistrationError('invalid_request')
+            if creating:
+                value = await run_in_threadpool(broker.register, data['code_hash'], data['username'], data['password'],
+                                                recovery_binding=data['recovery_binding'])
+            else:
+                value = await run_in_threadpool(broker.inspect_native, data['code_hash'], data['username'], data['recovery_binding'])
+                if value.get('rejected'):
+                    raise RegistrationError(value['rejected'])
+            return JSONResponse(value, headers={'Cache-Control': 'no-store'})
+        except RequestBodyError:
+            raise
+        except RegistrationError as error:
+            status = 409 if error.code == 'username_unavailable' else 422 if error.code in {'username_invalid', 'password_invalid', 'invalid_request'} else 503
+            return JSONResponse({'code': error.code}, status_code=status, headers={'Cache-Control': 'no-store'})
+        except Exception:
+            return JSONResponse({'code': 'registration_pending'}, status_code=503, headers={'Cache-Control': 'no-store'})
+
+    app = Starlette(routes=[Route('/register', register, methods=['POST']),
+                           Route('/native/register', native, methods=['POST']), Route('/native/status', native, methods=['POST'])], lifespan=lifespan,
                     exception_handlers={RequestBodyError: rejected_body})
     app.add_middleware(RequestBodyBoundary, limit=4096)
     return app
@@ -248,13 +338,23 @@ class RegistrationClient:
         self.socket_path, self.transport = socket_path, transport
 
     async def register(self, code_hash, username, password):
+        return await self._call('/register', {'code_hash': code_hash, 'username': username, 'password': password})
+
+    async def register_native(self, code_hash, username, password, recovery_binding):
+        return await self._call('/native/register', {'code_hash': code_hash, 'username': username,
+                                                     'password': password, 'recovery_binding': recovery_binding})
+
+    async def inspect_native(self, code_hash, username, recovery_binding):
+        return await self._call('/native/status', {'code_hash': code_hash, 'username': username,
+                                                  'recovery_binding': recovery_binding})
+
+    async def _call(self, path, payload):
         if not self.socket_path and self.transport is None:
             raise RegistrationError()
         async with httpx.AsyncClient(transport=self.transport or httpx.AsyncHTTPTransport(uds=self.socket_path),
                                      trust_env=False, follow_redirects=False, timeout=25) as wire:
             try:
-                response = await wire.post('http://pajio-registration/register',
-                         json={'code_hash': code_hash, 'username': username, 'password': password})
+                response = await wire.post('http://pajio-registration' + path, json=payload)
                 if len(response.content) > 2048:
                     raise RegistrationError()
                 value = response.json()
@@ -264,6 +364,12 @@ class RegistrationClient:
                 allowed = {'username_unavailable', 'username_invalid', 'password_invalid', 'invitation_unavailable', 'registration_pending'}
                 code = value.get('code') if isinstance(value, dict) else None
                 raise RegistrationError(code if code in allowed else 'registration_unavailable')
+            except (httpx.ConnectError, httpx.ConnectTimeout):
+                # Only a local transport failure while establishing the private
+                # socket proves that no HTTP request was dispatched. Never infer
+                # this from a broker JSON error, read/write timeout, or no index.
+                raise RegistrationError('registration_not_dispatched' if path == '/native/register'
+                                        else 'registration_unavailable') from None
             except (httpx.HTTPError, ValueError) as error:
                 if isinstance(error, RegistrationError):
                     raise

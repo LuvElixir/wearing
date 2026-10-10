@@ -1,5 +1,6 @@
+import {StateSwitch,Choice} from './experience/selection';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {AppState, Linking, Platform, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
+import {AppState, Linking, Platform, StyleSheet, Text, TextInput, View} from 'react-native';
 import {requireOptionalNativeModule} from 'expo';
 import * as Crypto from 'expo-crypto';
 import {CalendarDays, ListChecks} from 'lucide-react-native';
@@ -133,12 +134,12 @@ export function NativeCalendarPanel({scope, onDraft}: {scope: string; onDraft: (
         <Action label="新建系统日程" busy={busy} run={run} work={async () => {
           const text = await service.eventDialog(); if (mounted.current) setNotice(text); if (readEvents.current) await refreshEvents();
         }}/>
-        <View style={s.row}>{([7, 30] as const).map(range => <TactilePressable key={range} accessibilityRole="radio" accessibilityState={{checked: days === range}} disabled={!!busy}
-          onPress={() => {setDays(range); void run('读取日程', () => refreshEvents(range));}} style={[s.choice, days === range && s.chosen]}><Text style={s.body}>未来 {range} 天</Text></TactilePressable>)}</View>
+        <View style={s.row}>{([7, 30] as const).map(range => <Choice key={range}  selected={days === range} disabled={!!busy}
+          onPress={() => {setDays(range); void run('读取日程', () => refreshEvents(range));}} style={[s.choice, days === range && s.chosen]}><Text style={s.body}>未来 {range} 天</Text></Choice>)}</View>
         <Action label={eventsRead ? '刷新系统日程' : '允许并读取系统日程'} busy={busy} run={run} work={() => refreshEvents()}/>
         {eventsRead && !events.length && <Text style={s.description}>这段时间没有读到日程。</Text>}
         {events.map(event => <View key={event.key} style={s.section}>
-          <View style={s.row}><Switch accessibilityLabel={`带入对话：${event.title}`} value={selected.includes(event.key)} disabled={!!busy}
+          <View style={s.row}><StateSwitch accessibilityLabel={`带入对话：${event.title}`} value={selected.includes(event.key)} disabled={!!busy}
             onValueChange={() => setSelected(value => value.includes(event.key) ? value.filter(key => key !== event.key) : [...value, event.key])}/><View style={s.grow}><Text style={s.body}>{event.title}</Text><Text style={s.description}>{calendarEventTime(event)} · {event.calendar}</Text></View></View>
           <Action label={event.writable ? '在系统日历中编辑' : '查看系统日程'} busy={busy} run={run} work={async () => {
             const result = await service.eventDialog(event); if (mounted.current) setNotice(result); await refreshEvents();
@@ -160,7 +161,7 @@ export function NativeCalendarPanel({scope, onDraft}: {scope: string; onDraft: (
         {remindersRead && <>
           <Action label="新建提醒事项" busy={busy} run={run} disabled={!hydrated || !draftHydrated || !!pending || !lists.some(c => c.writable) || !!form} work={async () => {setEditing(null); setForm(emptyDraft(lists.find(c => c.writable)?.id));}}/>
           {!lists.some(c => c.writable) && <Text style={s.description}>没有可写入的提醒列表，请先在系统提醒事项中创建列表。</Text>}
-          <View style={s.between}><Text style={s.body}>显示已完成</Text><Switch accessibilityLabel="显示已完成的提醒" value={showCompleted} onValueChange={setShowCompleted} disabled={!!busy}/></View>
+          <View style={s.between}><Text style={s.body}>显示已完成</Text><StateSwitch accessibilityLabel="显示已完成的提醒" value={showCompleted} onValueChange={setShowCompleted} disabled={!!busy}/></View>
           {reminders.filter(r => showCompleted || !r.completed).map(item => <View key={item.id} style={s.section}>
             <Text style={s.body}>{item.completed ? '已完成 · ' : ''}{item.title}</Text><Text style={s.description}>{reminderTime(item)} · {item.calendar}</Text>
             {!!item.notes && <Text style={s.description}>{item.notes}</Text>}
@@ -186,9 +187,9 @@ export function NativeCalendarPanel({scope, onDraft}: {scope: string; onDraft: (
           {!!pending && <Text style={s.description}>请先核对上方的保存结果，避免重复创建。</Text>}
           <TextInput style={s.input} value={form.title} onChangeText={title => changeForm({title})} editable={!busy && !pending} maxLength={300} accessibilityLabel="提醒标题" placeholder="提醒我做什么" placeholderTextColor={colors.muted}/>
           <TextInput style={[s.input, s.notes]} multiline value={form.notes} onChangeText={notes => changeForm({notes})} editable={!busy && !pending} maxLength={5000} accessibilityLabel="提醒备注" placeholder="补充说明" placeholderTextColor={colors.muted}/>
-          {!editing && lists.filter(c => c.writable).map(c => <TactilePressable key={c.id} style={[s.choice, form.calendarId === c.id && s.chosen]} accessibilityRole="radio" accessibilityState={{checked: form.calendarId === c.id}} disabled={!!busy || !!pending}
-            onPress={() => changeForm({calendarId: c.id})}><Text style={s.body}>{c.title}</Text></TactilePressable>)}
-          <View style={s.between}><Text style={s.body}>设置日期</Text><Switch accessibilityLabel="为提醒设置日期" value={!!form.dueDate} disabled={!!busy || !!pending || !!editing?.dueDate || (!!editing && editing.allDay !== false)}
+          {!editing && lists.filter(c => c.writable).map(c => <Choice key={c.id} style={[s.choice, form.calendarId === c.id && s.chosen]}  selected={form.calendarId === c.id} disabled={!!busy || !!pending}
+            onPress={() => changeForm({calendarId: c.id})}><Text style={s.body}>{c.title}</Text></Choice>)}
+          <View style={s.between}><Text style={s.body}>设置日期</Text><StateSwitch accessibilityLabel="为提醒设置日期" value={!!form.dueDate} disabled={!!busy || !!pending || !!editing?.dueDate || (!!editing && editing.allDay !== false)}
             onValueChange={value => changeForm({dueDate: value ? new Date().toISOString() : null})}/></View>
           {editing && editing.allDay !== false ? <Text style={s.description}>日期和全天设置保留系统原样；如需调整，请在系统提醒事项中修改。</Text>
             : form.dueDate && <View pointerEvents={busy || pending ? 'none' : 'auto'}><TimeField label="提醒日期与时间" value={new Date(form.dueDate)} onChange={value => changeForm({dueDate: value.toISOString()})}/></View>}

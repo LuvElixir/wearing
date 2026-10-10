@@ -1,3 +1,4 @@
+import {StateSwitch,Choice, Segment} from './experience/selection';
 import {ChatImportPanel} from './ChatImportPanel';
 import {NativeNotificationSession, observeNotificationResponses} from './NativeNotificationsPanel';
 import {CalendarSeriesClient} from './calendar-series-client';
@@ -9,8 +10,6 @@ import CloudSessionPanel from './CloudSessionPanel';
 import {persistNativeConnection, restoreNativeConnection} from './native-session';
 import {assertNativeServiceAddress, initialConnection, PUBLIC_PAJIO_ENDPOINT, requiresNativeSignIn} from './connection-default';
 import {developmentConnectionsEnabled} from './development-access';
-import {PajamaBear} from './PajamaBear';
-import {BrandWordmark} from './BrandWordmark';
 import BriefPanel from './BriefPanel';
 import type {OngoingCreateRequest} from './ongoing-management-forms';
 import {AppThemeProvider, useAppTheme, useThemedStyles, type AppColors} from './app-theme';
@@ -22,8 +21,8 @@ import {AppThemeProvider, useAppTheme, useThemedStyles, type AppColors} from './
 import {useEffect, useLayoutEffect, useRef, useState, type ReactNode} from 'react';
 import {router, useLocalSearchParams} from 'expo-router';
 import {AppState, BackHandler, Image, Keyboard, Pressable, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput as Input, useWindowDimensions, View, type StyleProp, type ViewStyle} from 'react-native';
-import {Button, Checkbox, MD3DarkTheme, MD3LightTheme, PaperProvider, Switch, Text, TextInput} from 'react-native-paper';
-import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
+import {Button, MD3DarkTheme, MD3LightTheme, PaperProvider, Text, TextInput} from 'react-native-paper';
+import {SafeAreaProvider, SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {StatusBar} from 'expo-status-bar';
 import * as Crypto from 'expo-crypto';
 import * as Picker from 'expo-image-picker';
@@ -45,7 +44,7 @@ import {commitRecordReceipt, commitRecordSnapshot, localRecords} from './record-
 import {serviceFetch} from './transport';
 import {observeDiagnosticError} from './diagnostics-client';
 import {BottomNavigation, type BottomNavigationPage} from './experience/BottomNavigation';
-import {IconButton, Sheet, TactilePressable} from './experience/primitives';
+import {IconButton, Sheet} from './experience/primitives';
 import {MenuRow, OngoingPanel} from './PersonalPanels';
 import {ConnectedCalendarPanel, ConnectedTodayPanel} from './ConnectedCalendarViews';
 import {CalendarSeriesPanel} from './CalendarSeriesPanel';
@@ -143,6 +142,7 @@ function ReadingScrollView({memory, rememberKey, children, contentContainerStyle
 }
 
 function Mobile() {
+  const safeInsets = useSafeAreaInsets();
   const {colors: c, mode} = useAppTheme();
   const s = useThemedStyles(makeStyles);
 
@@ -589,7 +589,7 @@ function Mobile() {
   const visibleRecords=records.filter(r=>!r.deleted_at);
   const events = visibleRecords.filter(r => r.kind === 'event').sort((a, b) => (a.start_at || '').localeCompare(b.start_at || ''));
   const todayEvents = today ? events.filter(r => eventOccursOn(r, today)) : [];
-  function row(item: RecordItem) {const edit = pendingMutations.find(value => value.id === item.id);return <View key={item.id} style={s.row}>{item.kind === 'task' && !item.deleted_at && <Checkbox.Android disabled={!!connection&&writingRecords.includes(scopeOf(connection)+item.id)||!!edit&&!!edit.action&&edit.action!=='edit'} status={item.completed ? 'checked' : 'unchecked'} onPress={() => toggle(item)} accessibilityLabel={(item.completed ? '重开：' : '完成：') + item.title}/>}<Pressable accessibilityRole="button" accessibilityLabel={item.title} onPress={() => open(item)} style={({pressed}) => [s.recordBody, pressed && s.pressed]}><Text numberOfLines={2} style={[s.recordTitle, item.completed && {textDecorationLine: 'line-through', color: c.muted}]}>{item.title}</Text><Text style={s.recordMeta}>{item.kind === 'event' ? (/^\d{4}-\d{2}-\d{2}$/.test(item.start_at || '') ? `${Number(item.start_at!.slice(5,7))}月${Number(item.start_at!.slice(8,10))}日 · 全天` : new Date(item.start_at!).toLocaleString('zh-CN', {month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'})) : item.capture ? stages[item.capture.state] || '原件已保存' : kinds[item.kind]}</Text>{edit && <Text style={s.recordMeta}>{mutationLabel(edit)}</Text>}{item.content !== item.title && <Text numberOfLines={2} style={s.excerpt}>{item.content}</Text>}</Pressable></View>;}
+  function row(item: RecordItem) {const edit = pendingMutations.find(value => value.id === item.id);return <View key={item.id} style={s.row}>{item.kind === 'task' && !item.deleted_at && <Choice multiple style={{width:44,minHeight:44,paddingHorizontal:0,paddingVertical:0,justifyContent:'center'}} disabled={!!connection&&writingRecords.includes(scopeOf(connection)+item.id)||!!edit&&!!edit.action&&edit.action!=='edit'} selected={!!item.completed} onPress={() => toggle(item)} accessibilityLabel={(item.completed ? '重开：' : '完成：') + item.title}/>}<Pressable accessibilityRole="button" accessibilityLabel={item.title} onPress={() => open(item)} style={({pressed}) => [s.recordBody, pressed && s.pressed]}><Text numberOfLines={2} style={[s.recordTitle, item.completed && {textDecorationLine: 'line-through', color: c.muted}]}>{item.title}</Text><Text style={s.recordMeta}>{item.kind === 'event' ? (/^\d{4}-\d{2}-\d{2}$/.test(item.start_at || '') ? `${Number(item.start_at!.slice(5,7))}月${Number(item.start_at!.slice(8,10))}日 · 全天` : new Date(item.start_at!).toLocaleString('zh-CN', {month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'})) : item.capture ? stages[item.capture.state] || '原件已保存' : kinds[item.kind]}</Text>{edit && <Text style={s.recordMeta}>{mutationLabel(edit)}</Text>}{item.content !== item.title && <Text numberOfLines={2} style={s.excerpt}>{item.content}</Text>}</Pressable></View>;}
 
 
   const readingKey = connection && (screen === 'today' || screen === 'tasks' || (screen === 'memory' && !memoryPath && !memoryFile && !memorySection) || (screen === 'companion' && !hubSection))
@@ -613,10 +613,10 @@ function Mobile() {
         {form.media.map(media => <View key={media.id} style={{flexDirection: 'row', alignItems: 'center'}}><View style={{flex: 1}}><Original media={media}/></View><Button accessibilityLabel={'从草稿移除：' + media.name} onPress={() => changeForm(p => ({...p, media: p.media.filter(m => m.id !== media.id)}))}><X size={20} color={c.muted}/></Button></View>)}
         {moreCapture && <View style={s.captureMore}>
         <View style={s.actions}><Button icon={() => <Camera size={20} color={c.accent}/>} onPress={() => photo(true)}>拍一下</Button><Button icon={() => <Mic size={20} color={voice.isRecording ? c.danger : c.accent}/>} onPress={recordVoice}>{voice.isRecording ? '说完了 ' + Math.floor(voice.durationMillis / 1000) + 's' : '说一句'}</Button><Button onPress={() => photo(false)}>选图</Button></View>
-        <View style={s.segment}>{(Object.keys(kinds) as Kind[]).map(kind => <Pressable key={kind} accessibilityRole="button" accessibilityState={{selected: form.kind === kind}} onPress={() => {changeForm(p => ({...p, kind})); if (!voice.isRecording) setMoreCapture(false);}} style={[s.kindItem, form.kind === kind && s.kindSelected]}><Text style={[s.kindText, form.kind === kind && {color: c.ink, fontWeight: '600'}]}>{kinds[kind]}</Text></Pressable>)}</View>
+        <View style={s.segment}>{(Object.keys(kinds) as Kind[]).map(kind => <Choice variant="chip" key={kind} selected={form.kind === kind} onPress={() => {changeForm(p => ({...p, kind})); if (!voice.isRecording) setMoreCapture(false);}} style={[s.kindItem, form.kind === kind && s.kindSelected]}><Text style={[s.kindText, form.kind === kind && {color: c.ink, fontWeight: '600'}]}>{kinds[kind]}</Text></Choice>)}</View>
 </View>}
         {form.kind === 'event' && <View style={{gap: 16, marginVertical: 16}}><TimeField label="开始" value={new Date(form.start)} onChange={date => changeForm(p => ({...p, start: date.toISOString()}))}/><TimeField label="结束" value={new Date(form.end)} onChange={date => changeForm(p => ({...p, end: date.toISOString()}))}/></View>}
-        {form.media.length > 0 && <View style={s.switchRow}><Text style={{flex: 1}}>让 Pajio 整理原件</Text><Switch value={form.organize} onValueChange={organize => changeForm(p => ({...p, organize}))} accessibilityLabel="让 Pajio 整理原件"/></View>}
+        {form.media.length > 0 && <View style={s.switchRow}><Text style={{flex: 1}}>让 Pajio 整理原件</Text><StateSwitch value={form.organize} onValueChange={organize => changeForm(p => ({...p, organize}))} accessibilityLabel="让 Pajio 整理原件"/></View>}
         <View style={s.saveRow}><Pressable accessibilityRole="button" accessibilityLabel="添加照片、语音或选择记录类型" accessibilityState={{expanded: moreCapture}} onPress={() => setMoreCapture(value => voice.isRecording || !value)} style={({pressed}) => [s.moreButton, moreCapture && s.navSelected, pressed && s.pressed]}><Plus size={22} strokeWidth={1.7} color={c.muted}/></Pressable><Text style={[s.muted, {flex: 1, fontSize: 12}]}>{form.kind === 'note' ? '先留住，不必想清楚。' : kinds[form.kind]}</Text><Button mode="contained" onPress={save} loading={saving} disabled={captureLocked || !ready} contentStyle={s.buttonSize}>记下</Button></View>
       </View>
       {pending.length > 0 && <View style={s.section}><Text variant="titleMedium">{pending.length} 条已留在本机</Text>{pending.map(item => <View key={item.id} style={s.pending}><View style={{flex: 1}}><Text variant="bodyLarge">{item.draft.title}</Text><Text style={s.muted}>{item.state === 'attention' ? '需要再看一下：' + item.error : item.state === 'sending' ? '正在同步…' : connection?.development ? '已保留，点同步后发送。' : '等连接恢复，再同步给 Pajio。'}</Text></View>{item.state === 'attention' && <Button disabled={manualSync||busy} onPress={()=>void retryPending(item)}>再试一次</Button>}</View>)}</View>}
@@ -625,9 +625,9 @@ function Mobile() {
       </View><View style={s.section}><Text variant="titleLarge">最近记下的</Text>{visibleRecords.some(r => r.kind === 'note') ? visibleRecords.filter(r => r.kind === 'note').slice(0, 5).map(row) : <Text style={s.empty}>一个还没成形的想法，也可以先留在这里。</Text>}</View>
     </>}
     {screen === 'tools' && <><Text style={s.heading}>更多</Text><MenuRow title="文件" icon={<Folder size={23} color={c.muted}/>} onPress={()=>openReviewTool('files')}/><MenuRow title="持续目标" icon={<Target size={23} color={c.muted}/>} onPress={()=>openReviewTool('goals')}/><MenuRow title="定时安排" icon={<Clock3 size={23} color={c.muted}/>} onPress={()=>openReviewTool('schedules')}/><MenuRow title="连接与身份" icon={<Settings size={23} color={c.muted}/>} onPress={()=>setScreen('settings')}/></>}
-    {(screen === 'agenda' || screen === 'notes') && <><Text style={s.heading}>日历与笔记</Text><Text style={s.muted}>安排和想法，都在这里。</Text><View accessibilityRole="tablist" style={s.reviewTabs}>{([{view:'agenda',title:'日历'},{view:'notes',title:'笔记'}] as const).map(item=><TactilePressable key={item.view} accessibilityRole="tab" accessibilityState={{selected:screen===item.view}} onPress={()=>setScreen(item.view)} style={[s.reviewTab,screen===item.view&&s.reviewTabActive]}><Text style={[s.muted,screen===item.view&&{color:c.ink,fontWeight:'600'}]}>{item.title}</Text></TactilePressable>)}</View></>}
+    {(screen === 'agenda' || screen === 'notes') && <><Text style={s.heading}>日历与笔记</Text><Text style={s.muted}>安排和想法，都在这里。</Text><View accessibilityRole="tablist" style={s.reviewTabs}>{([{view:'agenda',title:'日历'},{view:'notes',title:'笔记'}] as const).map(item=><Segment key={item.view}  selected={screen===item.view} onPress={()=>setScreen(item.view)} style={[s.reviewTab,screen===item.view&&s.reviewTabActive]}><Text style={[s.muted,screen===item.view&&{color:c.ink,fontWeight:'600'}]}>{item.title}</Text></Segment>)}</View></>}
     {screen === 'agenda' && connection && <ConnectedCalendarPanel onSeriesCreate={day=>openSeries({initialDay:day})} connection={connection} records={visibleRecords} selected={calendarDate} today={today} isCurrent={()=>current.current===connection} onSelect={setSelectedDate} onRecord={open} onNative={()=>setScreen('native')} onCreate={day=>{const start=localDateTime(day,9);changeForm(p=>({...p,kind:'event',start:start.toISOString(),end:new Date(start.getTime()+1800000).toISOString()}));setScreen('capture');}}/>}
-    {screen === 'tasks' && <><Text style={s.heading}>任务</Text><Text style={s.muted}>查看进展、结果和定时安排。</Text><View accessibilityRole="tablist" style={s.reviewTabs}>{([{id:'tasks',title:'任务'},{id:'lists',title:'清单'},{id:'schedules',title:'定时'}] as const).map(tab=><TactilePressable key={tab.id} accessibilityRole="tab" accessibilityState={{selected:taskTab===tab.id}} onPress={()=>setTaskTab(tab.id)} style={[s.reviewTab,taskTab===tab.id&&s.reviewTabActive]}><Text style={[s.muted,taskTab===tab.id&&{color:c.ink,fontWeight:'600'}]}>{tab.title}</Text></TactilePressable>)}</View>{taskTab==='tasks'?<View style={{gap:24}}>{connection&&<AgentTaskList connection={connection} onTask={openActivityTask} onGoals={()=>setTaskTab('goals')} onDraft={prepareMessage}/>}</View>:taskTab==='lists'?connection?<TaskListsPanel connection={connection} onRecord={open} onChanged={()=>void synchronize(current.current,false)}/>:null:connection?<OngoingPanel key={scopeOf(connection)+taskTab} connection={connection} kind={taskTab} createRequest={taskCreate} onManage={()=>prepareMessage(taskTab==='goals'?'我想交代一个持续目标：':'请帮我安排：')} onTask={openActivityTask}/>:null}{taskTab==='schedules'&&<ScheduleSuggestions onCreate={request=>{setTaskCreate({...request,id:Crypto.randomUUID()});setTaskTab('schedules');}}/>}</>}
+    {screen === 'tasks' && <><Text style={s.heading}>任务</Text><Text style={s.muted}>查看进展、结果和定时安排。</Text><View accessibilityRole="tablist" style={s.reviewTabs}>{([{id:'tasks',title:'任务'},{id:'lists',title:'清单'},{id:'schedules',title:'定时'}] as const).map(tab=><Segment key={tab.id}  selected={taskTab===tab.id} onPress={()=>setTaskTab(tab.id)} style={[s.reviewTab,taskTab===tab.id&&s.reviewTabActive]}><Text style={[s.muted,taskTab===tab.id&&{color:c.ink,fontWeight:'600'}]}>{tab.title}</Text></Segment>)}</View>{taskTab==='tasks'?<View style={{gap:24}}>{connection&&<AgentTaskList connection={connection} onTask={openActivityTask} onGoals={()=>setTaskTab('goals')} onDraft={prepareMessage}/>}</View>:taskTab==='lists'?connection?<TaskListsPanel connection={connection} onRecord={open} onChanged={()=>void synchronize(current.current,false)}/>:null:connection?<OngoingPanel key={scopeOf(connection)+taskTab} connection={connection} kind={taskTab} createRequest={taskCreate} onManage={()=>prepareMessage(taskTab==='goals'?'我想交代一个持续目标：':'请帮我安排：')} onTask={openActivityTask}/>:null}{taskTab==='schedules'&&<ScheduleSuggestions onCreate={request=>{setTaskCreate({...request,id:Crypto.randomUUID()});setTaskTab('schedules');}}/>}</>}
     {screen === 'calendar-series' && connection && <CalendarSeriesPanel connection={connection} {...seriesTarget} isCurrent={()=>current.current===connection} onOpenSeries={seriesId=>openSeries({seriesId})} onChanged={result=>{if(!seriesTarget.seriesId&&!seriesTarget.occurrence)openSeries({seriesId:result.id});}}/>}
     {screen === 'task-detail' && connection && openedTask && <TaskDetailPanel connection={connection} taskId={openedTask} isCurrent={()=>current.current===connection} onConversation={openTaskConversation} onArtifact={openArtifact}/>}
     {screen === 'bookmarks' && connection && <BookmarksPanel connection={connection} outbox={outbox} mutations={mutations} isCurrent={()=>current.current===connection} onChanged={()=>{void synchronize(current.current,false);}}/>}
@@ -640,14 +640,14 @@ function Mobile() {
       <Text style={s.muted}>已有记录和未同步内容，会分别留在各自的身份里。</Text>
       <View style={{gap: 20, marginTop: 24}}>
         {accountPanel}
-        {connection?.session?.accessToken && identities.length > 1 ? <View style={{gap:8}}><Text style={s.muted}>当前身份</Text>{identities.map(item => <Button key={item.id} mode={connection.identity===item.id?'contained-tonal':'text'} disabled={busy||captureLocked} onPress={()=>{void activateConnection({...connection, identity:item.id}).catch(error=>setMessage(error instanceof Error?error.message:'身份暂时无法切换。'));}}>{item.name}</Button>)}</View> : null}
+        {connection?.session?.accessToken && identities.length > 1 ? <View style={{gap:8}}><Text style={s.muted}>当前身份</Text>{identities.map(item => <Choice key={item.id} label={item.name} selected={connection.identity===item.id} disabled={busy||captureLocked} onPress={()=>{void activateConnection({...connection, identity:item.id}).catch(error=>setMessage(error instanceof Error?error.message:'身份暂时无法切换。'));}}/>)}</View> : null}
         {developmentConnectionsEnabled() ? <View style={{borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8, gap: 14}}>
           <Button icon={advancedConnection ? 'chevron-up' : 'chevron-down'} accessibilityLabel="开发连接" accessibilityState={{expanded: advancedConnection}} onPress={() => setAdvancedConnection(value => !value)}>开发连接</Button>
           {advancedConnection ? <View style={{gap: 16}}>
             <Text style={s.muted}>仅供已启用开发连接的开发版验收，不会迁移其他服务的账户或草稿。</Text>
             <TextInput mode="outlined" label="开发服务地址" accessibilityLabel="开发服务地址" value={address} onChangeText={setAddress} autoCapitalize="none" autoCorrect={false} keyboardType="url"/>
             <TextInput mode="outlined" label="身份标识" accessibilityLabel="身份标识" value={identity} onChangeText={setIdentity} autoCapitalize="none"/>
-            {identities.map(i => <Button key={i.id} mode={identity === i.id ? 'contained-tonal' : 'text'} onPress={() => setIdentity(i.id)}>{i.name}</Button>)}
+            {identities.map(i => <Choice key={i.id} selected={identity === i.id} label={i.name} onPress={() => setIdentity(i.id)}/>)}
             <Button mode="contained-tonal" onPress={connect} disabled={busy || captureLocked} loading={busy} contentStyle={s.buttonSize}>连接 Pajio</Button>
           </View> : null}
         </View> : null}
@@ -661,13 +661,12 @@ function Mobile() {
 
   </ReadingScrollView>;
   if (deletionFrozen && screen !== 'connection') return <SafeAreaView style={{flex: 1, backgroundColor: c.canvas}}><StatusBar style={mode === 'night' ? 'light' : 'dark'}/><ScrollView contentContainerStyle={s.scroll}>{deletionPanel}{message ? <Text accessibilityLiveRegion="polite" style={s.muted}>{message}</Text> : null}<Button onPress={() => setScreen('connection')}>重新登录或切换账户</Button></ScrollView></SafeAreaView>;
-  if (requiresNativeSignIn(connection, Platform.OS) && !(developmentConnectionsEnabled() && screen==='connection' && advancedConnection)) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.scroll,{flexGrow:1,justifyContent:'center',maxWidth:480,width:'100%',alignSelf:'center',gap:24}]}>
-    <View style={{alignItems:'center',gap:12}}><PajamaBear size={184}/><BrandWordmark width={116} color={c.ink}/><Text style={s.muted}>说一声，我来做。</Text></View>
+  if (requiresNativeSignIn(connection, Platform.OS) && !(developmentConnectionsEnabled() && screen==='connection' && advancedConnection)) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}><ScrollView automaticallyAdjustKeyboardInsets={false} keyboardDismissMode={Platform.OS==='ios'?'interactive':'on-drag'} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.scroll,{flexGrow:1,justifyContent:'flex-start',maxWidth:480,width:'100%',alignSelf:'center',gap:16,paddingHorizontal:28,paddingTop:Math.max(8,64-safeInsets.top),paddingBottom:24}]}>
     {accountPanel}
     {message?<Text accessibilityLiveRegion="polite" style={s.muted}>{message}</Text>:null}
     {!ready?<Button onPress={()=>setStartupAttempt(value=>value+1)}>重新读取本机记录</Button>:null}
     {developmentConnectionsEnabled()?<Button onPress={()=>{setAdvancedConnection(true);setScreen('connection');}}>开发连接</Button>:null}
-  </ScrollView></SafeAreaView>;
+  </ScrollView></KeyboardAvoidingView></SafeAreaView>;
   if(screen==='remote-device' && connection && !deletionFrozen) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}><NativeRemoteDevicePanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')+'|'+resource} connection={connection} resource={resource||''} name={(deviceName||'').slice(0,100)} kind={deviceKind==='android'?'android':'computer'} onBack={goBack}/></KeyboardAvoidingView></SafeAreaView>;
   if(screen==='onboarding' && connection && !deletionFrozen) return <View style={{flex:1}}><AppBackdrop/><NativeSyncSession connection={connection} isCurrent={()=>current.current===connection} onRecordsChanged={()=>{void synchronize(current.current,false);}}/><SafeAreaView style={{flex:1,backgroundColor:'transparent'}}><StatusBar style={mode==='night'?'light':'dark'}/><OnboardingPanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')} connection={connection} outfit={wardrobe.state.outfit} isCurrent={()=>current.current===connection&&!deletionFrozen} onComplete={destination=>{if(current.current===connection){onboardingSeen.current=connection;setBriefingIntro(destination==='briefing');setScreen(destination||'today');}}} onClose={()=>{if(current.current===connection){onboardingSeen.current=connection;setScreen(onboardingReturn.current);}}}/></SafeAreaView></View>;
   return <View style={{flex:1}}><AppBackdrop/>
@@ -716,7 +715,7 @@ function ThemedApp() {
 }
 export default function App() {return <SafeAreaProvider><AppThemeProvider><ThemedApp/></AppThemeProvider></SafeAreaProvider>;}
 const makeStyles = (c: AppColors) => StyleSheet.create({
-  reviewTabs:{flexDirection:"row",gap:4,padding:4,borderRadius:18,backgroundColor:c.soft,marginTop:24,marginBottom:20},
+  reviewTabs:{flexDirection:"row",gap:4,borderBottomWidth:1,borderBottomColor:c.line,marginTop:24,marginBottom:20},
   reviewTab:{flex:1,minHeight:44,alignItems:"center",justifyContent:"center",borderRadius:14,paddingHorizontal:8},
   reviewTabActive:{backgroundColor:c.surface},
   reviewRow: {flexDirection:"row",alignItems:"center",gap:16,minHeight:78,borderBottomWidth:1,borderBottomColor:c.line,paddingVertical:16},
@@ -735,7 +734,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
   composerFocused: {borderColor: c.accent},
   input: {minHeight: 104, maxHeight: 240, fontSize: 17, lineHeight: 28, color: c.ink, textAlignVertical: 'top', outlineWidth: 0},
   actions: {flexDirection: 'row', flexWrap: 'wrap', marginVertical: 4, marginLeft: -10},
-  segment: {flexDirection: 'row', alignSelf: 'flex-start', padding: 3, backgroundColor: c.soft, borderRadius: 14, marginTop: 12},
+  segment: {flexDirection: 'row', flexWrap:'wrap', gap:8, marginTop: 12},
   kindItem: {paddingHorizontal: 18, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12},
   kindSelected: {backgroundColor: c.surface}, kindText: {fontSize: 13, color: c.muted},
   captureMore: {borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8}, moreButton: {width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center'},

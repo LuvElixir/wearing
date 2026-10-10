@@ -12,10 +12,11 @@ import subprocess
 from .device_provisioning import Inventory, ProvisionError, VM
 from .device_retirement import RETENTION_SOURCE
 from .core_reservations import CORE_RESERVATIONS_SOURCE
+from .resource_reservations import RESOURCE_RESERVATIONS_SOURCE
 
 # Runs only with the administrator's preconfigured SSH access. Inputs are JSON
 # on stdin, not shell interpolation; pvesh/qm/lvs use fixed argument arrays.
-REMOTE = RETENTION_SOURCE + CORE_RESERVATIONS_SOURCE + r'''
+REMOTE = RETENTION_SOURCE + CORE_RESERVATIONS_SOURCE + RESOURCE_RESERVATIONS_SOURCE + r'''
 import fcntl,hashlib,json,math,os,re,subprocess,sys,time
 p=json.load(sys.stdin)
 def fail(code):
@@ -65,26 +66,36 @@ def inventory():
     except (ValueError,TypeError,KeyError,OSError):fail('group_restore_capacity_unconfirmed')
     try:cores=core_reservations(observed,node=p['node'])
     except (ValueError,TypeError,KeyError,OSError,subprocess.SubprocessError):fail('core_reservation_evidence_invalid')
+    try:resources=resource_reservations(observed,node=p['node'])
+    except (ValueError,TypeError,KeyError,OSError,subprocess.SubprocessError):fail('resource_reservation_evidence_invalid')
     return {'node':p['node'],'storage':p['storage'],'observed_at':time.time(),
             'physical_cores':int(status['cpuinfo']['cores'])*int(status['cpuinfo']['sockets']),
             'memory_mib':int(status['memory']['total'])//1048576,
             'available_memory_mib':int(status['memory']['available'])//1048576,
             'storage_mib':int(storage['total'])//1048576,'available_storage_mib':int(storage['avail'])//1048576,
-            'committed_storage_mib':used,'vms':observed,'core_promises':cores}
+            'committed_storage_mib':used,'vms':observed,'core_promises':cores,'resource_promises':resources}
 def capacity_totals(inv):
-    vms=inv['vms'];cores=inv['core_promises'];core_ids={v['vmid'] for v in cores}
-    memory=sum(v['memory_mib'] for v in cores);cpus=sum(v['vcpus'] for v in cores);backup=0
+    vms=inv['vms'];cores={v['vmid']:v for v in inv['core_promises']};promises=dict(cores)
+    for item in inv.get('resource_promises',[]):
+        old=promises.get(item['vmid'])
+        if old and (item['kind']!='core' or any(item[k]!=old[k] for k in ('vcpus','memory_mib','disk_mib'))):raise ValueError('resource_promise_overlap_conflict')
+        promises[item['vmid']]=item
+    memory=cpus=backup=0
     slots={'linux':0,'android':0}
-    for core in cores:
+    for core in promises.values():
         current=next((v for v in vms if v['vmid']==core['vmid']),None)
+        if not current or not current['retirement_sha256']:
+            memory+=core['memory_mib'];cpus+=core['vcpus']
+            if core.get('kind') in slots:slots[core['kind']]+=1
         backup+=core['disk_mib']+(core['disk_mib']+4 if current is None else max(0,core['disk_mib']-current['disk_mib']))
     for item in vms:
+        if item['vmid'] in promises:continue
         o=item['owner']
         if o:
             backup+=o['disk_mib']+max(0,o['disk_mib']-item['disk_mib'])
             if not item['retirement_sha256']:
                 memory+=max(item['memory_mib'],o['memory_mib']);cpus+=max(item['vcpus'],o['vcpus']);slots[o['kind']]+=1
-        elif item['state']!='stopped' and not item['template'] and item['vmid'] not in core_ids:
+        elif item['state']!='stopped' and not item['template']:
             memory+=item['memory_mib'];cpus+=item['vcpus']
     return {'vcpus':cpus,'memory_mib':memory,'recovery_and_missing_disk_mib':backup,'linux_slots':slots['linux'],'android_slots':slots['android']}
 def checked_target(spec,expected):
@@ -113,19 +124,27 @@ if action=='clone_stopped':
     # Final host-side fence serializes even separate operator processes. Known
     # staged devices count their promised memory/CPU, despite being powered off.
     totals=capacity_totals(inv)
+    promise=next((v for v in inv.get('resource_promises',[]) if v['vmid']==spec['vmid']),None)
+    if any(v['purpose']=='invitation' and v['kind']!='core' and v['vmid']!=spec['vmid'] and (v['request_id']==spec['request_id'] or (v['tenant_id'],v['kind'])==(spec['tenant_id'],spec['kind'])) for v in inv.get('resource_promises',[])):fail('preclaim_binding_conflict')
+    if promise and (promise['purpose']!='invitation' or any(promise[k]!=spec[k] for k in ('request_id','tenant_id','kind','vcpus','memory_mib','disk_mib')) or promise['owner'] not in (None,expected)):fail('preclaim_binding_conflict')
+    if promise and promise['owner'] is not None:fail('clone_outcome_unknown_no_replay')
+    if promise and time.time()>=promise['expires_at']:fail('preclaim_expired')
     memory=totals['memory_mib'];cpus=totals['vcpus'];backup=totals['recovery_and_missing_disk_mib']
     slots={k:totals[k+'_slots']+policy['external_'+k+'_slots'] for k in ('linux','android')}
-    for item in vms:
+    for item in vms+inv.get('resource_promises',[]):
         o=item['owner']
         if o and (o['request_id']==spec['request_id'] or o['resource_id']==spec['resource_id'] or (o['tenant_id'],o['kind'])==(spec['tenant_id'],spec['kind'])):fail('device_binding_conflict')
-    if memory+spec['memory_mib']+policy['host_memory_mib']>inv['memory_mib'] or cpus+spec['vcpus']+policy['host_cores']>inv['physical_cores']:fail('host_capacity_changed')
-    slots[spec['kind']]+=1
+    if memory+(0 if promise else spec['memory_mib'])+policy['host_memory_mib']>inv['memory_mib'] or cpus+(0 if promise else spec['vcpus'])+policy['host_cores']>inv['physical_cores']:fail('host_capacity_changed')
+    if not promise:slots[spec['kind']]+=1
     if any(slots[k]>policy[k+'_slots'] for k in slots):fail('host_capacity_changed')
-    extra=spec['disk_mib']*2+4+backup
+    extra=(0 if promise else spec['disk_mib']*2+4)+backup
     if inv['committed_storage_mib']+extra>inv['storage_mib']*(100-policy['disk_free_percent'])//100:fail('host_capacity_changed')
     if inv['available_storage_mib']<extra+inv['storage_mib']*policy['disk_free_percent']//100 or inv['available_memory_mib']<spec['memory_mib']+policy['host_memory_mib']:fail('host_capacity_changed')
     source_config=config(template['vmid'])
     if int(source_config.get('onboot',0))!=0:fail('template_autostart_forbidden')
+    if promise:
+        try:bind_resource_claim(promise,expected)
+        except (ValueError,OSError):fail('preclaim_binding_unconfirmed')
     # Ownership is part of qm's atomic clone creation, never attached afterward
     # to an unowned VMID. Existing VMIDs make qm clone fail rather than overwrite.
     run_change(['qm','clone',str(template['vmid']),str(spec['vmid']),'--full','1','--storage',p['storage'],

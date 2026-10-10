@@ -1,7 +1,8 @@
+import {Choice} from './experience/selection';
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import {Check, FileText, MessageCircle, RefreshCw, Trash2, Upload} from 'lucide-react-native';
+import { FileText, MessageCircle, RefreshCw, Trash2, Upload} from 'lucide-react-native';
 import {ApiError, scopeOf, type Connection} from './core';
 import {storage} from './storage';
 import {OnboardingActivity} from './onboarding-client';
@@ -96,7 +97,7 @@ function ChatImportContent({connection, identityName, shareId, isCurrent, onShar
       <Text style={s.muted}>图片、语音、视频及文件附件均未导入，Pajio 不会看到或听到它们的内容。{draft.preview.attachments.length ? `ZIP 另有 ${draft.preview.attachments.length} 个附件，仅在本机检查文件目录。` : ''}</Text>
       {draft.preview.attachments.slice(0, 8).map((item, i) => <Text key={i} style={s.muted}>未导入 · {item.name}</Text>)}
       <Text style={s.heading}>哪一位是你？</Text><Text style={s.muted}>可不选。即使选了，也会区分你的原话、转述和其他人的观点。</Text>
-      <View accessibilityRole="radiogroup" style={s.options}>{[null, ...draft.preview.authors].map(author => <TactilePressable key={author ?? '__unknown__'} accessibilityRole="radio" accessibilityState={{checked: draft.selfAuthor === author}} accessibilityLabel={author || '暂不指定本人'} disabled={busy || !!pending} onPress={() => {void run(() => chooseAuthor(author));}} style={[s.option, draft.selfAuthor === author && {borderColor: c.accent}]}><Text style={s.copy}>{author || '暂不指定'}</Text>{draft.selfAuthor === author ? <Check size={16} color={c.accent}/> : null}</TactilePressable>)}</View>
+      <View accessibilityRole="radiogroup" style={s.options}>{[null, ...draft.preview.authors].map(author => <Choice key={author ?? '__unknown__'}  selected={draft.selfAuthor === author} accessibilityLabel={author || '暂不指定本人'} disabled={busy || !!pending} onPress={() => {void run(() => chooseAuthor(author));}} style={[s.option, draft.selfAuthor === author && {borderColor: c.selectionBorder}]}><Text style={s.copy}>{author || '暂不指定'}</Text></Choice>)}</View>
       <Text style={s.heading}>消息预览</Text>
       {draft.preview.messages.slice(0, messageLimit).map(message => <View key={message.id} style={s.message}><Text style={s.author}>{message.author}</Text><Text style={s.muted}>{message.sent_at}</Text><Text selectable style={s.copy}>{message.text || '（原文件未提供文字内容）'}</Text></View>)}
       {messageLimit < draft.preview.messages.length ? <PrimaryButton label={`继续预览（剩余 ${draft.preview.messages.length - messageLimit} 条）`} tone="quiet" disabled={busy} onPress={() => setMessageLimit(n => n + 20)}/> : null}
