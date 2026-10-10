@@ -1,0 +1,193 @@
+{
+  "kind": "post-ui-readonly-snapshot",
+  "expected_source_sha256": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+  "targets": {
+    "a-linux": {
+      "resource_id": "computer_1d7ce6e0190f388d83c8",
+      "public": {
+        "state": "agent_ready",
+        "device_confirmed": true,
+        "epoch": 21,
+        "gateway_epoch": 42,
+        "control_generation": 44
+      },
+      "inventory": {
+        "online": true,
+        "paused": false,
+        "control_pending": false,
+        "needs_review": false
+      },
+      "observed_at": "2026-10-10T05:01:16.926344+00:00",
+      "native": {
+        "state": "agent_ready",
+        "epoch": 42
+      },
+      "media": {
+        "ready": true,
+        "sessions": []
+      },
+      "service": {
+        "MainPID": "50554",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "source": {
+        "sha256": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o644",
+        "is_symlink": false
+      },
+      "checks": {
+        "public_agent_ready": true,
+        "inventory_ready": true,
+        "native_agent_ready": true,
+        "media_ready_clean": true,
+        "service_running": true,
+        "source_permissions": true,
+        "expected_source": true
+      },
+      "passed": true
+    },
+    "b-linux": {
+      "resource_id": "computer_deba852ded6940779e54",
+      "public": {
+        "state": "agent_ready",
+        "device_confirmed": true,
+        "epoch": 5,
+        "gateway_epoch": 10,
+        "control_generation": 10
+      },
+      "inventory": {
+        "online": true,
+        "paused": false,
+        "control_pending": false,
+        "needs_review": false
+      },
+      "observed_at": "2026-10-10T05:01:18.614268+00:00",
+      "native": {
+        "state": "agent_ready",
+        "epoch": 10
+      },
+      "media": {
+        "ready": true,
+        "sessions": []
+      },
+      "service": {
+        "MainPID": "49713",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "source": {
+        "sha256": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o644",
+        "is_symlink": false
+      },
+      "checks": {
+        "public_agent_ready": true,
+        "inventory_ready": true,
+        "native_agent_ready": true,
+        "media_ready_clean": true,
+        "service_running": true,
+        "source_permissions": true,
+        "expected_source": true
+      },
+      "passed": true
+    },
+    "a-android": {
+      "resource_id": "phone_6460677a198b1872315b",
+      "public": {
+        "state": "agent_ready",
+        "device_confirmed": true,
+        "epoch": 18,
+        "gateway_epoch": 36,
+        "control_generation": 37
+      },
+      "inventory": {
+        "online": true,
+        "paused": false,
+        "control_pending": false,
+        "needs_review": false
+      },
+      "observed_at": "2026-10-10T05:01:20.103725+00:00",
+      "native": {
+        "state": "agent_ready",
+        "epoch": 36
+      },
+      "media": {
+        "ready": true,
+        "sessions": []
+      },
+      "service": {
+        "MainPID": "366",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "source": {
+        "sha256": "0263a75d9b81b510de895dd39539901e44ebe4f935d8c3513d290c488ac4f52d",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o644",
+        "is_symlink": false
+      },
+      "checks": {
+        "public_agent_ready": true,
+        "inventory_ready": true,
+        "native_agent_ready": true,
+        "media_ready_clean": true,
+        "service_running": true,
+        "source_permissions": true
+      },
+      "passed": true
+    },
+    "b-android": {
+      "resource_id": "phone_29459143d81e0ef58142",
+      "public": {
+        "state": "agent_ready",
+        "device_confirmed": true,
+        "epoch": 7,
+        "gateway_epoch": 14,
+        "control_generation": 14
+      },
+      "inventory": {
+        "online": true,
+        "paused": false,
+        "control_pending": false,
+        "needs_review": false
+      },
+      "observed_at": "2026-10-10T05:01:21.566754+00:00",
+      "native": {
+        "state": "agent_ready",
+        "epoch": 14
+      },
+      "media": {
+        "ready": true,
+        "sessions": []
+      },
+      "service": {
+        "MainPID": "3343",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "source": {
+        "sha256": "0263a75d9b81b510de895dd39539901e44ebe4f935d8c3513d290c488ac4f52d",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o644",
+        "is_symlink": false
+      },
+      "checks": {
+        "public_agent_ready": true,
+        "inventory_ready": true,
+        "native_agent_ready": true,
+        "media_ready_clean": true,
+        "service_running": true,
+        "source_permissions": true
+      },
+      "passed": true
+    }
+  },
+  "passed": true
+}

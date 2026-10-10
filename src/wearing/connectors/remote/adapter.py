@@ -165,6 +165,9 @@ class NativeAdapter:
         if computer.enrolled(self.data):
             resources.append({'resource_id':self.computer_id(),'name':'这台电脑','kind':'computer','methods':list(COMPUTER_METHODS)})
             tools+=COMPUTER_TOOLS
+        from ...device_files_native import advertised
+        for resource in resources:
+            resource['methods'] += await asyncio.to_thread(advertised, resource['resource_id'])
         return {'resources':resources,'tools':tools}
 
     async def availability(self,specs):

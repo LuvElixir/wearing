@@ -65,6 +65,17 @@ test('cloud device state never equates a cloud acknowledgement or a live connect
   assert.throws(() => parseCloudDevice({...device(), paused: 'false'}), status(422));
 });
 
+test('Android status distinguishes an observation-only grant from known input permissions', () => {
+  const android = (methods: string[]) => device({kind: 'android', methods});
+  assert.equal(deviceStatus(android(['phone.mobile_list_apps', 'phone.mobile_take_screenshot'])), '在线 · 仅观察');
+  for (const method of ['phone.mobile_launch_app', 'phone.mobile_click_on_screen_at_coordinates', 'phone.mobile_press_button',
+    'phone.mobile_swipe_on_screen', 'phone.mobile_type_keys', 'phone.mobile_set_text']) {
+    assert.equal(deviceStatus(android([method])), '在线 · 可以协助操作');
+  }
+  assert.equal(deviceStatus(android(['phone.future_unknown'])), '在线 · 权限待确认');
+  assert.equal(deviceStatus(android(['computer.input'])), '在线 · 权限待确认');
+});
+
 test('inventory reads use identity authentication and reject duplicate device receipts', async () => {
   const {api, calls} = harness([() => response({devices: [device()]}), () => response({devices: [device(), device()]})]);
   assert.equal((await api.cloudDevices())[0].resource_id, 'computer_test');
@@ -112,6 +123,21 @@ test('wrong identity bootstrap prevents mutations and later caller edits cannot 
   await isolated.api.cloudDevices();
   assert.equal(isolated.calls[0].headers.get('X-Wearing-Identity'), connection.identity);
   assert.equal(isolated.calls[0].url.host, 'device-tests.invalid');
+});
+
+test('a device action keeps its original account even if the caller changes the shared session during bootstrap', async () => {
+  const session = {accessToken: 'a'.repeat(64), expiresAt: new Date(Date.now() + 60000).toISOString(),
+    userId: 'user_' + 'a'.repeat(32), tenantId: 'tenant_original', credentialId: 'a'.repeat(32)};
+  const {api, calls} = harness([() => {
+    session.accessToken = 'b'.repeat(64); session.tenantId = 'tenant_other'; session.userId = 'user_' + 'b'.repeat(32);
+    return response(bootstrap());
+  }, () => response({resource_id: 'computer_test', paused: true, generation: 4})], {...connection, session});
+  await api.control(device(), true);
+  assert.equal(calls.length, 2);
+  for (const call of calls) {
+    assert.equal(call.headers.get('Authorization'), 'Bearer ' + 'a'.repeat(64));
+    assert.equal(call.headers.get('X-Pajio-Expected-Tenant'), 'tenant_original');
+  }
 });
 
 test('network interruption reports uncertainty without retrying the mutation', async () => {

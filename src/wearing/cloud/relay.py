@@ -639,7 +639,7 @@ def create_relay_app(root: Path):
             return JSONResponse({'detail':'browser_transport_not_allowed'},status_code=403)
         if request.method == 'POST' and request.url.path in {
                 '/v1/connect', '/v1/poll', '/v1/disconnect', '/v1/claim', '/v1/result',
-                '/v1/permissions/check', '/v1/permissions/apply'}:
+                '/v1/permissions/check', '/v1/permissions/apply', '/v1/files/download', '/v1/files/upload'}:
             # Reject missing, unknown and revoked tokens before FastAPI reads the
             # upload. Each operation still rechecks in its own transaction after
             # parsing, so revocation during an upload cannot authorize an action.
@@ -704,4 +704,6 @@ def create_relay_app(root: Path):
     @app.post('/v1/permissions/apply')
     async def apply_permissions(value: ApplyPermission, request: Request):
         return apply_permission(store,token(request),value)
+    from .device_files import install_file_transport
+    install_file_transport(app, store, token)
     return app

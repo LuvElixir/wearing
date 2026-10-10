@@ -483,6 +483,8 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
 
     from .device_access_api import install_device_access_routes
     install_device_access_routes(app, cloud_relay, local_devices=local_devices)
+    from .cloud.device_files import install_device_file_routes
+    install_device_file_routes(app, store, runtime_for, cloud_relay)
 
     def device_error(error):
         copy = {'resource_already_paired':'这里有已接入的设备，请取消选择后再继续。',
@@ -603,7 +605,8 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
         try:
             return instance_relay(settings.data_dir.parent).control(request.state.identity_id, body)
         except RelayError as error:
-            copy = {"resource_not_paired": "当前身份没有接入这台设备。", "control_changed": "设备状态刚有变化，请刷新后重试。"}
+            copy = {"resource_not_paired": "当前身份没有接入这台设备。", "control_changed": "设备状态刚有变化，请刷新后重试。",
+                    "human_session_requires_explicit_return": "设备仍处于私密接管后的暂停状态。请先查看画面并明确交还，不能直接恢复助手操作。"}
             raise HTTPException(error.status, copy.get(error.code, "设备设置暂未完成，请重新查看。")) from error
 
     @app.get("/api/identities")

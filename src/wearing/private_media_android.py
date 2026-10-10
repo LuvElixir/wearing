@@ -265,6 +265,10 @@ class AndroidScrcpySource(AndroidScreencapSource):
         # All payload bytes travel inside a local socket to a kernel-UID checked
         # IME. Never put text in Android argv, broadcasts, clipboard or files.
         self._verify_ime_apk(self.ime_apk)
+        if operation == 1:
+            # Digest I/O can outlive the human lease. Recheck immediately before
+            # sending any input; release operation 2 must also work after close.
+            self._check()
         payload = bytearray(text.encode('utf-8'))
         request = bytearray(b'PIM1') + self.ime_nonce + bytearray(struct.pack('>BI', operation, len(payload)))
         request.extend(payload)
@@ -341,22 +345,37 @@ class AndroidScrcpySource(AndroidScreencapSource):
                 self.sock.shutdown(socket.SHUT_RDWR)
             except OSError:
                 pass
-            self.sock.close()
-            self.sock = None
-        if self.process:
-            self.process.terminate()
             try:
-                self.process.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
-                self.process.wait(timeout=3)
-            self.process = None
-        if self.thread:
-            self.thread.join(timeout=4)
-            if self.thread.is_alive():
-                errors.append('decoder_not_stopped')
+                self.sock.close()
+            except OSError:
+                errors.append('socket_not_closed')
             else:
-                self.thread = None
+                self.sock = None
+        if self.process:
+            try:
+                # poll handles a child that exited between disconnect and clear.
+                if self.process.poll() is None:
+                    self.process.terminate()
+                try:
+                    self.process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+                    self.process.wait(timeout=3)
+            except (OSError, subprocess.TimeoutExpired):
+                # Keep the handle for a later explicit cleanup attempt, but do
+                # not skip IME restoration, nonce clearing or other resources.
+                errors.append('server_process_not_stopped')
+            else:
+                self.process = None
+        if self.thread:
+            try:
+                self.thread.join(timeout=4)
+                if self.thread.is_alive():
+                    errors.append('decoder_not_stopped')
+                else:
+                    self.thread = None
+            except RuntimeError:
+                errors.append('decoder_not_stopped')
         if self.port:
             try:
                 self._adb('forward','--remove','tcp:'+str(self.port))

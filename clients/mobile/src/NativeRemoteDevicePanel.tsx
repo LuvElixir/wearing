@@ -28,6 +28,7 @@ const pauseCopy: Record<string, string> = {
 const noticeCopy: Record<string, string> = {
   ascii_only: '这台云手机当前只支持英文、数字和常用符号输入，不支持中文或 %。',
   frame_not_ready: '正在等待新画面，本次操作未发送。',
+  input_unavailable: '这台设备暂不支持此操作，本次操作未发送。',
 };
 const sameSession = (a: RemoteAccess, b: RemoteAccess) => a.session_id === b.session_id && a.epoch === b.epoch;
 
@@ -186,10 +187,14 @@ export function NativeRemoteDevicePanel({connection, resource, name, kind, onBac
     else if (value.type === 'notice') setError(remoteTextNotice(String(value.code), capabilities, kind) || noticeCopy[String(value.code)] || '设备拒绝了这次操作，操作不会自动重试。请检查画面后再操作。');
   }
   function submitText() {
-    if (!alive.current || !foreground.current || !viewing.current || !controlling || !capabilities.keyboard || !text) return;
+    if (!alive.current || !foreground.current || !viewing.current || !controlling || capabilities.keyboard !== true || !text) return;
     const issue = remoteTextIssue(text, capabilities, kind);
     if (issue) {setError(remoteTextNotice(issue, capabilities, kind)!); return;}
     const draft = text; setText(''); setError(''); send({type: 'text', text: draft});
+  }
+  function sendKey(key: string) {
+    if (!alive.current || !foreground.current || !viewing.current || !controlling || capabilities.keyboard !== true) return;
+    send({type: 'key', key});
   }
   const html = useMemo(() => viewer ? remoteViewerDocument(viewer.transport, kind, viewer.access.expires_at!) : '', [viewer, kind]);
   const baseUrl = new URL('/remote-viewer-native', connectionEndpoint(connection)).toString();
@@ -220,15 +225,15 @@ export function NativeRemoteDevicePanel({connection, resource, name, kind, onBac
       {!!notice && <Text accessibilityLiveRegion="polite" style={styles.caption}>{notice}</Text>}
       {connected ? <>
         <View style={styles.row}><PrimaryButton style={styles.flex} label={controlling ? '停止操作' : '开始操作'} onPress={() => {setText(''); setKeyboard(false); send({type: 'control', enabled: !controlling});}}/>
-          <IconButton label="打开远程键盘" disabled={!controlling || !capabilities.keyboard || capabilities.text !== 'unicode'} selected={keyboard} onPress={() => setKeyboard(v => !v)}><Keyboard size={23} color={colors.ink}/></IconButton>
+          <IconButton label="打开远程键盘" disabled={!controlling || capabilities.keyboard !== true || capabilities.text !== 'unicode'} selected={keyboard} onPress={() => setKeyboard(v => !v)}><Keyboard size={23} color={colors.ink}/></IconButton>
           <PrimaryButton label="交还 Pajio" tone="quiet" onPress={() => {setConfirmReturn(true); setSafeScreen(false); setScopeConfirmed(false);}}/></View>
-        {controlling && <View style={styles.keyRow}>{keys.map(([key, label]) => <TactilePressable key={key} accessibilityLabel={`远程${label}`} style={styles.key} onPress={() => send({type: 'key', key})}><Text style={styles.keyText}>{label}</Text></TactilePressable>)}</View>}
+        {controlling && capabilities.keyboard === true && <View style={styles.keyRow}>{keys.map(([key, label]) => <TactilePressable key={key} accessibilityLabel={`远程${label}`} style={styles.key} onPress={() => sendKey(key)}><Text style={styles.keyText}>{label}</Text></TactilePressable>)}</View>}
         {controlling && capabilities.text !== 'unicode' && <Text style={styles.caption}>此设备的私密输入尚未就绪，暂时不能从 App 发送文字。</Text>}
-        {keyboard && controlling && capabilities.text === 'unicode' && <View style={styles.keyboard}>
+        {keyboard && controlling && capabilities.keyboard === true && capabilities.text === 'unicode' && <View style={styles.keyboard}>
           <Text style={styles.caption}>每次最多 {remoteTextLimits(capabilities, kind).chars} 个字符。发送到远程当前输入框，发送后立即清空。</Text>
           <View style={styles.row}><TextInput accessibilityLabel="发送到远程输入框的文字" style={styles.input} value={text} onChangeText={setText} secureTextEntry autoCapitalize="none" autoCorrect={false} textContentType="none" autoComplete="off" onSubmitEditing={submitText}/>
             <PrimaryButton label="输入" disabled={!text} onPress={submitText}/></View>
-          <View style={styles.keyRow}>{[['Backspace', '删除'], ['Enter', '回车']].map(([key, label]) => <TactilePressable key={key} accessibilityLabel={`远程${label}`} style={styles.key} onPress={() => send({type: 'key', key})}><Text style={styles.keyText}>{label}</Text></TactilePressable>)}</View>
+          <View style={styles.keyRow}>{[['Backspace', '删除'], ['Enter', '回车']].map(([key, label]) => <TactilePressable key={key} accessibilityLabel={`远程${label}`} style={styles.key} onPress={() => sendKey(key)}><Text style={styles.keyText}>{label}</Text></TactilePressable>)}</View>
         </View>}
         {confirmReturn && <View style={styles.confirmation}><Text style={styles.title}>确认交还</Text><Text style={styles.caption}>设备确认后，Pajio 会恢复读取与操作。</Text>
           <View style={styles.row}><Text style={styles.flexText}>已离开密码、验证码等私密页面</Text><Switch accessibilityLabel="已离开私密页面" value={safeScreen} onValueChange={setSafeScreen}/></View>

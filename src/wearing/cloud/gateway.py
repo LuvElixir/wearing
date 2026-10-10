@@ -158,7 +158,7 @@ def proxy_path(path):
             and (decoded == "/" or decoded.startswith(("/api/", "/assets/"))))
 
 
-async def forward_worker(wire, request, upstream, public_origin, tenant_id, key, session_expires=None, storage_scope=None, access_check=None):
+async def forward_worker(wire, request, upstream, public_origin, tenant_id, key, session_expires=None, storage_scope=None, access_check=None, private_owner_scope=None):
     """Same fixed-origin, bounded, cookie-free forwarding for OIDC and private SSH entry."""
     headers = {"Authorization": "Bearer " + key, "X-Wearing-Tenant": tenant_id,
                "Host": urlparse(public_origin).netloc}
@@ -167,6 +167,8 @@ async def forward_worker(wire, request, upstream, public_origin, tenant_id, key,
     if storage_scope is not None:
         # Never copy this value from caller-controlled headers/query parameters.
         headers['X-Pajio-Storage-Scope'] = storage_scope
+    if private_owner_scope is not None:
+        headers['X-Pajio-Private-Owner-Scope'] = private_owner_scope
     for name in ("content-type", "accept", "range", "if-none-match", "if-modified-since", "x-wearing-token", "x-wearing-identity", "origin"):
         if name in request.headers:
             headers[name] = request.headers[name]
@@ -448,6 +450,7 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
         route = store.route(current)
         if route is None:
             return None, None
+        store.private_owner_scope(current, route)
         if not re.fullmatch(r"instance_[a-f0-9]{32}\.json", route["credential_ref"]):
             raise GatewayError("实例凭据引用无效。")
         credential = json.loads(read_private(root / "credentials" / route["credential_ref"]))
@@ -476,11 +479,17 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
         route, key = credentials(current)
         if route is None:
             return JSONResponse({"detail": "你的 Pajio 正在准备，请稍后再试。"}, status_code=503)
+        owner_scope = store.private_owner_scope(current, route)
         def still_allowed():
             latest = session(request)
-            return latest is not None and latest.user_id == current.user_id and latest.tenant_id == current.tenant_id
+            if latest is None or latest.user_id != current.user_id or latest.tenant_id != current.tenant_id:
+                return False
+            try:
+                return store.private_owner_scope(latest, route) == owner_scope
+            except ControlError:
+                return False
         return await forward_worker(wire, request, route["upstream"], config.public_origin, current.tenant_id, key,
-                                    current.expires, session_storage_scope(current.user_id, current.tenant_id), still_allowed)
+                                    current.expires, session_storage_scope(current.user_id, current.tenant_id), still_allowed, owner_scope)
 
     async def session_revoked(request, error):
         return JSONResponse({'detail': '登录权限已失效。'}, status_code=401)

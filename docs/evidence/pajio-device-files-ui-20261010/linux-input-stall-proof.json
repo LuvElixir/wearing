@@ -1,0 +1,115 @@
+{
+  "scope": "Linux pointer movement stall; acceptance-a synthetic test only",
+  "production_observation": {
+    "media_pid": 27424,
+    "observed_seconds": 60.03,
+    "samples": 1154,
+    "xdotool": [
+      {
+        "first_seen_utc": "2026-10-10T04:24:27.930842+00:00",
+        "kind": "mousemove",
+        "sync": true,
+        "samples": 77,
+        "max_age_ms": 3970,
+        "states": [
+          "S"
+        ],
+        "wait_channels": [
+          "hrtimer_nanosleep",
+          "do_poll.constprop.0"
+        ]
+      },
+      {
+        "first_seen_utc": "2026-10-10T04:24:31.939115+00:00",
+        "kind": "keyup",
+        "sync": false,
+        "samples": 17,
+        "max_age_ms": 850,
+        "states": [
+          "S",
+          "R",
+          "Z"
+        ],
+        "wait_channels": [
+          "hrtimer_nanosleep",
+          "0"
+        ]
+      }
+    ]
+  },
+  "isolated_reproduction": {
+    "xvfb_noreset": true,
+    "production_display_touched": false,
+    "same_position_with_sync": {
+      "timed_out": true,
+      "elapsed_ms": 4001
+    },
+    "same_position_without_sync_and_click": {
+      "returned": true,
+      "elapsed_ms": 3
+    }
+  },
+  "candidate_xvfb": {
+    "isolated_xvfb_noreset": true,
+    "production_display_touched": false,
+    "candidate_tested_in_memory_only": true,
+    "x11_button_events_ordered": true,
+    "button_press_release_pairs": 7,
+    "capture_after_each_input": true,
+    "measurements": [
+      {
+        "label": "pointer_down",
+        "elapsed_ms": 2
+      },
+      {
+        "label": "pointer_up",
+        "elapsed_ms": 4
+      },
+      {
+        "label": "pointer_down",
+        "elapsed_ms": 3
+      },
+      {
+        "label": "pointer_up",
+        "elapsed_ms": 3
+      },
+      {
+        "label": "same_position_tap",
+        "elapsed_ms": 115
+      },
+      {
+        "label": "same_position_tap",
+        "elapsed_ms": 114
+      },
+      {
+        "label": "swipe",
+        "elapsed_ms": 169
+      },
+      {
+        "label": "swipe",
+        "elapsed_ms": 160
+      },
+      {
+        "label": "swipe",
+        "elapsed_ms": 160
+      }
+    ]
+  },
+  "unit_tests": {
+    "command": ".venv/bin/python -m pytest -q tests/test_private_media_x11_pointer.py tests/test_private_media.py",
+    "passed": 49,
+    "seconds": 3.62
+  },
+  "candidate_files": {
+    "src/wearing/private_media_sources.py": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+    "tests/test_private_media_x11_pointer.py": "87517f26f23ff1fa5da805a0fa02f307c79463541bbad51a896c507e2f543ba3"
+  },
+  "deployed_baseline_source_sha256": "198c66cd2b029d309c0d36993685d791ba49dd175c4ed4a358b332ca9d7a48c2",
+  "deployed": false,
+  "limits": [
+    "Candidate loaded only into an independent process and isolated Xvfb display.",
+    "Actual App/Desktop UI needs post-deployment acceptance.",
+    "No private input coordinates, text, screen pixels, tokens, or SDP collected.",
+    "First Xvfb attempt omitted -noreset and reset cursor after the last client exited; that setup was a false negative and was corrected."
+  ]
+}

@@ -1,4 +1,5 @@
 import {ApiError, Connection, connectionEndpoint, connectionHeaders} from './core';
+import type {RemoteAccess} from './remote-device-model';
 
 type Dict = Record<string, unknown>;
 const object = (v: unknown): v is Dict => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -51,6 +52,8 @@ export function parseDeviceOffer(value: unknown): DeviceOffer {
   return {schema_version: 1, resources: unique(value.resources.map(resource), r => r.resource_id)};
 }
 const readMethods = new Set(['computer.status', 'computer.observe', 'phone.mobile_list_apps', 'phone.mobile_get_screen_size', 'phone.mobile_list_elements_on_screen', 'phone.mobile_take_screenshot']);
+const phoneInputMethods = new Set(['phone.mobile_launch_app', 'phone.mobile_click_on_screen_at_coordinates', 'phone.mobile_press_button',
+  'phone.mobile_swipe_on_screen', 'phone.mobile_type_keys', 'phone.mobile_set_text']);
 export function selectedDeviceOffer(resources: InspectedResource[], selected: string[], input: string[]): DeviceOffer {
   const picked = new Set(selected), writable = new Set(input);
   const values = resources.filter(r => picked.has(r.resource_id));
@@ -71,8 +74,22 @@ export function deviceStatus(d: CloudDevice): string {
   if (d.paused) return d.control_pending ? '暂停已送达云端，等待设备确认' : '已暂停';
   if (d.control_pending) return '等待设备确认恢复';
   if (d.needs_review) return '旧动作需要核对';
-  if (d.online) return d.kind === 'computer' && !d.methods.includes('computer.input') ? '在线 · 仅观察' : '在线 · 可以协助操作';
+  if (d.online) {
+    const writable = d.kind === 'computer' ? d.methods.includes('computer.input') : d.methods.some(method => phoneInputMethods.has(method));
+    if (writable) return '在线 · 可以协助操作';
+    return d.methods.every(method => readMethods.has(method)) ? '在线 · 仅观察' : '在线 · 权限待确认';
+  }
   return d.connected ? '连接器在线 · 设备未就绪' : '设备离线';
+}
+/** A private-session pause can only be released by the existing explicit return flow. */
+export function deviceControlAction(device: CloudDevice, access: RemoteAccess | null): 'pause' | 'resume' | 'return' | 'wait' | 'check' {
+  if (device.control_pending) return 'wait';
+  if (!device.paused) return 'pause';
+  if (!access || access.resource_id !== device.resource_id) return 'check';
+  if (access.supported && access.control_generation !== device.control_generation) return 'check';
+  if (access.state === 'handoff_pending' || access.state === 'return_pending') return 'wait';
+  if (access.state === 'paused' || access.state === 'human_private') return 'return';
+  return access.state === 'agent_ready' || !access.supported ? 'resume' : 'check';
 }
 function connector(value: unknown): Connector {
   if (!object(value) || (value.installed !== undefined && typeof value.installed !== 'boolean') || !string(value.phase)) throw malformed();
@@ -118,7 +135,8 @@ function review(v: unknown): DeviceReview {
 export class DeviceManagementApi {
   private token = '';
   private readonly connection: Connection;
-  constructor(connection: Connection, private readonly fetcher: typeof fetch = fetch) {this.connection = {...connection, ...(connection.development ? {development: {...connection.development}} : {})};}
+  constructor(connection: Connection, private readonly fetcher: typeof fetch = fetch) {this.connection = {...connection,
+    ...(connection.development ? {development: {...connection.development}} : {}), ...(connection.session ? {session: {...connection.session}} : {})};}
   private async request(path: string, body?: unknown, retry = true): Promise<unknown> {
     const mutation = body !== undefined;
     if (mutation && !this.token) await this.bootstrap();

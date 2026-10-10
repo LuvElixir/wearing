@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "scope": "Linux A and B: private_media_sources.py only; restart pajio-private-media.service only",
+  "order": [
+    "b",
+    "a"
+  ],
+  "candidate_sha256": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+  "targets": {
+    "b": {
+      "target": "b",
+      "backup": "/var/backups/pajio-linux-input/linux-b-20261010T043206",
+      "source_path": "/opt/pajio-native/venv/lib/python3.12/site-packages/wearing/private_media_sources.py",
+      "before_sha256": "198c66cd2b029d309c0d36993685d791ba49dd175c4ed4a358b332ca9d7a48c2",
+      "candidate_sha256": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+      "state_before": {
+        "state": "agent_ready",
+        "epoch": 10
+      },
+      "service_before": {
+        "MainPID": "35278",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "media_before": {
+        "ready": true,
+        "sessions": {}
+      },
+      "phase": "verified",
+      "at": 1791606727.9606915,
+      "stable": [
+        {
+          "service": {
+            "MainPID": "49713",
+            "ActiveState": "active",
+            "SubState": "running"
+          },
+          "media": {
+            "ready": true,
+            "sessions": {}
+          },
+          "state": {
+            "state": "agent_ready",
+            "epoch": 10
+          },
+          "at": 1791606730.2930536
+        },
+        {
+          "service": {
+            "MainPID": "49713",
+            "ActiveState": "active",
+            "SubState": "running"
+          },
+          "media": {
+            "ready": true,
+            "sessions": {}
+          },
+          "state": {
+            "state": "agent_ready",
+            "epoch": 10
+          },
+          "at": 1791606732.2985194
+        },
+        {
+          "service": {
+            "MainPID": "49713",
+            "ActiveState": "active",
+            "SubState": "running"
+          },
+          "media": {
+            "ready": true,
+            "sessions": {}
+          },
+          "state": {
+            "state": "agent_ready",
+            "epoch": 10
+          },
+          "at": 1791606734.304584
+        }
+      ],
+      "after_sha256": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+      "state_after": {
+        "state": "agent_ready",
+        "epoch": 10
+      },
+      "activated": true
+    },
+    "a": {
+      "target": "a",
+      "backup": "/var/backups/pajio-linux-input/linux-a-20261010T043235",
+      "source_path": "/opt/pajio-native/venv/lib/python3.12/site-packages/wearing/private_media_sources.py",
+      "before_sha256": "198c66cd2b029d309c0d36993685d791ba49dd175c4ed4a358b332ca9d7a48c2",
+      "candidate_sha256": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+      "state_before": {
+        "state": "paused",
+        "epoch": 36
+      },
+      "service_before": {
+        "MainPID": "27424",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "media_before": {
+        "ready": true,
+        "sessions": {
+          "computer_1d7ce6e0190f388d83c8": {
+            "closed": true,
+            "cleared": true,
+            "cleanup_attempts": 1,
+            "cleanup_code": null
+          }
+        }
+      },
+      "phase": "verified",
+      "at": 1791606756.324169,
+      "stable": [
+        {
+          "service": {
+            "MainPID": "50554",
+            "ActiveState": "active",
+            "SubState": "running"
+          },
+          "media": {
+            "ready": true,
+            "sessions": {}
+          },
+          "state": {
+            "state": "paused",
+            "epoch": 36
+          },
+          "at": 1791606758.602027
+        },
+        {
+          "service": {
+            "MainPID": "50554",
+            "ActiveState": "active",
+            "SubState": "running"
+          },
+          "media": {
+            "ready": true,
+            "sessions": {}
+          },
+          "state": {
+            "state": "paused",
+            "epoch": 36
+          },
+          "at": 1791606760.6072097
+        },
+        {
+          "service": {
+            "MainPID": "50554",
+            "ActiveState": "active",
+            "SubState": "running"
+          },
+          "media": {
+            "ready": true,
+            "sessions": {}
+          },
+          "state": {
+            "state": "paused",
+            "epoch": 36
+          },
+          "at": 1791606762.612251
+        }
+      ],
+      "after_sha256": "68224908ba6aee571facf46c6bb6eb48b98e86e1312ac5e1123cabfcc4ee7f8c",
+      "state_after": {
+        "state": "paused",
+        "epoch": 36
+      },
+      "activated": true
+    }
+  },
+  "limitations": [
+    "Production App and desktop input acceptance still requires root operator verification.",
+    "No Android, Core, connector, permission, lease, or viewer threshold change performed."
+  ]
+}

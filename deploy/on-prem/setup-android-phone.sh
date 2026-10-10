@@ -1,6 +1,62 @@
 #!/bin/bash
 # Dedicated Ubuntu execution VM only. Never run on the hypervisor or core VM.
 set -euo pipefail
+
+# Read-only contract check before starting an already present container. The
+# image name alone is not ownership: an identically labelled container could
+# mount another user's data or share the execution host network/IPC namespace.
+validate_existing_container() {
+  python3 -c '
+import json, re, sys
+
+def verify():
+    image, port = sys.argv[1:]
+    rows = json.load(sys.stdin)
+    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
+        raise ValueError()
+    item = rows[0]
+    config, host = item["Config"], item["HostConfig"]
+    if item["Name"] != "/pajio-phone" or not re.fullmatch("[0-9a-f]{64}", item["Id"]):
+        raise ValueError()
+    if config["Labels"].get("io.pajio.role") != "tenant-android" or config["Image"] != image:
+        raise ValueError()
+    expected = {"5555/tcp": [{"HostIp": "127.0.0.1", "HostPort": port}]}
+    if host["PortBindings"] != expected or host["PublishAllPorts"] is not False:
+        raise ValueError()
+    if host["NetworkMode"] not in ("default", "bridge") or set(item["NetworkSettings"]["Networks"]) != {"bridge"}:
+        raise ValueError()
+    if host["PidMode"] != "" or host["IpcMode"] != "private" or host["UTSMode"] != "":
+        raise ValueError()
+    mounts = item["Mounts"]
+    if not isinstance(mounts, list) or len(mounts) != 1:
+        raise ValueError()
+    mount = mounts[0]
+    if (mount["Type"] != "bind" or mount["Source"] != "/var/lib/pajio-phone/data"
+            or mount["Destination"] != "/data" or mount["RW"] is not True
+            or mount["Propagation"] != "rprivate"):
+        raise ValueError()
+    # These are the dedicated-VM resource limits below, not a multi-tenant
+    # Docker security boundary. Privileged redroid stays inside its own VM.
+    if (host["Privileged"] is not True or host["NanoCpus"] != 2000000000
+            or host["Memory"] != 3221225472 or host["MemorySwap"] != 3221225472):
+        raise ValueError()
+    if host["RestartPolicy"] != {"Name": "unless-stopped", "MaximumRetryCount": 0}:
+        raise ValueError()
+    expected_cmd = ["androidboot.use_memfd=1", "androidboot.redroid_width=720",
+                    "androidboot.redroid_height=1280", "androidboot.redroid_dpi=320",
+                    "androidboot.redroid_fps=24", "androidboot.redroid_gpu_mode=guest",
+                    "androidboot.redroid_net_ndns=2", "androidboot.redroid_net_dns1=223.5.5.5",
+                    "androidboot.redroid_net_dns2=1.1.1.1"]
+    if config["Cmd"] != expected_cmd:
+        raise ValueError()
+
+try:
+    verify()
+except (ValueError, KeyError, TypeError, AttributeError):
+    print("Existing Android container binding changed; refusing reuse", file=sys.stderr)
+    sys.exit(2)
+' "$image" "$adb_port"
+}
 image=${1:?Pass a verified redroid image digest}
 adb_port=${PAJIO_ANDROID_ADB_PORT:-5555}
 case "$adb_port" in ''|*[!0-9]*) echo 'Invalid loopback ADB port' >&2; exit 2;; esac
@@ -16,6 +72,7 @@ if id pajio-phone >/dev/null 2>&1; then
 fi
 id pajio-phone >/dev/null 2>&1 || useradd --create-home --shell /usr/sbin/nologin pajio-phone
 chmod 700 /home/pajio-phone
+if [ -L /var/lib/pajio-phone ]; then echo 'Unsafe Android data directory' >&2; exit 2; fi
 install -d -m 700 /var/lib/pajio-phone
 # Android owns /data mode and uid after first boot. Re-running install -d -m
 # on that bind mount would remove shell traversal and break scrcpy/ADB uploads.
@@ -35,6 +92,7 @@ if docker container inspect pajio-phone >/dev/null 2>&1; then
   test "$(docker inspect --format '{{ index .Config.Labels "io.pajio.role" }}' pajio-phone)" = 'tenant-android'
   test "$(docker inspect --format '{{.Config.Image}}' pajio-phone)" = "$image"
   test "$(docker inspect --format '{{json (index .HostConfig.PortBindings "5555/tcp")}}' pajio-phone)" = "[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"$adb_port\"}]" || { echo 'Existing Android port binding changed; refusing migration' >&2; exit 2; }
+  docker inspect pajio-phone | validate_existing_container
   docker start pajio-phone >/dev/null
 else
   docker run -d --name pajio-phone --label io.pajio.role=tenant-android \

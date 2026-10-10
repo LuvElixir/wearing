@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "account": "acceptance-a",
+  "identity": "daily",
+  "resource_id": "computer_1d7ce6e0190f388d83c8",
+  "resource_kind": "linux",
+  "client": "Pajio Acceptance iPhone Air simulator, actual App UI",
+  "actor": "root operator",
+  "verification": "Authenticated GET receipt and exact known synthetic workspace file only; no new transfer request or device action",
+  "synthetic_fixture": {
+    "run": "f7ccb518f4aa8dc35342ded4ddfdb21f",
+    "name": "pajio-qa-f7ccb518f4aa8dc35342ded4ddfdb21f-98304.bin",
+    "size": 98304,
+    "sha256": "3abc1bd6f648681262fafcc1f6ed148ecf0982dcd52c49a8885bd94fda605b91"
+  },
+  "ui_sequence_observation": {
+    "source": "root operator; approximate observation times, not server receipt timestamps",
+    "to_device_success_approx": "2026-10-10T12:08:50+08:00",
+    "list_requested_approx": "2026-10-10T12:09:20+08:00",
+    "from_device_success": "Root observed successful retrieval and clicked workspace view before this independent GET verification."
+  },
+  "operations": [
+    {
+      "request_id": "ca0ec62130e143daab6856822be31146",
+      "resource_id": "computer_1d7ce6e0190f388d83c8",
+      "direction": "to_device",
+      "state": "completed",
+      "bytes_completed": 98304,
+      "verified_at_utc": "2026-10-10T04:12:04.390527+00:00",
+      "source": {
+        "name": "pajio-qa-f7ccb518f4aa8dc35342ded4ddfdb21f-98304.bin",
+        "size": 98304,
+        "sha256": "3abc1bd6f648681262fafcc1f6ed148ecf0982dcd52c49a8885bd94fda605b91"
+      }
+    },
+    {
+      "request_id": "d39128691ad94344a9c0f63e5862a87b",
+      "resource_id": "computer_1d7ce6e0190f388d83c8",
+      "direction": "list",
+      "state": "completed",
+      "bytes_completed": 0,
+      "verified_at_utc": "2026-10-10T04:12:04.504170+00:00",
+      "matching_file_count": 1,
+      "listed_fixture": {
+        "name": "pajio-qa-f7ccb518f4aa8dc35342ded4ddfdb21f-98304.bin",
+        "size": 98304,
+        "sha256": "3abc1bd6f648681262fafcc1f6ed148ecf0982dcd52c49a8885bd94fda605b91"
+      },
+      "truncated": false
+    },
+    {
+      "request_id": "65b33da0cf6c4fd5a4a9634cc104e2fa",
+      "resource_id": "computer_1d7ce6e0190f388d83c8",
+      "direction": "from_device",
+      "state": "completed",
+      "bytes_completed": 98304,
+      "verified_at_utc": "2026-10-10T04:12:04.681221+00:00",
+      "source": {
+        "name": "pajio-qa-f7ccb518f4aa8dc35342ded4ddfdb21f-98304.bin",
+        "size": 98304,
+        "sha256": "3abc1bd6f648681262fafcc1f6ed148ecf0982dcd52c49a8885bd94fda605b91"
+      },
+      "workspace_file": {
+        "path": "imports/65b33da0cf6c4fd5a4a9634cc104e2fa/pajio-qa-f7ccb518f4aa8dc35342ded4ddfdb21f-98304.bin",
+        "size": 98304,
+        "modified": 1791605416.757275,
+        "modified_at_utc": "2026-10-10T04:10:16.757275+00:00"
+      }
+    }
+  ],
+  "download_verification": {
+    "http_status": 200,
+    "workspace_path": "imports/65b33da0cf6c4fd5a4a9634cc104e2fa/pajio-qa-f7ccb518f4aa8dc35342ded4ddfdb21f-98304.bin",
+    "size": 98304,
+    "sha256": "3abc1bd6f648681262fafcc1f6ed148ecf0982dcd52c49a8885bd94fda605b91",
+    "exact_fixture_bytes_equal": true,
+    "verified_at_utc": "2026-10-10T04:12:04.926264+00:00"
+  },
+  "timestamp_limit": "Transfer status API does not expose server created_at/completed_at. The workspace modified_at timestamp is server file metadata, not a transfer-duration measurement.",
+  "payload_retention": "No credential, token, cookie, file body, or unrelated file metadata retained in this proof.",
+  "verified_at_utc": "2026-10-10T04:12:04.927163+00:00"
+}

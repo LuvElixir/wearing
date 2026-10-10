@@ -9,6 +9,7 @@ from ...cloud.device_permissions import PermissionBundle, canonical_resources, g
 from ...cloud.instance import read_private
 from ...config import write_private_json
 from .client import Journal, client_for, response, read_bundle
+from ...device_files_io import FILE_METHODS
 
 
 def require_settled(root):
@@ -35,7 +36,15 @@ def validate_local(config,bundle):
         if r['kind']!=t.kind or r['name']!=t.name:raise ValueError('permission_resources_changed')
         if set(r['methods'])!=t.methods:
             changed+=1
-            if t.kind!='computer' or t.methods not in ({'computer.status','computer.observe'},{'computer.status','computer.observe','computer.input'}):
+            files = set(FILE_METHODS)
+            before, after = set(r['methods']) - files, set(t.methods) - files
+            target_files = set(t.methods) & files
+            if target_files not in (set(), files):
+                raise ValueError('permission_resources_changed')
+            # A file-only change preserves every native observation/input method.
+            # Android cannot use this flow to acquire a different phone capability.
+            if before != after and (t.kind!='computer' or after not in (
+                    {'computer.status','computer.observe'}, {'computer.status','computer.observe','computer.input'})):
                 raise ValueError('permission_resources_changed')
     if changed!=1:raise ValueError('permission_resources_changed')
 

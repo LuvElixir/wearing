@@ -16,6 +16,7 @@ from .relay import RelayError, encoded, fingerprint, utc
 from .device_setup import DeviceOffer, tools_for
 from ..connectors.remote.client import PairBundle
 from ..connectors.remote.schemas import COMPUTER_METHODS
+from ..device_files_io import FILE_METHODS
 
 
 def canonical_resources(resources):
@@ -31,7 +32,8 @@ class ChangePermission(Record):
     request_id: str = Field(pattern=r'^[a-f0-9]{32}$')
     resource_id: Identifier
     revision: str = Field(pattern=r'^[a-f0-9]{64}$')
-    mode: Literal['observe','input']
+    mode: Literal['observe','input','files']
+    file_access: bool | None = None
     delivery: Literal['manual','connector'] = 'manual'
 
 
@@ -89,8 +91,14 @@ def create_permission(store,root,identity,request):
         if grant_digest(c)!=request.revision:raise RelayError('permission_changed')
         specs=copy.deepcopy(json.loads(c['resources']))
         resource=next(r for r in specs if r['resource_id']==request.resource_id)
-        if resource['kind']!='computer':raise RelayError('permission_computer_only')
-        methods=set(COMPUTER_METHODS) if request.mode=='input' else {'computer.observe','computer.status'}
+        if request.mode == 'files':
+            if request.file_access is None: raise RelayError('file_permission_choice_required')
+            methods = set(resource['methods']) - set(FILE_METHODS)
+        else:
+            if resource['kind']!='computer':raise RelayError('permission_computer_only')
+            methods=set(COMPUTER_METHODS) if request.mode=='input' else {'computer.observe','computer.status'}
+        if request.file_access is True or (request.file_access is None and set(FILE_METHODS) <= set(resource['methods'])):
+            methods.update(FILE_METHODS)
         if set(resource['methods'])==methods:raise RelayError('permission_unchanged')
         require_idle(store,db,c['id'])
         resource['methods']=sorted(methods)

@@ -37,11 +37,17 @@ def voice_endpoint(origin, store, credentials, *, connector=connect, ssl_context
                 raise ValueError()
             def valid():
                 latest = store.session(access)
-                return latest is not None and latest.user_id == current.user_id and latest.tenant_id == current.tenant_id
+                if latest is None or latest.user_id != current.user_id or latest.tenant_id != current.tenant_id:
+                    return False
+                try:
+                    return store.private_owner_scope(latest, route) == owner_scope
+                except Exception:
+                    return False
 
             route, key = credentials(current)
             if route is None:
                 raise ValueError()
+            owner_scope = store.private_owner_scope(current, route)
             upstream = route["upstream"].replace("https://", "wss://", 1).replace("http://", "ws://", 1)
             async with asyncio.timeout(210):
                 if ssl_context is not None and not upstream.startswith('wss://'):

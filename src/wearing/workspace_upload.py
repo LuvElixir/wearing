@@ -23,7 +23,7 @@ class WorkspaceImports:
                 name TEXT NOT NULL, digest TEXT NOT NULL, path TEXT NOT NULL,
                 created_at TEXT NOT NULL, PRIMARY KEY(identity_id,request_key))""")
 
-    def upload(self, identity, root: Path, key: str, name: str, data: bytes):
+    def upload(self, identity, root: Path, key: str, name: str, data: bytes, *, allow_recreate=True):
         self.store.identity(identity)
         name = unicodedata.normalize('NFC', name).strip()
         if not KEY.fullmatch(key):
@@ -60,6 +60,11 @@ class WorkspaceImports:
                 try:
                     verify_existing()
                 except FileNotFoundError:
+                    # Device receipt refresh is not another explicit user upload.
+                    # Check in the same write transaction as the import record so
+                    # two initial refreshes cannot recreate a later user deletion.
+                    if old and not allow_recreate:
+                        raise HTTPException(409, '导回的文件已删除，请核对原传递记录。')
                     temporary = '.upload-' + secrets.token_hex(16)
                     file_fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=descriptor)
                     try:

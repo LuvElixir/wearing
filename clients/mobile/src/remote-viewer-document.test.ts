@@ -43,6 +43,7 @@ async function harness(pointer = false) {
   const touch = (type: string, x = 160, y = 200) => events[type]({pointerId: 1, clientX: x, clientY: y, button: 0, preventDefault() {}});
   return {sent, posted, ready, frame, touch, fromHost, video, shade, scope,
     native: bridge.pajioReceive, inputs: () => sent.filter(m => m.type === 'input'), isClosed: () => closed, descriptions: () => remoteDescriptions,
+    wheel: () => events.wheel({deltaX: 4, deltaY: 80, preventDefault() {}}),
     tick: (ms: number) => {stamp += ms; intervals.get(300)?.();}, hide: () => {doc.hidden = true; page.visibilitychange();}, heartbeat: () => intervals.get(5000)?.()};
 }
 test('viewer waits for device ACK and decoded video; opening viewer does not enable input', async () => {
@@ -59,6 +60,39 @@ test('private input is never queued or replayed after an unacknowledged action',
   h.tick(2600); assert.equal(h.isClosed(), true);
   await h.native({type: 'text', text: 'secret'}); h.touch('pointerdown'); h.touch('pointerup');
   assert.equal(h.inputs().length, 1); assert.equal(h.video.srcObject, null);
+});
+test('Android slow drags stay inside the device swipe duration contract without replay', async () => {
+  for (const elapsed of [1000, 1200, 1500]) {
+    const h = await harness(); h.ready(); h.frame(); await h.native({type: 'control', enabled: true});
+    h.touch('pointerdown', 160, 150); h.tick(elapsed); h.touch('pointerup', 160, 250);
+    assert.equal(h.inputs().length, 1);
+    assert.equal(h.inputs()[0].action, 'swipe');
+    assert.equal(h.inputs()[0].duration_ms, 1000);
+    assert.equal(h.inputs()[0].x, 540); assert.equal(h.inputs()[0].y, 720);
+    assert.equal(h.inputs()[0].to_x, 540); assert.equal(h.inputs()[0].to_y, 1200);
+    h.frame(); h.heartbeat(); assert.equal(h.inputs().length, 1);
+  }
+});
+test('actual viewer denies touch, pointer, scroll and native key/text bridge unless their capability is exactly true', async () => {
+  for (const denied of [false, undefined, null, 0, 1, 'true', {}, []]) {
+    const h = await harness(); h.ready('unicode', {pointer: denied, touch: denied, scroll: denied, keyboard: denied});
+    h.frame(); await h.native({type: 'control', enabled: true});
+    h.touch('pointerdown'); h.touch('pointermove', 160, 220); h.touch('pointerup', 160, 250); h.wheel();
+    await h.native({type: 'key', key: 'Home'}); await h.native({type: 'text', text: 'SYNTHETIC'});
+    assert.equal(h.inputs().length, 0); assert.equal(h.isClosed(), false);
+    assert.equal(JSON.stringify(h.posted).includes('SYNTHETIC'), false);
+    h.frame(); h.heartbeat(); assert.equal(h.inputs().length, 0);
+  }
+});
+test('each negotiated input capability independently enables only its corresponding actions', async () => {
+  for (const capability of ['touch', 'pointer', 'scroll', 'keyboard']) {
+    const h = await harness(); h.ready('unicode', {pointer: false, touch: false, scroll: false, keyboard: false, [capability]: true});
+    h.frame(); await h.native({type: 'control', enabled: true});
+    h.touch('pointerdown'); h.touch('pointerup'); h.wheel();
+    await h.native({type: 'key', key: 'Enter'}); await h.native({type: 'text', text: 'SYNTHETIC'});
+    const expected = {touch: ['tap'], pointer: ['pointer', 'pointer'], scroll: ['scroll'], keyboard: ['key', 'key', 'text']}[capability];
+    assert.deepEqual(h.inputs().map(value => value.action), expected);
+  }
 });
 test('background immediately destroys private view and ignores late signaling', async () => {
   const h = await harness(); h.ready(); h.frame(); await h.native({type: 'control', enabled: true}); h.hide();

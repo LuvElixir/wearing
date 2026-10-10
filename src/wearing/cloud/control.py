@@ -270,6 +270,31 @@ class ControlStore:
                                     routes.c.tenant_id == session.tenant_id)).mappings().first()
         return dict(row) if row else None
 
+    def private_owner_scope(self, session, expected_route):
+        """Validate operator-owned personal space, including under membership RLS.
+
+        Registry count/digest is the operator's full membership snapshot. A web
+        role only sees its own membership and MUST NOT count those visible rows.
+        Missing/shared/unknown registry retains legacy routing, without granting
+        personal-device files. A declared private space always fails closed.
+        """
+        with self.transaction(user_id=session.user_id, tenant_id=session.tenant_id) as db:
+            row = db.execute(select(ownership).where(ownership.c.tenant_id == session.tenant_id)).mappings().first()
+            route = db.execute(select(routes).where(routes.c.tenant_id == session.tenant_id)).mappings().first()
+            if not route or dict(route) != expected_route:
+                raise ControlError('个人空间路由已变更。')
+            if not row or row['classification'] != 'private':
+                return None
+            expected = digest(json.dumps([(session.user_id, True)], separators=(',', ':')))
+            if (not self.user_available(db, session.user_id) or not self.tenant_available(db, session.tenant_id)
+                    or row['owner_user_id'] != session.user_id or row['member_count'] != 1
+                    or row['member_digest'] != expected or row['instance_id'] != route['instance_id']
+                    or not db.scalar(select(members.c.tenant_id).where(members.c.tenant_id == session.tenant_id,
+                          members.c.user_id == session.user_id, members.c.active.is_(True)))):
+                raise ControlError('个人空间归属未通过验证。')
+            from .mobile_auth import session_storage_scope
+            return session_storage_scope(session.user_id, session.tenant_id)
+
 
 class OIDCStateCache:
     """Authlib async cache: private, expiring, one-use state across gateway restarts."""

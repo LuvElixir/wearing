@@ -50,7 +50,7 @@ class TenantBoundary:
         if path.startswith(("/api/phone", "/api/computer", "/api/doctor", "/api/device-report", "/api/device-doctor", "/api/connection")):
             return await JSONResponse({"detail": "云端实例的设备转发尚未接通，请通过设备连接器接入。"}, status_code=501)(scope, receive, send)
         # Internal credentials must never become ordinary application headers.
-        scoped = dict(scope, headers=[(k, v) for k, v in headers if k.lower() not in {b"authorization", b"x-wearing-tenant", b"x-pajio-session-expires", b"x-pajio-storage-scope"}])
+        scoped = dict(scope, headers=[(k, v) for k, v in headers if k.lower() not in {b"authorization", b"x-wearing-tenant", b"x-pajio-session-expires", b"x-pajio-storage-scope", b"x-pajio-private-owner-scope"}])
         scoped['pajio.cloud_worker'] = True
         storage_scopes = [v for k, v in headers if k.lower() == b'x-pajio-storage-scope']
         if storage_scopes:
@@ -59,6 +59,14 @@ class TenantBoundary:
                     return await send({'type': 'websocket.close', 'code': 1008})
                 return await JSONResponse({'detail': '账户存储关联无效，请重新登录。'}, status_code=401)(scope, receive, send)
             scoped['pajio.storage_scope'] = storage_scopes[0].decode('ascii')
+        owner_scopes = [v for k, v in headers if k.lower() == b'x-pajio-private-owner-scope']
+        if owner_scopes:
+            if (len(owner_scopes) != 1 or not re.fullmatch(rb'[a-f0-9]{64}', owner_scopes[0])
+                    or scoped.get('pajio.storage_scope') != owner_scopes[0].decode('ascii')):
+                if is_voice:
+                    return await send({'type': 'websocket.close', 'code': 1008})
+                return await JSONResponse({'detail': '个人空间归属未通过验证。'}, status_code=403)(scope, receive, send)
+            scoped['pajio.private_owner_scope'] = owner_scopes[0].decode('ascii')
         expiries = [v for k, v in headers if k.lower() == b'x-pajio-session-expires']
         if expiries:
             try:

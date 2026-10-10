@@ -100,7 +100,12 @@ class X11Source:
     def apply(self, event):
         action = event['action']
         if action == 'pointer':
-            self._x('mousemove', '--sync', event['x'], event['y'])
+            # xdotool's --sync waits for a position *change*, not an X11
+            # ordering barrier. Older builds wait even at the current point,
+            # starving capture under the shared native fence until timeout.
+            # Plain mousemove flushes XWarpPointer; process exit closes/syncs
+            # that X connection before the following button command starts.
+            self._x('mousemove', event['x'], event['y'])
             button = event.get('button', 0) + 1
             if event['phase'] == 'down':
                 self.buttons.add(button)
@@ -109,14 +114,15 @@ class X11Source:
                 self._x('mouseup', button)
                 self.buttons.discard(button)
         elif action == 'tap':
-            self._x('mousemove', '--sync', event['x'], event['y'], 'click', '1')
+            # One X connection preserves move-before-click request ordering.
+            self._x('mousemove', event['x'], event['y'], 'click', '1')
         elif action == 'swipe':
             self.buttons.add(1)
-            self._x('mousemove', '--sync', event['x'], event['y'], 'mousedown', '1')
+            self._x('mousemove', event['x'], event['y'], 'mousedown', '1')
             try:
                 steps = min(30, max(2, event['duration_ms']//25))
                 for index in range(1, steps+1):
-                    self._x('mousemove', '--sync', round(event['x']+(event['to_x']-event['x'])*index/steps),
+                    self._x('mousemove', round(event['x']+(event['to_x']-event['x'])*index/steps),
                             round(event['y']+(event['to_y']-event['y'])*index/steps))
                     time.sleep(event['duration_ms']/1000/steps)
             finally:

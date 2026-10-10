@@ -10,6 +10,7 @@ from .relay import ResourceSpec, RelayError, encoded, fingerprint
 from .instance import read_private
 from ..connectors.remote.client import PairBundle
 from ..connectors.remote.schemas import COMPUTER_METHODS, COMPUTER_TOOLS
+from ..device_files_io import FILE_METHODS
 
 
 PHONE_TOOLS = json.loads(Path(__file__).with_name('phone-tools.json').read_text())
@@ -33,7 +34,7 @@ class DeviceOffer(Record):
         if len({r.resource_id for r in self.resources}) != len(self.resources):
             raise ValueError('duplicate_resource')
         for r in self.resources:
-            allowed = PHONE_METHODS if r.kind == 'android' else frozenset(COMPUTER_METHODS)
+            allowed = (PHONE_METHODS if r.kind == 'android' else frozenset(COMPUTER_METHODS)) | frozenset(FILE_METHODS)
             if not r.methods <= allowed:
                 raise ValueError('unsupported_device_capability')
         return self

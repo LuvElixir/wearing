@@ -209,12 +209,12 @@ def test_native_write_is_single_attempt_with_readback_and_cleanup(monkeypatch, f
     from types import SimpleNamespace
     from wearing.android_text import replace_text
     calls = []
-    xml = '<hierarchy><node class="android.widget.EditText" resource-id="app:id/input" package="app" focused="true" enabled="true" text="before" /></hierarchy>'
+    xml = '<hierarchy><node class="android.widget.EditText" resource-id="app:id/input" package="app" focused="true" enabled="true" password="false" text="before" /></hierarchy>'
     values = iter(['before', 'wrong' if failure == 'mismatch' else '你好'])
     field = SimpleNamespace(selector={'resourceId': 'app:id/input'}, get_text=lambda **_: next(values))
     class Device:
         _dev = object()
-        def dump_hierarchy(self): return xml
+        def dump_hierarchy(self): return xml.replace('text="before"', 'text="'+('wrong' if failure == 'mismatch' else '你好')+'"') if 'write' in calls else xml
         def __call__(self, **_): return field
         def stop_uiautomator(self): calls.append('cleanup')
     def write(*args):
@@ -291,8 +291,8 @@ def test_decorated_input_reports_readback_without_claiming_verified_or_retyping(
     import sys
     from types import SimpleNamespace
     from wearing.android_text import replace_text
-    before = '<hierarchy><node class="android.widget.EditText" resource-id="app:id/input" package="app" focused="true" enabled="true" text="搜索, " /></hierarchy>'
-    after = before.replace('搜索, ', '搜索, 泉州').replace('enabled="true"', f'enabled="true" password="{str(private).lower()}"')
+    before = '<hierarchy><node class="android.widget.EditText" resource-id="app:id/input" package="app" focused="true" enabled="true" password="false" text="搜索, " /></hierarchy>'
+    after = before.replace('搜索, ', '搜索, 泉州').replace('password="false"', f'password="{str(private).lower()}"')
     trees, values = iter([before, after]), iter(['搜索, ', '搜索, 泉州'])
     calls = []
     field = SimpleNamespace(selector={}, get_text=lambda **_: next(values))

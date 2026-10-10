@@ -261,7 +261,10 @@ class Connector:
             if self.journal.paused(command.resource_id) or desired(self.root) == 'stopped':
                 state='blocked'
             else:
-                if command.method=='computer.input':
+                if command.method.startswith('files.'):
+                    from ...device_files_native import execute_transfer
+                    result=await asyncio.wait_for(execute_transfer(self.adapter,command,client,self.connection),timeout=45)
+                elif command.method=='computer.input':
                     from ...desktop_input import DesktopApproval
                     approval=DesktopApproval.model_validate(current.get('input_approval'))
                     if not approval.permits(command):raise ValueError('desktop_approval_not_current')
