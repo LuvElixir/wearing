@@ -1,5 +1,6 @@
 """Fixed SSH/QGA transport for first boot and verified per-clone runtime install."""
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -23,7 +24,7 @@ try:
   assert pathlib.Path(name).name==name
   v=p/name
   assert not v.is_symlink() and v.is_file() and v.stat().st_uid==os.getuid()
-  assert hashlib.sha256(v.read_bytes()).hexdigest()==sha
+  with v.open('rb') as stream:assert hashlib.file_digest(stream,'sha256').hexdigest()==sha
 except Exception:sys.exit(1)
 '''
 
@@ -60,7 +61,23 @@ for family,table,chain in [('inet','pajio_lab_guard',f'pv{vid}_input'),('inet','
 if p['action']=='network':print(json.dumps({'staged_network':True}));sys.exit()
 if p['action']!='attest':fail('invalid_delivery_action')
 source=__QGA_SOURCE__
-r=call('qm','guest','exec',str(vid),'--','/usr/bin/python3','-c',source)
+# This is a read-only observation after a durably recorded start. A fresh
+# guest often has no QGA yet; only that known condition or this bounded query's
+# timeout is retryable. Never turn an arbitrary host/configuration error into
+# a healthy boot, and never expose provider stderr in the receipt.
+try:
+ qga=subprocess.run(['qm','guest','exec',str(vid),'--','/usr/bin/python3','-c',source],capture_output=True,text=True,timeout=45)
+except subprocess.TimeoutExpired:
+ fail('fresh_os_attestation_pending')
+if qga.returncode:
+ message=qga.stderr.strip()
+ if (message=='QEMU guest agent is not running'
+     or re.fullmatch(r"VM "+str(vid)+r" qmp command 'guest-(?:exec|ping)' failed - (?:got timeout|command timed out)",message)):
+  fail('fresh_os_attestation_pending')
+ fail('proxmox_query_failed')
+try:r=json.loads(qga.stdout)
+except (ValueError,TypeError):fail('proxmox_query_failed')
+if not isinstance(r,dict):fail('proxmox_query_failed')
 if r.get('exitcode')!=0:fail('fresh_os_attestation_pending')
 v=json.loads(r.get('out-data','{}'))
 def management_matches(net0,interfaces,address):
@@ -162,6 +179,16 @@ if owner(c)!=expected or digest(c)!=plan['after_sha256'] or int(c.get('onboot',0
 print(json.dumps(result(c)))
 '''
 
+def upload_digests(directory):
+    # Runtime images can exceed the worker's memory limit; only the fixed-size
+    # file_digest buffer is live while hashing each reviewed public artifact.
+    values={}
+    for path in Path(directory).iterdir():
+        with path.open('rb') as stream:
+            values[path.name]=hashlib.file_digest(stream,'sha256').hexdigest()
+    return values
+
+
 class SSHDeliveryAdapter(SSHPowerAdapter):
     def __init__(self,*,delivery_sources,runtime_bundle=None,installer=None,**kwargs):
         super().__init__(sources={'tenants':{},'devices':{}},**kwargs)
@@ -210,7 +237,7 @@ class SSHDeliveryAdapter(SSHPowerAdapter):
         mkdir='/usr/bin/python3 -c '+shlex.quote(prepare)+' '+shlex.quote(remote)
         try:
             self.runner(ssh+[mkdir],check=True,capture_output=True,text=True,timeout=30)
-            expected={p.name:__import__('hashlib').sha256(p.read_bytes()).hexdigest() for p in self.runtime_bundle.iterdir()}
+            expected=upload_digests(self.runtime_bundle)
             command='/usr/bin/python3 -c '+shlex.quote(UPLOAD_CHECK)+' '+shlex.quote(remote+'/'+self.runtime_bundle.name)
             reusable=self.runner(ssh+[command],input=json.dumps(expected),capture_output=True,text=True,timeout=60).returncode==0
             # Reuse only byte-identical public artifacts; always send the current

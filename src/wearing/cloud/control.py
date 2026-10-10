@@ -61,6 +61,14 @@ deletion_requests = Table("wearing_deletion_requests", metadata,
                   Column("updated_at", Integer),
                   CheckConstraint("state IN ('awaiting_operator','frozen','waiting','completed')"),
                   UniqueConstraint("user_id", "request_key"))
+bundles = Table("wearing_bundles", metadata,
+                Column("id", String(32), primary_key=True),
+                Column("tenant_id", ForeignKey("wearing_tenants.id"), nullable=False, unique=True),
+                Column("instance_id", String(128), nullable=False), Column("host", String(128), nullable=False),
+                Column("reservation_sha256", String(64), nullable=False),
+                Column("worker_plan_sha256", String(64), nullable=False), Column("members_json", Text, nullable=False),
+                Column("reservation_expires_at", Integer, nullable=False), Column("created_at", Integer, nullable=False),
+                CheckConstraint("reservation_expires_at > created_at"))
 invitations = Table("wearing_invitations", metadata,
                   Column("id", String(32), primary_key=True), Column("code_hash", String(64), nullable=False, unique=True),
                   Column("issuer", Text, nullable=False), Column("tenant_id", ForeignKey("wearing_tenants.id"), nullable=False, unique=True),
@@ -69,10 +77,29 @@ invitations = Table("wearing_invitations", metadata,
                   Column("redeemed_user_id", ForeignKey("wearing_users.id")), Column("redeemed_at", Integer),
                   Column("registration_id", String(32), unique=True), Column("username_hash", String(64)),
                   Column("registration_subject", String(512)),
+                  Column("bundle_id", ForeignKey("wearing_bundles.id"), unique=True),
                   CheckConstraint("expires_at > created_at"),
                   CheckConstraint("(redeemed_user_id IS NULL) = (redeemed_at IS NULL)"),
                   CheckConstraint("(registration_id IS NULL) = (username_hash IS NULL)"),
                   CheckConstraint("registration_subject IS NULL OR registration_id IS NOT NULL"))
+
+
+bundle_activations = Table("wearing_bundle_activations", metadata,
+                Column("id", String(32), primary_key=True),
+                Column("invitation_id", ForeignKey("wearing_invitations.id"), nullable=False, unique=True),
+                Column("bundle_id", ForeignKey("wearing_bundles.id"), nullable=False, unique=True),
+                Column("user_id", ForeignKey("wearing_users.id"), nullable=False),
+                Column("tenant_id", ForeignKey("wearing_tenants.id"), nullable=False),
+                Column("instance_id", String(128), nullable=False),
+                Column("ownership_revision", Integer, nullable=False), Column("member_digest", String(64), nullable=False),
+                Column("state", String(32), nullable=False, server_default="reserved"),
+                Column("members_json", Text, nullable=False), Column("step", String(80), nullable=False, server_default="planned"),
+                Column("receipt_sha256", String(64)), Column("reason", String(80)),
+                Column("generation", Integer, nullable=False, server_default="0"), Column("lease_owner", String(32)),
+                Column("lease_until", Integer), Column("created_at", Integer, nullable=False), Column("updated_at", Integer, nullable=False),
+                CheckConstraint("ownership_revision > 0 AND generation >= 0"),
+                CheckConstraint("state IN ('reserved','preparing','installing','pairing','ready','needs_review')"),
+                CheckConstraint("(lease_owner IS NULL) = (lease_until IS NULL)"))
 
 
 def digest(value):
@@ -89,11 +116,12 @@ class SessionView:
 
 
 class ControlStore:
-    def __init__(self, url: str, *, initialize=False, operator=False, registration=False):
-        if operator and registration:
-            raise ControlError("数据库角色不能同时用于运营和注册。")
+    def __init__(self, url: str, *, initialize=False, operator=False, registration=False, activation=False):
+        if sum(bool(v) for v in (operator, registration, activation)) > 1:
+            raise ControlError("数据库角色不能同时用于运营、注册或分配。")
         self.operator = operator
         self.registration = registration
+        self.activation = activation
         self.engine = create_engine(url, hide_parameters=True)
         self.postgres = self.engine.dialect.name == "postgresql"
         if self.postgres:
@@ -103,7 +131,7 @@ class ControlStore:
                 raise ControlError("PostgreSQL 需要版本化迁移，不能用 create_all 初始化。")
             self.engine = self.engine.execution_options(schema_translate_map={None: SCHEMA})
             try:
-                assert_database_boundary(self.engine, operator=operator, registration=registration)
+                assert_database_boundary(self.engine, operator=operator, registration=registration, activation=activation)
             except Exception:
                 self.engine.dispose()
                 raise

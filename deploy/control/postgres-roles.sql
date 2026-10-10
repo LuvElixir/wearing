@@ -14,8 +14,11 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'wearing_cleanup') THEN
     CREATE ROLE wearing_cleanup NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
   END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'wearing_activation') THEN
+    CREATE ROLE wearing_activation NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+  END IF;
   IF EXISTS (SELECT FROM pg_catalog.pg_roles
-             WHERE rolname IN ('wearing_web', 'wearing_operator', 'wearing_registration', 'wearing_cleanup')
+             WHERE rolname IN ('wearing_web', 'wearing_operator', 'wearing_registration', 'wearing_cleanup', 'wearing_activation')
                AND (rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole OR rolbypassrls)) THEN
     RAISE EXCEPTION 'Existing Wearing privilege roles do not match the required boundary';
   END IF;
@@ -28,3 +31,7 @@ END $$;
 -- The registration broker role can execute only the fixed invitation functions.
 -- Never grant the operator, web or migration roles to the registration broker.
 -- The migration owner must be separate from both; never grant it to the app.
+
+-- GRANT wearing_activation TO <bundle_activation_login>;
+-- The activation login executes only fenced lease/progress functions.
+-- Do not grant web/operator/registration/cleanup or migration-owner membership.

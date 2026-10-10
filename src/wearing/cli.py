@@ -110,6 +110,8 @@ def main():
         if operation == "issue":
             invite_command.add_argument("--output", type=Path, required=True)
             invite_command.add_argument("--expires-in", type=int, default=7 * 86400)
+            invite_command.add_argument("--bundle-id", help="已由操作者验证并登记的不可变资源预约")
+            invite_command.add_argument("--worker-plan", type=Path, help="与预约 SHA 匹配的私有 worker 计划")
     gateway_route = gateway_sub.add_parser("route")
     gateway_route.add_argument("--root", type=Path, required=True)
     gateway_route.add_argument("--tenant-root", type=Path, required=True)
@@ -277,7 +279,7 @@ def main():
                     elif args.operation == "issue":
                         result = issue_to_file(store, issuer=config.issuer,
                             tenant_id=TypeAdapter(Identifier).validate_python(args.tenant_id), output=args.output,
-                            lifetime=args.expires_in)
+                            lifetime=args.expires_in, bundle_id=args.bundle_id, worker_plan_path=args.worker_plan)
                     elif args.operation == "revoke":
                         result = invitations.revoke(args.invitation_id)
                     else:

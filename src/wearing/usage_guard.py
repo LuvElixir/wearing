@@ -25,11 +25,12 @@ class UsageGuardConfig:
     enabled: bool
     data_dir: Path | None = None
     identity: str | None = None
+    consent_required: bool = False
 
     def __post_init__(self):
-        if type(self.enabled) is not bool:
+        if type(self.enabled) is not bool or type(self.consent_required) is not bool:
             raise UsageError("quota_unavailable")
-        if self.enabled and (self.data_dir is None or not self.data_dir.is_absolute()
+        if (self.enabled or self.consent_required) and (self.data_dir is None or not self.data_dir.is_absolute()
                 or self.data_dir.is_symlink() or not self.identity
                 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", self.identity)):
             raise UsageError("quota_unavailable")
@@ -39,7 +40,8 @@ class UsageGuardConfig:
         directory = os.environ.get("PAJIO_USAGE_DATA_DIR")
         return cls(os.environ.get("PAJIO_TRIAL_LIMITS") == "1",
                    Path(directory) if directory else None,
-                   os.environ.get("PAJIO_USAGE_IDENTITY"))
+                   os.environ.get("PAJIO_USAGE_IDENTITY"),
+                   os.environ.get("PAJIO_AI_CONSENT_REQUIRED") == "1")
 
 
 def _mapping(value):
@@ -150,7 +152,7 @@ class _AsyncStream(_Stream):
             self.finish(not self.done)
 
 
-def wrap_sdk_request(original, book, identity, *, asynchronous=False):
+def wrap_sdk_request(original, book, identity, *, asynchronous=False, consent=None):
     def prepare(client, options):
         # Use the SDK's own resolution: an absolute options.url bypasses
         # base_url. Never send its credentials or apply its rates elsewhere.
@@ -174,7 +176,16 @@ def wrap_sdk_request(original, book, identity, *, asynchronous=False):
             raise UsageError("quota_provider") from None
         copied = options.model_copy(deep=True) if hasattr(options, "model_copy") else options.copy(deep=True)
         copied.follow_redirects = False
+        provider_origin = str(destination.copy_with(path='', query=None, fragment=None)).rstrip('/')
         if options.method.lower() == "get":
+            if consent is not None:
+                from wearing.ai_consent import ConsentError, PROVIDER
+                # The one metadata call allowed before a decision contains no
+                # prompt or query. A custom GET must not become an AI-data bypass.
+                if (provider_origin != PROVIDER['origin'] or not destination.path.rstrip('/').endswith('/models')
+                        or destination.query or getattr(options, 'params', None)
+                        or options.json_data or getattr(options, 'extra_json', None)):
+                    raise ConsentError('ai_provider_not_supported', 403)
             return None, copied
         # Fail closed for other native API families rather than imply coverage.
         path = destination.path.rstrip("/")
@@ -216,7 +227,18 @@ def wrap_sdk_request(original, book, identity, *, asynchronous=False):
             output_tokens = body["max_output_tokens"]
         copied.json_data = body
         copied.extra_json = extra
-        call_id = book.reserve(identity, "model", uuid.uuid4().hex, provider=destination.host, model=effective.get("model"), reserve_output_tokens=output_tokens)
+        if consent is not None:
+            consent.require(identity, origin=provider_origin)
+        call_id = book.reserve(identity, "model", uuid.uuid4().hex, provider=destination.host, model=effective.get("model"), reserve_output_tokens=output_tokens) if book is not None else None
+        if consent is not None and call_id is not None:
+            try:
+                # A contended budget transaction may wait. Re-read after it,
+                # immediately before handing the request to the SDK transport.
+                consent.require(identity, origin=provider_origin)
+            except BaseException:
+                # No SDK send has happened: this specific attempt used zero tokens.
+                book.settle(call_id, input_tokens=0, output_tokens=0, cached_input_tokens=0)
+                raise
         return call_id, copied
 
     if asynchronous:
@@ -275,13 +297,17 @@ def install_usage_guard(config: UsageGuardConfig):
         if config != _installed_config:
             raise UsageError("quota_unavailable")
         return True
-    if not config.enabled:
+    if not config.enabled and not config.consent_required:
         return False
-    book = UsageBook(config.data_dir, enabled=True)
-    book.recover()
+    book = UsageBook(config.data_dir, enabled=True) if config.enabled else None
+    if book is not None: book.recover()
+    consent = None
+    if config.consent_required:
+        from wearing.ai_consent import ConsentBook
+        consent = ConsentBook(config.data_dir)
     from openai._base_client import SyncAPIClient, AsyncAPIClient
-    SyncAPIClient.request = wrap_sdk_request(SyncAPIClient.request, book, config.identity)
-    AsyncAPIClient.request = wrap_sdk_request(AsyncAPIClient.request, book, config.identity, asynchronous=True)
+    SyncAPIClient.request = wrap_sdk_request(SyncAPIClient.request, book, config.identity, consent=consent)
+    AsyncAPIClient.request = wrap_sdk_request(AsyncAPIClient.request, book, config.identity, asynchronous=True, consent=consent)
     # Native auxiliary adapters have a chat-shaped facade but bypass the SDK.
     # Gate both initial selection and later retry/fallback dispatch.
     from agent import auxiliary_client
@@ -311,7 +337,7 @@ def install_usage_guard(config: UsageGuardConfig):
     def init(agent, *args, **kwargs):
         kwargs["fallback_model"] = None
         original_init(agent, *args, **kwargs)
-        guard_agent(agent, enabled=config.enabled)
+        guard_agent(agent, enabled=config.enabled or config.consent_required)
     AIAgent.__init__ = init
     _installed_config = config
     return True

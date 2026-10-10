@@ -6,7 +6,7 @@ import {useAppTheme} from './app-theme';
 import {PrimaryButton} from './experience/primitives';
 import {NativeEnrollmentPanel} from './NativeEnrollmentPanel';
 
-type Props = {connection: Connection | null; disabled?: boolean; onConnected: (connection: Connection) => Promise<void>};
+type Props = {connection: Connection | null; disabled?: boolean; onConnected: (connection: Connection, notice?:string) => Promise<void>};
 export default function CloudSessionPanel(props: Props) {return <AccountSession key={props.connection ? scopeOf(props.connection) : 'signed-out'} {...props}/>;}
 function AccountSession({connection,disabled,onConnected}: Props) {
   const {colors:c}=useAppTheme(), [busy,setBusy]=useState(false), [error,setError]=useState(''), [now,setNow]=useState(Date.now);
@@ -15,7 +15,10 @@ function AccountSession({connection,disabled,onConnected}: Props) {
   async function act(entry: 'account' | 'logout') {
     if(lock.current||disabled)return;
     lock.current=true;setBusy(true);setError('');
-    try {const result=entry==='logout'&&connection?await signOut(connection):await signIn('account');if(result&&live.current)await onConnected(result);}
+    try {
+      if(entry==='logout'&&connection){const result=await signOut(connection);if(live.current)await onConnected(result.connection,result.notificationsUnconfirmed?'已退出账户。停止通知的回执尚未确认，可在手机设置中关闭 Pajio 通知。':undefined);}
+      else {const result=await signIn('account');if(result&&live.current)await onConnected(result);}
+    }
     catch(error){if(live.current)setError(error instanceof Error?error.message:'这次登录没有完成，请重试。');}
     finally{lock.current=false;if(live.current)setBusy(false);}
   }

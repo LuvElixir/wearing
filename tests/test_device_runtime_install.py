@@ -145,3 +145,33 @@ def test_mobile_node_archive_accepts_official_top_directory_only():
     exec(compiled,{'archive':Archive([root,leaf])})
     for bad in [tarfile.TarInfo('node-v26.7.0-linux-x64'),tarfile.TarInfo('another/node')]:
         with pytest.raises(ValueError,match='invalid_node_archive'):exec(compiled,{'archive':Archive([bad])})
+
+
+def test_large_image_hashing_is_bounded_on_sender_and_receiver(tmp_path):
+    """Actual 833MiB sparse file; a read_bytes implementation exceeds this bound."""
+    import os,sys
+    path=tmp_path/'redroid-amd64.tar'
+    size=873349120
+    with path.open('wb') as stream:stream.truncate(size)
+    env={**os.environ,'PYTHONPATH':str(ROOT/'src')}
+    script='''import json,resource,sys,tracemalloc
+from pathlib import Path
+from wearing.cloud.device_delivery_ssh import upload_digests
+tracemalloc.start()
+values=upload_digests(Path(sys.argv[1]))
+peak=tracemalloc.get_traced_memory()[1]
+rss=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+print(json.dumps({'digests':values,'peak':peak,'rss':rss}))
+'''
+    value=json.loads(subprocess.run([sys.executable,'-c',script,str(tmp_path)],env=env,check=True,capture_output=True,text=True,timeout=30).stdout)
+    assert value['peak']<2*1024*1024
+    assert value['rss']/(1024 if sys.platform=='darwin' else 1)<192*1024
+    from wearing.cloud.device_delivery_ssh import UPLOAD_CHECK
+    checked='import tracemalloc,resource;tracemalloc.start()\n'+UPLOAD_CHECK+'''\nprint(json.dumps({'peak':tracemalloc.get_traced_memory()[1],'rss':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}))\n'''
+    result=subprocess.run([sys.executable,'-c',checked,str(tmp_path)],input=json.dumps(value['digests']),env=env,check=True,capture_output=True,text=True,timeout=30)
+    measured=json.loads(result.stdout)
+    assert measured['peak']<2*1024*1024
+    assert measured['rss']/(1024 if sys.platform=='darwin' else 1)<192*1024
+    # A changed byte still rejects reuse; bounded allocation does not weaken SHA.
+    with path.open('r+b') as out:out.write(b'x')
+    assert subprocess.run([sys.executable,'-c',UPLOAD_CHECK,str(tmp_path)],input=json.dumps(value['digests']),env=env,capture_output=True,text=True,timeout=30).returncode==1

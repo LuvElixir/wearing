@@ -107,7 +107,7 @@ class HermesRuntime:
         self.identity_id = identity_id
         self.local_devices = local_devices
         self.usage_config = UsageGuardConfig(os.environ.get("PAJIO_TRIAL_LIMITS") == "1",
-                                             self.data_dir, identity_id)
+                                             self.data_dir, identity_id, not local_devices)
         self.root = self.data_dir / "runtime"
         self.source = self.root / f"hermes-agent-{HERMES_REVISION}"
         self.identity_dir = self.data_dir if identity_id == DEFAULT_IDENTITY else self.data_dir / "identities" / identity_id
@@ -148,6 +148,7 @@ class HermesRuntime:
                    PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8",
                    PAJIO_TRIAL_LIMITS="1" if self.usage_config.enabled else "0",
                    PAJIO_USAGE_DATA_DIR=str(self.usage_config.data_dir), PAJIO_USAGE_IDENTITY=self.usage_config.identity,
+                   PAJIO_AI_CONSENT_REQUIRED='1' if self.usage_config.consent_required else '0',
                    PAJIO_CONFIRMATION_DATA_DIR=str(self.data_dir.resolve()), PAJIO_CONFIRMATION_IDENTITY=self.identity_id,
                    PAJIO_RECALL_DATA_DIR=str(self.data_dir.resolve()), PAJIO_RECALL_IDENTITY=self.identity_id,
                    PAJIO_RECALL_LOCAL='1' if self.local_devices else '0')

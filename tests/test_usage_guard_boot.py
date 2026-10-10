@@ -12,12 +12,14 @@ from wearing.usage import UsageError
 
 @pytest.mark.parametrize('bridge', [capture_bridge, engine_runner])
 @pytest.mark.parametrize('enabled', [True, False])
-def test_bridge_captures_authority_before_provider_dotenv(tmp_path, monkeypatch, bridge, enabled):
+@pytest.mark.parametrize('consent_required', [True, False])
+def test_bridge_captures_authority_before_provider_dotenv(tmp_path, monkeypatch, bridge, enabled, consent_required):
     root, home = tmp_path / 'tenant-data', tmp_path / 'hermes'
     root.mkdir(); home.mkdir()
     identity = 'id_' + 'a' * 32
     initial = dict(PAJIO_TRIAL_LIMITS='1' if enabled else '0', PAJIO_USAGE_DATA_DIR=str(root),
                    PAJIO_USAGE_IDENTITY=identity, HERMES_HOME=str(home),
+                   PAJIO_AI_CONSENT_REQUIRED='1' if consent_required else '0',
                    PAJIO_RECALL_DATA_DIR=str(root), PAJIO_RECALL_IDENTITY=identity, PAJIO_RECALL_LOCAL='0')
     for key, value in initial.items():
         monkeypatch.setenv(key, value)
@@ -31,6 +33,7 @@ def test_bridge_captures_authority_before_provider_dotenv(tmp_path, monkeypatch,
         monkeypatch.setenv('PAJIO_TRIAL_LIMITS', '0' if enabled else '1')
         monkeypatch.setenv('PAJIO_USAGE_DATA_DIR', str(tmp_path / 'foreign'))
         monkeypatch.setenv('PAJIO_USAGE_IDENTITY', 'foreign')
+        monkeypatch.setenv('PAJIO_AI_CONSENT_REQUIRED', '0' if consent_required else '1')
 
     def install(config):
         assert os.environ['PAJIO_USAGE_IDENTITY'] == 'foreign'
@@ -49,7 +52,7 @@ def test_bridge_captures_authority_before_provider_dotenv(tmp_path, monkeypatch,
         monkeypatch.setattr(sys, 'stdin', io.StringIO('{}'))
         monkeypatch.setattr(bridge, 'organize', lambda _: {'output': 'synthetic'})
     bridge.main()
-    assert captured == [usage_guard.UsageGuardConfig(enabled, root, identity)]
+    assert captured == [usage_guard.UsageGuardConfig(enabled, root, identity, consent_required)]
 
 
 @pytest.mark.parametrize('change', [{'PAJIO_USAGE_DATA_DIR': ''}, {'PAJIO_USAGE_DATA_DIR': 'relative'},

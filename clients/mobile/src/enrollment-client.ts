@@ -49,17 +49,22 @@ export class EnrollmentFlow {
     if (Date.parse(pending.expires_at) <= this.now()) throw new EnrollmentError('enrollment_expired');
     return pending;
   }
-  private async request(action: Action, data: Record<string, unknown>): Promise<EnrollmentSnapshot> {
+  private async request(action: Action, data: Record<string, unknown>, signal?: AbortSignal): Promise<EnrollmentSnapshot> {
     const pending = this.pending();
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 30_000);
+    const controller = new AbortController(), abort = () => controller.abort(), timer = setTimeout(abort, 30_000);
+    if (signal?.aborted) controller.abort();
+    signal?.addEventListener('abort', abort);
     try {
+      if (controller.signal.aborted) throw new EnrollmentError('enrollment_unconfirmed');
       const response = await this.options.fetcher(new URL('/auth/mobile/enrollment/' + action, pending.origin).toString(), {
         method: 'POST', headers: {'Content-Type': 'application/json'}, credentials: 'omit', redirect: 'error',
         body: JSON.stringify(data), signal: controller.signal,
       });
       this.assertActive();
+      if (controller.signal.aborted) throw new EnrollmentError('enrollment_unconfirmed');
       const raw = await response.text();
       this.assertActive();
+      if (controller.signal.aborted) throw new EnrollmentError('enrollment_unconfirmed');
       if (raw.length > 8192) throw new EnrollmentError('enrollment_invalid');
       let value: unknown;
       try {value = JSON.parse(raw);} catch {throw new EnrollmentError('enrollment_unconfirmed');}
@@ -87,7 +92,7 @@ export class EnrollmentFlow {
     } catch (error) {
       if (error instanceof EnrollmentError) throw error;
       throw new EnrollmentError('enrollment_unconfirmed');
-    } finally {clearTimeout(timer);}
+    } finally {clearTimeout(timer); signal?.removeEventListener('abort', abort);}
   }
   async verify(code: string): Promise<EnrollmentSnapshot> {
     return this.run(async () => {
@@ -124,7 +129,7 @@ export class EnrollmentFlow {
   private proofBody(pending: EnrollmentRecovery) {
     return {operation_id: pending.operation_id, receipt: pending.receipt, verifier: pending.verifier, state: pending.state};
   }
-  async status() {return this.run(() => this.request('status', this.proofBody(this.pending())));}
+  async status(signal?: AbortSignal) {return this.run(() => this.request('status', this.proofBody(this.pending()), signal));}
   async cancel() {return this.run(() => this.request('cancel', this.proofBody(this.pending())));}
   async finish(): Promise<Connection> {
     return this.run(async () => {

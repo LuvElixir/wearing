@@ -243,7 +243,7 @@ def test_operator_credential_is_separate_and_target_bound(pg, tmp_path, monkeypa
     with pytest.raises(DatabaseBoundaryError):
         operator_store(config, database_url=pg["admin"])
     with pytest.raises(GatewayError):
-        operator_store(config, database_url=pg["operator"].replace("wearing_control_qa", "foreign"))
+        operator_store(config, database_url=make_url(pg["operator"]).set(database="foreign").render_as_string(hide_password=False))
     ops = operator_store(config, database_url=pg["operator"])
     ops.close()
     content = (tmp_path / "entry/gateway.json").read_text()

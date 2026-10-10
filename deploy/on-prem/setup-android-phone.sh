@@ -62,7 +62,7 @@ adb_port=${PAJIO_ANDROID_ADB_PORT:-5555}
 case "$adb_port" in ''|*[!0-9]*) echo 'Invalid loopback ADB port' >&2; exit 2;; esac
 if [ "$adb_port" -lt 1024 ] || [ "$adb_port" -gt 65535 ]; then echo 'Invalid loopback ADB port' >&2; exit 2; fi
 adb_serial="127.0.0.1:$adb_port"
-case "$image" in *@sha256:11d58a64bfbde2253d1cce81bff409ff58174980222d1bada232d9ef59181191) ;; *) echo 'Image digest is not the accepted Android 14 build' >&2; exit 2;; esac
+case "$image" in docker.m.daocloud.io/redroid/redroid@sha256:11d58a64bfbde2253d1cce81bff409ff58174980222d1bada232d9ef59181191|sha256:639792975c26fa2920562c5b8dfbb808405f4a6ecce8fb65005e07b484d4d392|sha256:1426149f9c830c53572eb89bd9f2ade07838eb21be06edd98830aa9f4ef634fb) ;; *) echo 'Image digest is not the accepted Android 14 build' >&2; exit 2;; esac
 if ! systemd-detect-virt --quiet; then echo 'A dedicated execution VM is required' >&2; exit 2; fi
 if [ -d /etc/pve ] || [ -d /var/lib/wearing/instance ]; then echo 'Refusing to install a phone on a hypervisor or Agent core VM' >&2; exit 2; fi
 if id pajio-phone >/dev/null 2>&1; then
@@ -88,6 +88,9 @@ if ! modinfo binder_linux >/dev/null 2>&1; then
 fi
 modprobe binder_linux devices=binder,hwbinder,vndbinder
 systemctl enable --now docker
+# The installer has verified and loaded the pinned official archive. Never pull
+# an image while provisioning a user; an absent local image is a hard failure.
+docker image inspect "$image" >/dev/null
 if docker container inspect pajio-phone >/dev/null 2>&1; then
   test "$(docker inspect --format '{{ index .Config.Labels "io.pajio.role" }}' pajio-phone)" = 'tenant-android'
   test "$(docker inspect --format '{{.Config.Image}}' pajio-phone)" = "$image"
@@ -95,7 +98,7 @@ if docker container inspect pajio-phone >/dev/null 2>&1; then
   docker inspect pajio-phone | validate_existing_container
   docker start pajio-phone >/dev/null
 else
-  docker run -d --name pajio-phone --label io.pajio.role=tenant-android \
+  docker run --pull=never -d --name pajio-phone --label io.pajio.role=tenant-android \
     --restart unless-stopped --privileged --cpus=2 --memory=3g --memory-swap=3g \
     --log-driver=local --log-opt max-size=5m --log-opt max-file=2 \
     -v /var/lib/pajio-phone/data:/data -p "$adb_serial:5555" "$image" \

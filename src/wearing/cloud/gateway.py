@@ -27,6 +27,7 @@ from starlette.routing import Route, WebSocketRoute
 from .voice import voice_endpoint, PATH as VOICE_PATH
 
 from .join import JoinFlow, callback_error, native_ready
+from .public_pages import public_routes
 from .registration import RegistrationClient
 from .native_enrollment import NativeEnrollment, EnrollmentError
 from .invitations import InvitationStore
@@ -463,6 +464,18 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
         return JSONResponse({"user_id": current.user_id, "tenant_id": current.tenant_id,
                              "tenants": store.memberships(current), "csrf": current.csrf, "expires_at": datetime.fromtimestamp(current.expires, timezone.utc).isoformat()})
 
+    async def provisioning(request):
+        from .bundle_activation import ActivationError, ActivationStore
+        current = session(request)
+        if current is None:
+            return JSONResponse({'detail': '请先登录 Pajio。'}, status_code=401)
+        try:
+            progress = ActivationStore(store).status(current)
+        except ActivationError:
+            return JSONResponse({'code': 'provisioning_unavailable',
+                                 'detail': '正在核对你的专属空间，请稍后刷新。'}, status_code=404)
+        return JSONResponse(progress)
+
     async def logout(request):
         current = session(request)
         if current is None or not unsafe_allowed(request, current, portal=True):
@@ -545,10 +558,11 @@ def create_gateway_app(root: Path, *, oidc_transport=None, worker_transport=None
     receipt_codec = ReceiptCodec(config.session_key.get_secret_value())
     voice = voice_endpoint(config.public_origin, store, credentials, ssl_context=upstream_tls,
                            **({"connector": voice_connector} if voice_connector else {}))
-    app = Starlette(routes=[*join.routes(), *enrollment.routes(), *deletion_routes(deletion, receipt_codec, session, unsafe_allowed, reauth=deletion_reauth),
+    app = Starlette(routes=[*public_routes(), *join.routes(), *enrollment.routes(), *deletion_routes(deletion, receipt_codec, session, unsafe_allowed, reauth=deletion_reauth),
                            Route(PREFIX + '/reauth/start', deletion_reauth_start), WebSocketRoute(VOICE_PATH, voice), Route("/auth/login", login), Route("/auth/callback", callback),
                            Route("/auth/mobile/start", mobile_start), Route("/auth/mobile/exchange", mobile_exchange, methods=["POST"]),
-                           Route("/auth/session", account), Route("/auth/logout", logout, methods=["POST"]),
+                           Route("/auth/session", account), Route("/auth/provisioning", provisioning),
+                           Route("/auth/logout", logout, methods=["POST"]),
                            Route("/auth/tenant", switch, methods=["POST"]),
                            Route("/{path:path}", proxy, methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"])],
                     lifespan=lifespan,

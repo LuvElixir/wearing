@@ -126,3 +126,23 @@ test('cancelled response clears nothing until the user explicitly forgets, and p
   await f.flow.cancel();assert.equal(f.flow.current().result?.status,'pending');assert.equal(f.vault.values.size,1);
   await f.flow.forget();assert.equal(f.vault.values.size,0);assert.equal(f.calls.filter(call=>call.path.endsWith('/cancel')).length,1);
 });
+test('a cancelled foreground status read preserves proof and rejects a late completed result without exchange',async()=>{
+ const f=fixture();await f.flow.verify(code);
+ f.respond(async()=>Response.json(reply('pending',{retry_after:5})));await f.flow.register('name',password);
+ const abort=new AbortController();let resolve!:(value:Response)=>void;
+ f.respond(async()=>new Promise<Response>(r=>{resolve=r;}));const read=f.flow.status(abort.signal);abort.abort();resolve(Response.json(completed()));
+ await assert.rejects(read);assert.equal(f.flow.current().result?.status,'pending');assert.equal(f.exchanges(),0);assert.equal(f.vault.values.size,1);
+ assert.equal(f.calls.filter(call=>call.path.endsWith('/register')).length,1);
+ assert.equal(f.calls.at(-1)?.path,'/auth/mobile/enrollment/status');assert.equal('password' in f.calls.at(-1)!.body,false);
+});
+test('foreground polling uses only status after unknown registration and completion never auto-exchanges',async()=>{
+ const {ReadOnlyPoll}=await import('./read-only-poll');const f=fixture();await f.flow.verify(code);
+ f.respond(async()=>{throw Error('synthetic lost reply');});await assert.rejects(f.flow.register('name',password));
+ const jobs=new Map<number,()=>void>();let id=0;const accepted:string[]=[];
+ f.respond(async()=>Response.json(reply('pending',{retry_after:5})));
+ const poll=new ReadOnlyPoll({read:signal=>f.flow.status(signal),accept:value=>{accepted.push(value.result!.status);return value.result?.status==='pending'?5000:null;},error:()=>false,schedule:fn=>{jobs.set(++id,fn);return id;},cancel:key=>{jobs.delete(key as number);}});
+ const step=async()=>{const entry=jobs.entries().next().value!;jobs.delete(entry[0]);entry[1]();await new Promise<void>(resolve=>setImmediate(resolve));};
+ poll.setForeground(true);await step();f.respond(async()=>Response.json(completed()));await step();
+ assert.deepEqual(accepted,['pending','completed']);assert.equal(jobs.size,0);assert.equal(f.exchanges(),0);
+ assert.equal(f.calls.filter(call=>call.path.endsWith('/register')).length,1);assert.equal(f.calls.slice(2).every(call=>call.path.endsWith('/status')&&!('password'in call.body)),true);poll.dispose();
+});

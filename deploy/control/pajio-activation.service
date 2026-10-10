@@ -1,0 +1,32 @@
+[Unit]
+Description=Pajio private bundle activation
+After=network-online.target postgresql.service pajio-gateway.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pajio-activation
+Group=pajio-activation
+EnvironmentFile=/etc/pajio/activation.env
+ExecStart=/opt/wearing/venv/bin/python -m wearing.cloud.bundle_activation_worker --root /var/lib/pajio-activation
+WorkingDirectory=/var/lib/pajio-activation
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=90
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/pajio-activation
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=768M
+TasksMax=64
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

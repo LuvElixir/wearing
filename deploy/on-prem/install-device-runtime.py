@@ -8,6 +8,7 @@ an incomplete install is idempotent, but a paired device is never reinstalled.
 import argparse
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -22,8 +23,11 @@ LINUX={'setup-linux-desktop.sh','start-x11.sh','wait-x11.sh','start-desktop-sess
        'pajio-x11.service','pajio-desktop-session.service','install-mozilla-firefox.sh',
        'pajio-firefox.user.js','pajio-browser.service','enable-linux-browser.sh'}
 ANDROID={'setup-android-phone.sh','setup-device-mobile.py','pajio-private-input.apk','scrcpy-server-v5.0.1',
-         'scrcpy-5.0.1-LICENSE','scrcpy-notices.json','node-v26.7.0-linux-x64.tar.xz'}
+         'scrcpy-5.0.1-LICENSE','scrcpy-notices.json','node-v26.7.0-linux-x64.tar.xz',
+         'redroid-amd64.tar','redroid-oci-manifest.json','verify-redroid-image.py'}
 COMMON={'requirements-media.txt','hermes-source.tar.gz'}
+REDROID_ARCHIVE_SHA256='113191519c4e5aa9864fbe15b79d816ed3d77f4fabc4c4a33840afeb9806a4ce'
+REDROID_ARCHIVE_BYTES=873349120
 REDROID='docker.m.daocloud.io/redroid/redroid@sha256:11d58a64bfbde2253d1cce81bff409ff58174980222d1bada232d9ef59181191'
 
 
@@ -51,8 +55,10 @@ def verify_bundle(directory,expected):
     for name,info in files.items():
         if name not in required and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.+-]{0,199}\.whl',name):
             raise ValueError('runtime_file_not_allowed')
-        if not isinstance(info,dict) or set(info)!={'sha256','bytes'} or type(info['bytes']) is not int or not 0<info['bytes']<=300*1024*1024 or not re.fullmatch('[a-f0-9]{64}',info['sha256']):
+        if not isinstance(info,dict) or set(info)!={'sha256','bytes'} or type(info['bytes']) is not int or not 0<info['bytes']<=(REDROID_ARCHIVE_BYTES if name=='redroid-amd64.tar' else 300*1024*1024) or not re.fullmatch('[a-f0-9]{64}',info['sha256']):
             raise ValueError('invalid_runtime_file_manifest')
+        if name=='redroid-amd64.tar' and (info['bytes']!=REDROID_ARCHIVE_BYTES or info['sha256']!=REDROID_ARCHIVE_SHA256):
+            raise ValueError('unapproved_redroid_archive')
         path=directory/name
         if path.is_symlink() or not path.is_file() or path.stat().st_size!=info['bytes']:
             raise ValueError('runtime_file_changed')
@@ -142,7 +148,11 @@ unpack_source(Path(sys.argv[1]),p)
         if owner['resource_id']!=rid:raise ValueError('android_transport_binding_changed')
         shutil.copyfile(stage/'pajio-private-input.apk',target/'pajio-private-input.apk')
         (target/'pajio-private-input.apk').chmod(0o644)
-        run(['/bin/bash',str(stage/'setup-android-phone.sh'),REDROID],env={**os.environ,'PAJIO_ANDROID_ADB_PORT':str(20000+vmid)})
+        run(['systemctl','enable','--now','docker'])
+        definition=importlib.util.spec_from_file_location('redroid_verifier',stage/'verify-redroid-image.py')
+        verifier=importlib.util.module_from_spec(definition);definition.loader.exec_module(verifier)
+        image=verifier.ensure_loaded(stage)
+        run(['/bin/bash',str(stage/'setup-android-phone.sh'),image],env={**os.environ,'PAJIO_ANDROID_ADB_PORT':str(20000+vmid)})
         run([str(venv/'bin/python'),str(stage/'setup-device-mobile.py'),str(stage),str(vmid)])
     u=pwd.getpwnam(account)
     # Marker is used only by the restricted NativeAdapter, never an Agent shell.

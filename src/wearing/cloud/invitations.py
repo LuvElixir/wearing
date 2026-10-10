@@ -7,6 +7,7 @@ no table DML, membership, route, or login-session privilege.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -19,7 +20,8 @@ import uuid
 
 from sqlalchemy import insert, select, text, update
 
-from .control import ControlError, digest, invitations, members, ownership, routes, tenants, users
+from .control import ControlError, digest, invitations, members, ownership, routes, tenants, users, bundles, bundle_activations
+from .control import members as members_table
 
 
 class InvitationError(ControlError):
@@ -54,6 +56,57 @@ def _identity(issuer, subject=None):
         raise InvitationError()
 
 
+def _plan_digest(path):
+    """Read a private frozen operator plan; never persist its contents in control."""
+    try:
+        path = Path(path).absolute()
+        parent = path.parent.stat()
+        if path.parent.is_symlink() or parent.st_uid != os.getuid() or parent.st_mode & 0o077:
+            raise InvitationError('bundle_plan_not_private')
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            info = os.fstat(fd)
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.getuid()
+                    or info.st_mode & 0o077 or not 0 < info.st_size <= 2 * 1024 * 1024):
+                raise InvitationError('bundle_plan_not_private')
+            raw = os.read(fd, 2 * 1024 * 1024 + 1)
+            if len(raw) != info.st_size:
+                raise InvitationError('bundle_plan_changed')
+            return hashlib.sha256(raw).hexdigest()
+        finally:
+            os.close(fd)
+    except (OSError, TypeError, ValueError) as exc:
+        if isinstance(exc, InvitationError):
+            raise
+        raise InvitationError('bundle_plan_not_private') from None
+
+
+def _bundle_members(value):
+    if not isinstance(value, dict) or set(value) != {'core', 'linux', 'android'}:
+        raise InvitationError('bundle_members_invalid')
+    result = {}
+    for kind, entry in value.items():
+        fields = {'vmid', 'request_id', 'vcpus', 'memory_mib', 'disk_mib', 'image_sha256', 'core_reservation_sha256'}
+        if not isinstance(entry, dict) or set(entry) != fields:
+            raise InvitationError('bundle_members_invalid')
+        if (any(type(entry[k]) is not int or entry[k] <= 0 for k in ('vmid','vcpus','memory_mib','disk_mib'))
+                or entry['vmid'] > 999999999 or entry['vcpus'] > 256
+                or not isinstance(entry['request_id'], str)
+                or not re.fullmatch('[a-f0-9]{32}', entry['request_id'])):
+            raise InvitationError('bundle_members_invalid')
+        _hash(entry['image_sha256'])
+        if entry['core_reservation_sha256'] is not None:
+            _hash(entry['core_reservation_sha256'])
+        if kind == 'core' and entry['core_reservation_sha256'] is None:
+            raise InvitationError('bundle_members_invalid')
+        if kind != 'core' and entry['core_reservation_sha256'] is not None:
+            raise InvitationError('bundle_members_invalid')
+        result[kind] = dict(entry)
+    if len({r['vmid'] for r in result.values()}) != 3 or len({r['request_id'] for r in result.values()}) != 3:
+        raise InvitationError('bundle_members_invalid')
+    return json.dumps(result, sort_keys=True, separators=(',', ':'))
+
+
 class InvitationStore:
     def __init__(self, store):
         self.store = store
@@ -81,7 +134,38 @@ class InvitationStore:
                 db.execute(insert(tenants).values(id=tenant_id))
         return {'tenant_id': tenant_id, 'status': 'reserved', 'provisioned': False}
 
-    def issue(self, *, issuer, tenant_id, invitation_id, code, expires_at):
+    def bind_bundle(self, *, bundle_id, tenant_id, instance_id, host, reservation_sha256,
+                    members, reservation_expires_at, worker_plan_path):
+        """Persist operator-verified host evidence, never fabricate an AccountProof.
+
+        The caller is the trusted operator adapter: it must freshly inspect the
+        root-owned host reservation/capacity and healthy Core before calling.
+        A database row alone is not evidence that a provider allocated anything.
+        """
+        self._operator()
+        _id(bundle_id), _hash(reservation_sha256)
+        if (not isinstance(host, str) or not re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', host)
+                or type(reservation_expires_at) is not int or reservation_expires_at <= int(time.time()) + 900):
+            raise InvitationError('bundle_invalid')
+        row = dict(id=bundle_id, tenant_id=tenant_id, instance_id=instance_id, host=host,
+                   reservation_sha256=reservation_sha256, worker_plan_sha256=_plan_digest(worker_plan_path),
+                   members_json=_bundle_members(members), reservation_expires_at=reservation_expires_at)
+        with self.store.transaction(mutating=True) as db:
+            prior = db.execute(select(bundles).where(bundles.c.id == bundle_id)).mappings().first()
+            if prior:
+                if any(prior[k] != v for k, v in row.items()):
+                    raise InvitationError('bundle_conflict')
+                return dict(prior)
+            route = db.execute(select(routes).where(routes.c.tenant_id == tenant_id)).mappings().first()
+            if (not route or route['instance_id'] != instance_id or not self.store.tenant_editable(db, tenant_id)
+                    or db.scalar(select(members_table.c.user_id).where(members_table.c.tenant_id == tenant_id))
+                    or db.scalar(select(ownership.c.tenant_id).where(ownership.c.tenant_id == tenant_id))):
+                raise InvitationError('invitation_tenant_not_empty')
+            row['created_at'] = int(time.time())
+            db.execute(insert(bundles).values(**row))
+            return row
+
+    def issue(self, *, issuer, tenant_id, invitation_id, code, expires_at, bundle_id=None, worker_plan_path=None):
         """Idempotent issue using a code already durably saved by the operator.
 
         Existing issuance must match EVERY immutable field, including code hash;
@@ -97,20 +181,35 @@ class InvitationStore:
             previous = db.execute(select(invitations).where(invitations.c.id == ident)).mappings().first()
             if previous is not None:
                 if any(previous[k] != v for k, v in {'issuer': issuer, 'tenant_id': tenant_id,
-                        'code_hash': hashed, 'expires_at': expires_at}.items()):
+                        'code_hash': hashed, 'expires_at': expires_at, 'bundle_id': bundle_id}.items()):
                     raise InvitationError('invitation_conflict')
+                if bundle_id is not None:
+                    frozen = db.execute(select(bundles).where(bundles.c.id == bundle_id)).mappings().first()
+                    if not frozen or _plan_digest(worker_plan_path) != frozen['worker_plan_sha256']:
+                        raise InvitationError('bundle_unavailable')
                 return self._public(previous, now)
             if not now < expires_at <= now + 30 * 86400:
                 raise InvitationError('invitation_expiry_invalid')
+            bundle = None
+            if bundle_id is not None:
+                _id(bundle_id)
+                bundle = db.execute(select(bundles).where(bundles.c.id == bundle_id)).mappings().first()
+                if (not bundle or bundle['tenant_id'] != tenant_id
+                        or bundle['reservation_expires_at'] < expires_at + 900
+                        or _plan_digest(worker_plan_path) != bundle['worker_plan_sha256']):
+                    raise InvitationError('bundle_unavailable')
+            elif self.store.postgres:
+                raise InvitationError('bundle_required')
             route = db.execute(select(routes).where(routes.c.tenant_id == tenant_id)).mappings().first()
-            if (route is None or not self.store.tenant_editable(db, tenant_id)
+            if (route is None or (bundle is not None and route['instance_id'] != bundle['instance_id'])
+                    or not self.store.tenant_editable(db, tenant_id)
                     or db.scalar(select(tenants.c.id).where(tenants.c.id == tenant_id)) is None
                     or db.scalar(select(members.c.user_id).where(members.c.tenant_id == tenant_id))
                     or db.scalar(select(ownership.c.tenant_id).where(ownership.c.tenant_id == tenant_id))
                     or db.scalar(select(invitations.c.id).where(invitations.c.tenant_id == tenant_id))):
                 raise InvitationError('invitation_tenant_not_empty')
             row = {'id': ident, 'code_hash': hashed, 'issuer': issuer, 'tenant_id': tenant_id,
-                   'instance_id': route['instance_id'], 'created_at': now, 'expires_at': expires_at}
+                   'instance_id': route['instance_id'], 'created_at': now, 'expires_at': expires_at, 'bundle_id': bundle_id}
             db.execute(insert(invitations).values(**row))
             return self._public(row, now)
 
@@ -164,6 +263,11 @@ class InvitationStore:
                 or db.scalar(select(members.c.user_id).where(members.c.tenant_id == row['tenant_id']))
                 or db.scalar(select(ownership.c.tenant_id).where(ownership.c.tenant_id == row['tenant_id']))):
             raise InvitationError()
+        if row['bundle_id'] is not None:
+            bundle = db.execute(select(bundles).where(bundles.c.id == row['bundle_id'])).mappings().first()
+            if (not bundle or bundle['tenant_id'] != row['tenant_id'] or bundle['instance_id'] != row['instance_id']
+                    or bundle['reservation_expires_at'] < row['expires_at'] + 900):
+                raise InvitationError('bundle_unavailable')
         return row
 
     def check_code(self, code, *, issuer):
@@ -198,7 +302,9 @@ class InvitationStore:
                 for tenant in db.scalars(select(members.c.tenant_id).where(members.c.user_id == user['id'],
                                         members.c.active.is_(True)).order_by(members.c.tenant_id)):
                     if self.store.tenant_available(db, tenant):
-                        return {'status': 'already_member', 'user_id': user['id'], 'tenant_id': tenant}
+                        return {'status': 'already_member', 'user_id': user['id'], 'tenant_id': tenant,
+                                'activation_id': db.scalar(select(bundle_activations.c.id).where(
+                                    bundle_activations.c.user_id == user['id'], bundle_activations.c.tenant_id == tenant))}
             row = self._eligible(db, hashed, issuer)
             if row['registration_id'] is not None and row['registration_subject'] != subject:
                 raise InvitationError()
@@ -211,7 +317,16 @@ class InvitationStore:
                        instance_id=row['instance_id'], revision=1))
             db.execute(update(invitations).where(invitations.c.id == row['id']).values(
                        redeemed_user_id=uid, redeemed_at=int(time.time())))
-            return {'status': 'admitted', 'user_id': uid, 'tenant_id': row['tenant_id']}
+            activation_id = None
+            if row['bundle_id'] is not None:
+                activation_id = uuid.uuid4().hex
+                now = int(time.time())
+                db.execute(insert(bundle_activations).values(id=activation_id, invitation_id=row['id'],
+                    bundle_id=row['bundle_id'], user_id=uid, tenant_id=row['tenant_id'], instance_id=row['instance_id'],
+                    ownership_revision=1, member_digest=digest(json.dumps([(uid, True)], separators=(',', ':'))),
+                    state='reserved', members_json=json.dumps({k: {'state': 'pending'} for k in ('core','linux','android')},
+                    sort_keys=True, separators=(',', ':')), step='planned', generation=0, created_at=now, updated_at=now))
+            return {'status': 'admitted', 'user_id': uid, 'tenant_id': row['tenant_id'], 'activation_id': activation_id}
 
     def reserve_registration(self, hashed, *, issuer, registration_id, username_hash):
         self._registration()
@@ -283,7 +398,7 @@ class InvitationStore:
             return {'released': True}
 
 
-def issue_to_file(store, *, issuer, tenant_id, output, lifetime=7 * 86400):
+def issue_to_file(store, *, issuer, tenant_id, output, lifetime=7 * 86400, bundle_id=None, worker_plan_path=None):
     """Save the only plaintext copy BEFORE DB issue; same path is a safe retry."""
     api = InvitationStore(store)
     api._operator()
@@ -297,6 +412,8 @@ def issue_to_file(store, *, issuer, tenant_id, output, lifetime=7 * 86400):
     if not output.exists() and not output.is_symlink():
         data = {'version': 1, 'issuer': issuer, 'tenant_id': tenant_id, 'id': uuid.uuid4().hex,
                 'code': 'pajio_' + secrets.token_urlsafe(32), 'expires_at': int(time.time()) + lifetime}
+        if bundle_id is not None:
+            data['bundle_id'] = _id(bundle_id)
         fd, temporary = tempfile.mkstemp(prefix='.invite-', dir=parent)
         try:
             with os.fdopen(fd, 'w') as stream:
@@ -324,7 +441,7 @@ def issue_to_file(store, *, issuer, tenant_id, output, lifetime=7 * 86400):
         data = json.loads(raw)
     finally:
         os.close(fd)
-    if (set(data) != {'version', 'issuer', 'tenant_id', 'id', 'code', 'expires_at'} or type(data['version']) is not int
-            or data['version'] != 1 or data['issuer'] != issuer or data['tenant_id'] != tenant_id):
+    if (set(data) != ({'version', 'issuer', 'tenant_id', 'id', 'code', 'expires_at'} | ({'bundle_id'} if bundle_id is not None else set())) or type(data['version']) is not int
+            or data['version'] != 1 or data['issuer'] != issuer or data['tenant_id'] != tenant_id or data.get('bundle_id') != bundle_id):
         raise InvitationError('invitation_conflict')
-    return api.issue(issuer=issuer, tenant_id=tenant_id, invitation_id=data['id'], code=data['code'], expires_at=data['expires_at'])
+    return api.issue(issuer=issuer, tenant_id=tenant_id, invitation_id=data['id'], code=data['code'], expires_at=data['expires_at'], bundle_id=bundle_id, worker_plan_path=worker_plan_path)

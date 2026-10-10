@@ -30,6 +30,7 @@ class TaskService:
         self.client_resolver = None
         self.context_provider = None
         self.start_guard = None
+        self.ai_consent_required = False
         self.desktop_relay = None
         self.confirmations = ConfirmationBook(store)
 
@@ -138,6 +139,8 @@ class TaskService:
         if probe["state"] != "reachable":
             raise TaskError(probe["message"])
         tools = probe.get("wearing", {})
+        if self.ai_consent_required and tools.get('ai_consent_guard') != 'deepseek-v1':
+            raise TaskError('当前执行引擎尚未启用 AI 隐私授权保护，未发送任务；请稍后刷新。')
         with self.store.connection() as db:
             recovery = db.execute("SELECT 1 FROM confirmation_recovery_tasks WHERE task_id=?", (task_id,)).fetchone()
         if recovery and tools.get("confirmation_guard") != "durable-v1":

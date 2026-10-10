@@ -1,4 +1,5 @@
 import {ApiError, connectionEndpoint, connectionHeaders, type Connection, type Store} from './core';
+import {clearNotificationRegistration, rememberNotificationRegistration} from './notification-registration';
 import {withRecordDraft} from './record-editor';
 
 type Dict = Record<string, unknown>;
@@ -60,28 +61,32 @@ export function notificationInstallation(store: Pick<Store, 'get' | 'put'>, rand
 export class NotificationClient {
   private token = '';
   private readonly connection: Connection;
-  constructor(connection: Connection, readonly installation: string, private readonly fetcher: typeof fetch = fetch) {
+  constructor(connection: Connection, readonly installation: string, private readonly fetcher: typeof fetch = fetch, private readonly registrationStore?: Pick<Store,'get'|'put'>) {
     this.connection = {...connection, ...(connection.development ? {development: {...connection.development}} : {}), ...(connection.session ? {session: {...connection.session}} : {})};
   }
-  private async request(path: string, body?: unknown, retry = true): Promise<unknown> {
+  private async request(path: string, body?: unknown, retry = true, signal?: AbortSignal): Promise<unknown> {
     const mutation = body !== undefined;
-    if (mutation && !this.token) await this.bootstrap();
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
+    if(signal?.aborted)throw new ApiError('通知停止请求已结束，回执尚未确认。');
+    if (mutation && !this.token) await this.bootstrap(signal);
+    const controller = new AbortController(), abort=()=>controller.abort(), timer = setTimeout(abort, 20000);
+    if(signal?.aborted)controller.abort();signal?.addEventListener('abort',abort);
     try {
+      if(controller.signal.aborted)throw new ApiError('通知停止请求已结束，回执尚未确认。');
       const response = await this.fetcher(new URL(path, connectionEndpoint(this.connection)).toString(), {method: mutation ? 'POST' : 'GET', redirect: 'error', signal: controller.signal,
         headers: {...connectionHeaders(this.connection), 'X-Wearing-Identity': this.connection.identity,
           ...(mutation ? {'Content-Type': 'application/json', 'X-Wearing-Token': this.token} : {})}, ...(mutation ? {body: JSON.stringify(body)} : {})});
-      if (response.status === 403 && mutation && retry) {await this.bootstrap(); return this.request(path, body, false);}
+      if(controller.signal.aborted)throw new ApiError('通知停止请求已结束，回执尚未确认。');
+      if (response.status === 403 && mutation && retry) {await this.bootstrap(signal); return this.request(path, body, false, signal);}
       const value: unknown = await response.json().catch(() => {throw malformed();});
       if (!response.ok) throw new ApiError(object(value) && text(value.detail) ? value.detail : '通知操作未完成，请检查连接后再试。', response.status);
       return value;
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError('没有收到通知服务的回执，请重新检查状态。');
-    } finally {clearTimeout(timer);}
+    } finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
   }
-  private async bootstrap() {
-    const v = await this.request('/api/bootstrap');
+  private async bootstrap(signal?:AbortSignal) {
+    const v = await this.request('/api/bootstrap',undefined,true,signal);
     if (!object(v) || v.version !== '0.2.0' || !text(v.token) || !v.token || !Array.isArray(v.identities) || !v.identities.some(i => object(i) && i.id === this.connection.identity)) throw malformed();
     this.token = v.token;
   }
@@ -106,15 +111,18 @@ export class NotificationClient {
     if (!validProjectId(projectId) || !/^(?:Expo|Exponent)PushToken\[[A-Za-z0-9_-]{10,200}\]$/.test(token)) throw malformed();
     const receipt = this.parse(await this.request('/api/notifications/register', {installation_id: this.installation, expo_push_token: token, project_id: projectId, platform}));
     if (!receipt.enabled || !receipt.configured || receipt.project_id !== projectId) throw malformed();
+    if(this.registrationStore)await rememberNotificationRegistration(this.registrationStore,this.connection,this.installation);
     return receipt;
   }
   async disable() {
     const receipt = this.parse(await this.request('/api/notifications/disable', {installation_id: this.installation}));
     if (receipt.enabled) throw malformed(); return receipt;
   }
-  async disableInstallation() {
-    const receipt = this.parse(await this.request('/api/notifications/disable-installation', {installation_id: this.installation}));
-    if (receipt.enabled) throw malformed(); return receipt;
+  async disableInstallation(signal?:AbortSignal) {
+    const receipt = this.parse(await this.request('/api/notifications/disable-installation', {installation_id: this.installation},true,signal));
+    if (receipt.enabled) throw malformed();
+    if(this.registrationStore)await clearNotificationRegistration(this.registrationStore,this.connection);
+    return receipt;
   }
   async resolve(target: NotificationTarget):Promise<ResolvedNotification> {
     if (target.identity_id !== this.connection.identity) throw new ApiError('请先切换到这条通知对应的身份。', 409);

@@ -28,6 +28,13 @@ def organize(body):
 def main():
     source = Path(sys.argv[1]).resolve()
     sys.path.insert(0,str(source))
+    # Share only the host package, not its ABI-specific site-packages, with the
+    # managed interpreter. The consent guard also verifies private Core scope.
+    try:
+        from .engine_runner import load_host_package
+    except ImportError:
+        from engine_runner import load_host_package
+    load_host_package()
     try:
         from .usage_guard import UsageGuardConfig, install_usage_guard
     except ImportError:

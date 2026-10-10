@@ -150,7 +150,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
     life = LifeBook(store)
     artifacts = ArtifactBook(store)
     captures = CaptureBook(life)
-    capture_worker = CaptureWorker(captures)
+    capture_worker = CaptureWorker(captures, local_devices=local_devices)
     from .onboarding import OnboardingBook
     onboarding = OnboardingBook(store)
     from .chat_imports import ChatImports
@@ -159,7 +159,19 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
     from .usage import UsageBook, UsageError
     from .usage_api import install_usage_routes
     usage = UsageBook(settings.data_dir)
+    from .ai_consent import ConsentBook, ConsentError
+    from .ai_consent_api import install_consent_routes
+    service.ai_consent_required = not local_devices
     def guard_start(task):
+        if not local_devices:
+            try:
+                with store.connection() as db:
+                    principal = db.execute('SELECT owner_scope FROM task_principals WHERE task_id=?', (task['id'],)).fetchone()
+                if not principal:
+                    raise ConsentError('ai_consent_private_owner_required', 403)
+                ConsentBook(settings.data_dir).require(task['identity_id'], actor=principal[0])
+            except ConsentError as error:
+                raise TaskError(str(error)) from error
         goals.guard(task)
         schedules.guard(task)
         if usage.enabled:
@@ -279,6 +291,7 @@ def create_app(settings: Settings | None = None, hermes: HermesClient | None = N
     app.state.store = store
     app.state.usage = usage
     install_usage_routes(app, usage)
+    install_consent_routes(app, settings.data_dir, local_devices=local_devices)
     from .speech_api import install_speech_routes
     install_speech_routes(app, store, token, settings.data_dir, browser_origin)
     install_artifact_routes(app, artifacts, local_devices=local_devices)

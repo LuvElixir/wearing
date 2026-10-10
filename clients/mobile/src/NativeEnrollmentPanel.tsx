@@ -8,7 +8,9 @@ import {type EnrollmentFlow, type EnrollmentSnapshot} from './enrollment-client'
 import {accountCredentials, EnrollmentError, enrollmentErrorText, enrollmentFieldFor, inviteCode, type EnrollmentField} from './enrollment-model';
 import {IconButton, PrimaryButton, TactilePressable} from './experience/primitives';
 import {Segment} from './experience/selection';
+import {ReadOnlyPoll, type ReadPollState} from './read-only-poll';
 import {createNativeEnrollment} from './native-session';
+import {PublicInformationLinks} from './PublicInformationLinks';
 
 /* Flat, form-first admission: one clear step, with server-confirmed recovery kept intact. */
 export function NativeEnrollmentPanel({disabled, onExisting, onConnected}: {disabled?: boolean; onExisting: () => Promise<void>; onConnected: (connection: Connection) => Promise<void>}) {
@@ -22,6 +24,9 @@ export function NativeEnrollmentPanel({disabled, onExisting, onConnected}: {disa
   const [busy, setBusy] = useState<'restore' | 'verify' | 'register' | 'status' | 'finish' | 'cancel' | 'login' | null>('restore');
   const [error, setError] = useState(''), [errorField, setErrorField] = useState<EnrollmentField>();
   const live = useRef(true), lock = useRef(false);
+  const [foreground, setForeground] = useState(AppState.currentState === 'active');
+  const [pollState, setPollState] = useState<ReadPollState>({busy:false,stopped:false,exhausted:false});
+  const statusPoll = useRef<ReadOnlyPoll<EnrollmentSnapshot> | null>(null);
   const codeRef = useRef<TextInput>(null), usernameRef = useRef<TextInput>(null), passwordRef = useRef<TextInput>(null);
   useEffect(() => {
     live.current = true;
@@ -30,7 +35,7 @@ export function NativeEnrollmentPanel({disabled, onExisting, onConnected}: {disa
     void flow.restore().then(value => {if (current()) setSnapshot(value);}).catch(() => {
       if (current()) setError(enrollmentErrorText('enrollment_storage'));
     }).finally(() => {if (current()) setBusy(null);});
-    const subscription = AppState.addEventListener('change', state => {if (state !== 'active') {setShowPassword(false); setFocus(null);}});
+    const subscription = AppState.addEventListener('change', state => {setForeground(state === 'active'); if (state !== 'active') {setShowPassword(false); setFocus(null);}});
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => {live.current = false; flow.dispose(); subscription.remove(); clearInterval(timer);};
   }, []);
@@ -40,6 +45,29 @@ export function NativeEnrollmentPanel({disabled, onExisting, onConnected}: {disa
   const account = !expired && (result?.status === 'verified' || (result?.status === 'rejected' && ['username_invalid', 'username_unavailable', 'password_invalid'].includes(result.code || '')));
   const recovery = !!pending && !account;
   const locked = !!disabled || !!busy;
+  // Restored/unknown operations are only queried. No timer may call verify/register/exchange.
+  const pollable = !!pending && !expired && (result === null || result.status === 'pending') && !result?.cancel_requested;
+  const pollRead = useRef<(signal: AbortSignal) => Promise<EnrollmentSnapshot>>(async () => {throw new EnrollmentError('enrollment_busy');});
+  pollRead.current = async signal => {
+    if (lock.current || disabled) throw new EnrollmentError('enrollment_busy');
+    lock.current = true; setBusy('status');
+    try {return await currentFlow().status(signal);}
+    finally {lock.current = false; if (live.current) setBusy(null);}
+  };
+  useEffect(() => {
+    if (!pending) return;
+    const poll = new ReadOnlyPoll<EnrollmentSnapshot>({
+      limit:12, read: signal => pollRead.current(signal),
+      accept: value => {clearError(); accept(value); return value.result?.status === 'pending' && !value.result.cancel_requested ? (value.result.retry_after || 5) * 1000 : null;},
+      error: cause => {showError(cause); return cause instanceof EnrollmentError && ['enrollment_expired','operation_unavailable','enrollment_storage'].includes(cause.code);},
+      change: setPollState,
+    });
+    statusPoll.current = poll;
+    return () => {poll.dispose(); if (statusPoll.current === poll) statusPoll.current = null;};
+    // A read budget belongs to one retained operation, not to each response/render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending?.operation_id]);
+  useEffect(() => {statusPoll.current?.setForeground(foreground && pollable && !disabled && (!busy || busy==='status'), (result?.retry_after || 5) * 1000);}, [foreground,pollable,disabled,busy,pending?.operation_id,result?.retry_after]);
   // Native unmount does not guarantee onBlur; clear the departing field explicitly.
   function clearInputFocus() {
     codeRef.current?.blur(); usernameRef.current?.blur(); passwordRef.current?.blur();
@@ -135,15 +163,17 @@ export function NativeEnrollmentPanel({disabled, onExisting, onConnected}: {disa
         <Text style={s.hint}>至少 12 个字符，请使用独立的登录密码。</Text>
       </View> : null}
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={s.error}>{error}</Text> : null}
+      {recovery && !completed && (pollState.exhausted || pollState.stopped) && !error ? <Text style={s.hint}>自动核对已暂停。可以稍后查询，已提交的注册不会重新发送。</Text> : null}
       {result?.cancel_requested ? <Text style={s.hint}>已停止交付这次登录。注册仍可能完成，可稍后使用已有账号登录。</Text> : null}
       <View style={s.actions}>
         {!pending && entry === 'invite' ? <PrimaryButton style={s.primary} label={busy === 'verify' ? '正在核对邀请码…' : '继续'} loading={busy === 'verify' || busy === 'restore'} disabled={locked} onPress={verify}/> : !pending && entry === 'existing' ? <PrimaryButton style={s.primary} label={busy === 'login' ? '正在打开登录…' : '登录 Pajio'} loading={busy === 'login'} disabled={locked} onPress={() => {void run('login', onExisting);}}/> : account ?
           <PrimaryButton style={s.primary} label={busy === 'register' ? '正在准备账号…' : busy === 'finish' ? '正在登录…' : '创建账号，进入 Pajio'} loading={busy === 'register' || busy === 'finish'} disabled={locked} onPress={register}/> :
           completed && result.handoff ? <PrimaryButton style={s.primary} label="进入 Pajio" loading={busy === 'finish'} disabled={locked} onPress={() => {void run('finish', finish);}}/> :
-          !expired && !completed ? <PrimaryButton style={s.primary} label="查询这次进度" loading={busy === 'status'} disabled={locked} onPress={() => {void run('status', async () => accept(await currentFlow().status()));}}/> : null}
+          !expired && !completed ? <PrimaryButton style={s.primary} label={busy === 'status' ? '正在核对进度…' : '查询这次进度'} loading={busy === 'status'} disabled={locked} onPress={() => {if (pollable) statusPoll.current?.refresh(); else void run('status', async () => accept(await currentFlow().status()));}}/> : null}
         {recovery ? <TactilePressable accessibilityLabel="已有账号，登录" disabled={locked} style={s.existing} onPress={() => {void run('login', onExisting);}}><Text style={s.existingLabel}>已有账号？<Text style={s.existingAction}>登录</Text></Text></TactilePressable> : null}
       </View>
       {(!pending && entry === 'existing') || recovery ? <Text style={s.loginNote}>将在系统安全窗口验证账号，完成后返回 App。</Text> : account ? <View style={s.privacy}><LockKeyhole size={13} color={c.muted}/><Text style={s.loginNote}>密码用于登录，不会交给 Agent</Text></View> : null}
+      <PublicInformationLinks/>
     </View>
   </View>;
 }

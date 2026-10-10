@@ -17,8 +17,9 @@ from .runtime import HermesRuntime
 
 
 class CaptureWorker:
-    def __init__(self, book:CaptureBook):
+    def __init__(self, book:CaptureBook, *, local_devices=True):
         self.book=book
+        self.local_devices=local_devices
         self.task=None
         self.process=None
         self.process_busy=False
@@ -172,11 +173,18 @@ class CaptureWorker:
 
     async def run(self,job):
         try:
+            if not self.local_devices:
+                from .ai_consent import ConsentBook, ConsentError
+                try:
+                    if not job.get('owner_scope'):
+                        raise ConsentError('ai_consent_private_owner_required', 403)
+                    ConsentBook(self.book.store.path.parent).require(job['identity_id'], actor=job['owner_scope'])
+                except ConsentError as error: raise LifeError(str(error)) from error
             record=self.book.life.get(job["identity_id"],job["record_id"])
             if record["deleted_at"]:raise LifeError("记录已移除，整理已停下；原件保留。")
             extracted=await self.extract(job)
             self.book.state(job,"organizing",extracted=extracted)
-            engine=HermesRuntime(self.book.store.path.parent,job["identity_id"])
+            engine=HermesRuntime(self.book.store.path.parent,job["identity_id"],local_devices=self.local_devices)
             if not engine.python.is_file():raise LifeError("原件已经保存，模型还没接通。接通后可以重新整理。")
             body={"kind":record["kind"],"original_text":job["original_text"],"current_title":record["title"],"current_content":record["content"],"sources":extracted}
             raw=await self.command([str(engine.python),str(Path(__file__).with_name("capture_bridge.py")),str(engine.source)],env=engine.env(),cwd=engine.source,body=body,timeout=150)

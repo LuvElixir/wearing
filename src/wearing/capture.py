@@ -90,6 +90,8 @@ class CaptureBook:
                     asset_id TEXT PRIMARY KEY REFERENCES life_assets(id),
                     identity_id TEXT NOT NULL, text TEXT NOT NULL);
             """)
+            if 'owner_scope' not in {r[1] for r in db.execute('PRAGMA table_info(life_captures)')}:
+                db.execute('ALTER TABLE life_captures ADD COLUMN owner_scope TEXT')
 
     def transcript(self, identity, asset_id):
         self.asset(identity, asset_id)
@@ -159,7 +161,10 @@ class CaptureBook:
     def public_asset(asset):
         return {k: asset[k] for k in ("id", "name", "mime", "size", "digest")}
 
-    def create(self, identity, draft: CaptureDraft):
+    def create(self, identity, draft: CaptureDraft, *, owner_scope=None):
+        if owner_scope is not None:
+            from .task_visibility import owner
+            owner(owner_scope)
         self.store.identity(identity)
         if len(set(draft.asset_ids)) != len(draft.asset_ids):
             raise LifeError("同一份原件不用重复添加。", 422)
@@ -170,6 +175,8 @@ class CaptureBook:
             db.execute("BEGIN IMMEDIATE")
             previous = db.execute("SELECT * FROM life_captures WHERE identity_id=? AND request_key=?", (identity, draft.request_key)).fetchone()
             if previous:
+                if previous['owner_scope'] != owner_scope:
+                    raise LifeError('这次记录请求不属于当前账户。', 403)
                 if previous["fingerprint"] != fingerprint:
                     raise LifeError("保存内容已经变化，请重新保存。")
                 return self.row(previous)
@@ -180,6 +187,7 @@ class CaptureBook:
             db.execute("INSERT INTO life_records VALUES(?,?,?,?,?,?,?,?,?)", (record_id, identity, 1, body, None, stamp, stamp, "capture:"+capture_id, hashlib.sha256(body.encode()).hexdigest()))
             db.execute("INSERT INTO life_captures(id,identity_id,record_id,original_text,asset_ids,expected_revision,state,request_key,fingerprint,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                        (capture_id, identity, record_id, draft.record.content, json.dumps(draft.asset_ids), 1, "queued" if draft.organize else "saved", draft.request_key, fingerprint, stamp, stamp))
+            db.execute('UPDATE life_captures SET owner_scope=? WHERE id=?', (owner_scope, capture_id))
             record = self.life.unpack(db.execute("SELECT * FROM life_records WHERE id=?", (record_id,)).fetchone())
             self.life.receipt(db, record, "user")
             return self.row(db.execute("SELECT * FROM life_captures WHERE id=?", (capture_id,)).fetchone())

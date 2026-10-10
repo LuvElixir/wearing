@@ -1,5 +1,5 @@
 import {clearChatImportPrivateDrafts} from './chat-import-native';
-import {disableInstallationNotifications, notificationProject} from './NativeNotificationsPanel';
+import {disableInstallationNotifications} from './NativeNotificationsPanel';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
@@ -12,6 +12,8 @@ import {serviceFetch} from './transport';
 import {clearDiagnosticErrors} from './diagnostics-client';
 import {assertNativeServiceAddress, initialConnection, PUBLIC_PAJIO_ENDPOINT} from './connection-default';
 import {AUTH_CALLBACK, AuthorizationFlow, authorizationURL, forgetSession, loadConnection, saveConnection, sessionReceipt, type SignInEntry, Vault} from './session-protocol';
+import {logoutSession} from './session-logout';
+import {registeredNotificationInstallation, clearNotificationRegistration} from './notification-registration';
 import {EnrollmentFlow} from './enrollment-client';
 import {base64urlBytes, EnrollmentError} from './enrollment-model';
 
@@ -103,9 +105,18 @@ async function openSignIn(address: string, expectedConnection?: Connection, entr
 export async function signOut(connection: Connection) {
   authGeneration += 1;
   await authorization.cancel();
-  if (!connection.session?.accessToken) return clearNativeSession(connection);
-  if(notificationProject() && Date.parse(connection.session.expiresAt)>Date.now()) await disableInstallationNotifications(connection);
-  const response = await boundedFetch(connectionEndpoint(connection, true) + 'auth/logout', {method:'POST',headers:{Authorization:'Bearer '+connection.session.accessToken}});
-  if (!response.ok && response.status !== 401 && response.status !== 403) throw new ApiError('服务尚未确认退出，请重试。本机账户未切换。',response.status);
-  return clearNativeSession(connection);
+  if (!connection.session?.accessToken) return {connection:await clearNativeSession(connection),notificationsUnconfirmed:false};
+  return logoutSession({
+    registered:()=>registeredNotificationInstallation(storage,connection),
+    disable:(installation,signal)=>disableInstallationNotifications(connection,installation,signal),
+    revoke:async()=>{
+      const response = await boundedFetch(connectionEndpoint(connection, true) + 'auth/logout', {method:'POST',headers:{Authorization:'Bearer '+connection.session!.accessToken}});
+      if (!response.ok && response.status !== 401 && response.status !== 403) throw new ApiError('服务尚未确认退出，请重试。本机账户未切换。',response.status);
+    },
+    clear:async()=>{
+      const next=await clearNativeSession(connection);
+      await clearNotificationRegistration(storage,connection).catch(()=>{});
+      return next;
+    },
+  });
 }

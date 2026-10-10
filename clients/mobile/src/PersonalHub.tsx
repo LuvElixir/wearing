@@ -1,4 +1,5 @@
 import {NativeNotificationsPanel} from './NativeNotificationsPanel';
+import {PublicInformationLinks} from './PublicInformationLinks';
 import {UsagePanel} from './UsagePanel';
 import {NativeDataPanel} from './NativeDataPanel';
 import {NativeDiagnosticsPanel} from './NativeDiagnosticsPanel';
@@ -14,7 +15,7 @@ import {AppearancePanel} from './AppearancePanel';
 import {BrandStar} from './BrandStar';
 import {BrandWordmark} from './BrandWordmark';
 import {useAppTheme, useThemedStyles, type AppColors} from './app-theme';
-import React, {ReactNode, useEffect, useMemo, useRef, useState} from 'react';
+import React, {ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, TextInput, View} from 'react-native';
 import {router, useLocalSearchParams} from 'expo-router';
 import {BookOpen, CalendarDays, Camera, ChevronLeft, ChevronRight, FileText, Folder, Layers, Link2, MapPin, MessageCircle, Monitor, RefreshCw, Search, Share2, ShieldCheck, SlidersHorizontal, Smartphone} from 'lucide-react-native';
@@ -83,14 +84,14 @@ function MemoryLibraryContent({connection, onFiles, onChat, onConnect, onSources
   if (directory && !safeWorkspacePath(directory) || selectedPath && !safeWorkspacePath(selectedPath)) return <View style={s.panel}><BackLabel title="文件夹" onPress={() => open({memorySection: 'files'})}/><Problem message="文件路径不正确，请返回文件夹重新选择。"/></View>;
   if (selectedPath) return <Entrance transitionKey={selectedPath} style={s.panel}>
     <BackLabel title="文件夹" onPress={() => open({memorySection: 'files', memoryPath: directory})}/>
-    <WorkspaceFileView key={selectedPath} connection={connection} api={api} path={selectedPath} onChat={onChat} onOpen={path => open({memorySection: 'files', memoryFile: path, memoryPath: path.split('/').slice(0, -1).join('/')})}/>
+    <WorkspaceFileView key={selectedPath} connection={connection} api={api} path={selectedPath} access={{mode: 'editable', onChat}} onOpen={path => open({memorySection: 'files', memoryFile: path, memoryPath: path.split('/').slice(0, -1).join('/')})}/>
   </Entrance>;
   if (memoryKey) return <Entrance transitionKey={memoryKey} style={s.panel}>
     <BackLabel title="记忆" onPress={() => open({})}/><View style={s.heading}><Text style={s.title}>{memoryKey === 'user' ? '关于你' : '长期记忆'}</Text><TactilePressable accessibilityLabel="刷新当前记忆" disabled={loading} onPress={refresh} style={s.circle}><RefreshCw size={20} color={c.ink}/></TactilePressable></View>
     <Text style={s.lead}>{memoryKey === 'user' ? '从日常交流里，慢慢了解你。' : '值得留住的经验，下次还用得上。'}</Text>
     {memoryLoading ? <Loading label="正在读取记忆"/> : target && data ? <MemoryEditor key={memoryKey} connection={connection} target={memoryKey} data={data} onChanged={setData} onRefresh={refresh}/> : <Problem message={memoryError || data?.message || '暂时无法读取记忆。'} retry={refresh}/>}
   </Entrance>;
-  if (isLibrary) return <WorkspaceBrowser key={(directory || 'files') + '|' + value(params.memoryQuery)} connection={connection} api={api} directory={directory} initialQuery={value(params.memoryQuery).slice(0, 120)} open={open} onChat={onChat}/>;
+  if (isLibrary) return <WorkspaceBrowser key={(directory || 'files') + '|' + value(params.memoryQuery)} connection={connection} api={api} directory={directory} initialQuery={value(params.memoryQuery).slice(0, 120)} open={open} access={{mode: 'editable', onChat}}/>;
 
   const about = memoryCollection(data, 'user', memoryLoading), learned = memoryCollection(data, 'memory', memoryLoading);
   const readAt = memoryObservationLabel(data);
@@ -118,7 +119,30 @@ function MemoryLibraryContent({connection, onFiles, onChat, onConnect, onSources
   </View>;
 }
 
-function WorkspaceFileView({connection, api, path, onChat, onOpen}: {connection: Connection; api: PersonalHubApi; path: string; onChat: (draft?: string) => void; onOpen: (path: string) => void}) {
+type WorkspaceAccess = {mode: 'read-only'} | {mode: 'editable'; onChat: (draft?: string) => void};
+export type WorkspaceFilesPanelProps = {connection: Connection; onBack: () => void};
+/** Account data remains readable without enabling any AI or workspace mutations. */
+export function WorkspaceFilesPanel(props: WorkspaceFilesPanelProps) {
+  const key = scopeOf(props.connection) + '|' + (props.connection.session?.credentialId || props.connection.development?.expiresAt || 'local');
+  return <WorkspaceFilesContent key={key} {...props}/>;
+}
+function WorkspaceFilesContent({connection, onBack}: WorkspaceFilesPanelProps) {
+  const s = useThemedStyles(makeStyles);
+  const api = useMemo(() => new PersonalHubApi(connection, serviceFetch), [connection]);
+  const [location, setLocation] = useState({directory: '', path: ''});
+  const open = (next: {memoryPath?: string; memoryFile?: string; memorySection?: string}) => {
+    const directory = next.memoryPath || '', path = next.memoryFile || '';
+    if (directory && !safeWorkspacePath(directory) || path && !safeWorkspacePath(path)) return;
+    setLocation({directory, path});
+  };
+  if (location.path) return <Entrance transitionKey={location.path} style={s.panel}>
+    <BackLabel title="文件夹" onPress={() => setLocation(current => ({...current, path: ''}))}/>
+    <WorkspaceFileView key={location.path} connection={connection} api={api} path={location.path} access={{mode: 'read-only'}} onOpen={() => {}}/>
+  </Entrance>;
+  return <WorkspaceBrowser key={location.directory || 'files'} connection={connection} api={api} directory={location.directory} open={open} access={{mode: 'read-only'}} onRootBack={onBack}/>;
+}
+
+function WorkspaceFileView({connection, api, path, access, onOpen}: {connection: Connection; api: PersonalHubApi; path: string; access: WorkspaceAccess; onOpen: (path: string) => void}) {
   const [file, setFile] = useState<WorkspaceFile | null>(null), [error, setError] = useState(''), [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
@@ -126,12 +150,12 @@ function WorkspaceFileView({connection, api, path, onChat, onOpen}: {connection:
     void api.workspaceMetadata(path, cancel.signal).then(next => {if (live) setFile(next);}).catch(cause => {if (live) setError(issue(cause));});
     return () => {live = false; cancel.abort();};
   }, [api, path, attempt]);
-  return file ? <FileReader connection={connection} api={api} file={file} onChat={onChat} onOpen={onOpen} onSaved={() => setAttempt(x => x + 1)}/> : error ? <Problem message={error} retry={() => {setError(''); setAttempt(x => x + 1);}}/> : <Loading label="正在读取文件"/>;
+  return file ? <FileReader connection={connection} api={api} file={file} access={access} onOpen={onOpen} onSaved={() => setAttempt(x => x + 1)}/> : error ? <Problem message={error} retry={() => {setError(''); setAttempt(x => x + 1);}}/> : <Loading label="正在读取文件"/>;
 }
 
-function WorkspaceBrowser({connection, api, directory, initialQuery = '', open, onChat}: {
+function WorkspaceBrowser({connection, api, directory, initialQuery = '', open, access, onRootBack}: {
   connection: Connection; api: PersonalHubApi; directory: string; initialQuery?: string;
-  open: (next: {memoryPath?: string; memoryFile?: string; memorySection?: string}) => void; onChat: (draft?: string) => void;
+  open: (next: {memoryPath?: string; memoryFile?: string; memorySection?: string}) => void; access: WorkspaceAccess; onRootBack?: () => void;
 }) {
   const {colors: c} = useAppTheme(), s = useThemedStyles(makeStyles);
   const [query, setQuery] = useState(initialQuery), [search, setSearch] = useState(initialQuery.trim()), [attempt, setAttempt] = useState(0);
@@ -169,10 +193,10 @@ function WorkspaceBrowser({connection, api, directory, initialQuery = '', open, 
   const waiting = query.trim() !== search;
   const entries = workspaceSearch(page?.files || [], directory, search);
   return <Entrance transitionKey={directory || 'files'} style={s.panel}>
-    <BackLabel title={directory ? '上一级' : '记忆'} onPress={() => open(directory ? {memorySection: 'files', memoryPath: directory.split('/').slice(0, -1).join('/')} : {})}/>
+    <BackLabel title={directory ? '上一级' : access.mode === 'read-only' ? '我的数据' : '记忆'} onPress={() => {if (!directory && onRootBack) onRootBack(); else open(directory ? {memorySection: 'files', memoryPath: directory.split('/').slice(0, -1).join('/')} : {});}}/>
     <Text style={s.title}>{directory ? directory.split('/').pop() : '文件夹'}</Text>
     <Text style={s.lead}>{directory || '当前身份的真实文件，打开就能读。'}</Text>
-    <WorkspaceImportButton connection={connection} onImported={file => open({memorySection: 'files', memoryFile: file.path, memoryPath: file.path.split('/').slice(0, -1).join('/')})}/>
+    {access.mode === 'editable' ? <WorkspaceImportButton connection={connection} onImported={file => open({memorySection: 'files', memoryFile: file.path, memoryPath: file.path.split('/').slice(0, -1).join('/')})}/> : <Text style={s.detail}>这里只查看和取回已有文件，不会发送给 AI。文本预览上限为 256 KB，原件分享上限为 20 MB。</Text>}
     <View style={s.search}><Search size={18} color={c.muted}/><TextInput accessibilityLabel="搜索当前文件夹及子文件夹" placeholder="搜索文件名" placeholderTextColor={c.muted} value={query} maxLength={200} onChangeText={setQuery} onSubmitEditing={submitSearch} style={s.searchInput} returnKeyType="search" clearButtonMode="while-editing"/></View>
     {waiting || loading && !page ? <Loading label={query ? '正在查找文件' : '正在读取文件夹'}/> : <>
       {entries.length ? <View style={s.grid}>{entries.map(entry => <FolderTile key={entry.path} title={entry.name} subtitle={entry.kind === 'folder' ? `${entry.count}${page?.truncated ? '+' : ''} 份文件` : fileSize(entry.file!.size)} isFile={entry.kind === 'file'} onPress={() => open(entry.kind === 'folder' ? {memorySection: 'files', memoryPath: entry.path} : {memorySection: 'files', memoryPath: directory, memoryFile: entry.path})}/>)}</View> : page?.complete ? <View style={s.paper}><Folder size={30} color={c.muted}/><Text style={s.cardTitle}>{search ? '没有找到匹配的文件' : '这里还没有文件'}</Text><Text style={s.lead}>{search ? '试试其他文件名。' : '交给我整理的资料和生成的文件，会留在这里。'}</Text></View> : page ? <Text style={s.lead}>已检查的文件里还没有匹配项，可以继续查找。</Text> : null}
@@ -180,7 +204,7 @@ function WorkspaceBrowser({connection, api, directory, initialQuery = '', open, 
       {error ? <Problem message={error} retry={page?.next_cursor ? () => void more() : refresh}/> : null}
       {page?.next_cursor ? <TactilePressable disabled={loading} accessibilityLabel={search ? '继续查找更多文件' : '加载更多文件'} onPress={() => void more()} style={s.smallButton}>{loading ? <ActivityIndicator color={c.ink}/> : <RefreshCw size={17} color={c.ink}/>}<Text style={s.backLabel}>{loading ? '正在读取…' : search ? '继续查找' : '加载更多'}</Text></TactilePressable> : null}
     </>}
-    <View style={s.group}><HubRow title="重新读取文件列表" icon={<RefreshCw size={23} color={c.ink}/>} onPress={refresh}/><HubRow title="按内容查找文件" detail="让 Pajio 阅读资料后帮你找" icon={<Search size={23} color={c.ink}/>} onPress={() => onChat(`请在当前身份的文件空间里查找${query.trim() ? '与「' + query.trim() + '」相关的文件' : '这份文件'}：\n`)} last/></View>
+    <View style={s.group}><HubRow title="重新读取文件列表" icon={<RefreshCw size={23} color={c.ink}/>} onPress={refresh} last={access.mode === 'read-only'}/>{access.mode === 'editable' ? <HubRow title="按内容查找文件" detail="让 Pajio 阅读资料后帮你找" icon={<Search size={23} color={c.ink}/>} onPress={() => access.onChat(`请在当前身份的文件空间里查找${query.trim() ? '与「' + query.trim() + '」相关的文件' : '这份文件'}：\n`)} last/> : null}</View>
   </Entrance>;
 }
 
@@ -191,7 +215,7 @@ function FolderTile({title, subtitle, isFile, onPress}: {title: string; subtitle
 
   return <TactilePressable accessibilityLabel={`${title}，${subtitle}`} onPress={onPress} style={s.folderTile}><View style={s.folderGlyph}>{isFile ? <FileText size={33} color={c.accent} strokeWidth={1.5}/> : <Folder size={36} color={c.accent} fill={c.soft} strokeWidth={1.3}/>}</View><Text numberOfLines={2} style={s.folderTitle}>{title}</Text><Text style={s.detail}>{subtitle}</Text></TactilePressable>;
 }
-function FileReader({connection, api, file, onChat, onOpen, onSaved}: {connection: Connection; api: PersonalHubApi; file: WorkspaceFile; onChat: (draft?: string) => void; onOpen: (path: string) => void; onSaved: () => void}) {
+function FileReader({connection, api, file, access, onOpen, onSaved}: {connection: Connection; api: PersonalHubApi; file: WorkspaceFile; access: WorkspaceAccess; onOpen: (path: string) => void; onSaved: () => void}) {
   const {colors: c} = useAppTheme();
   const s = useThemedStyles(makeStyles);
   const live = useRef(true), exportBusy = useRef(false);
@@ -199,7 +223,7 @@ function FileReader({connection, api, file, onChat, onOpen, onSaved}: {connectio
   const [sharing, setSharing] = useState(false), [shareError, setShareError] = useState('');
   const [editing, setEditing] = useState(false);
   const allowed = textPreviewAllowed(file);
-  useEffect(() => {live.current = true; return () => {live.current = false;};}, []);
+  useLayoutEffect(() => {live.current = true; return () => {live.current = false;};}, []);
   useEffect(() => {let current = true;
     if (!allowed) return;
     api.textFile(file).then(contents => {if (current) setText(contents);}).catch(cause => {if (current) setError(issue(cause));}).finally(() => {if (current) setLoading(false);});
@@ -213,17 +237,17 @@ function FileReader({connection, api, file, onChat, onOpen, onSaved}: {connectio
     finally {exportBusy.current = false; if (live.current) setSharing(false);}
   };
   return <><Text style={s.title}>{file.path.split('/').pop()}</Text><Text style={s.detail}>{file.path} · {fileSize(file.size)}</Text>
-    {editing ? <WorkspaceTextEditor connection={connection} path={file.path} onClose={() => setEditing(false)} onSaved={onSaved} onOpen={onOpen}/> : editableDocument(file.path, file.size) ? <HubRow title={file.path.startsWith('imports/') ? '编辑可用副本' : '编辑这份文档'} detail={file.path.startsWith('imports/') ? '保留导入原件，修改后另存文本文档' : '保留本机草稿，核对版本后写回'} icon={<FileText size={22} color={c.ink}/>} onPress={() => setEditing(true)} last/> : null}
+    {access.mode === 'editable' && (editing ? <WorkspaceTextEditor connection={connection} path={file.path} onClose={() => setEditing(false)} onSaved={onSaved} onOpen={onOpen}/> : editableDocument(file.path, file.size) ? <HubRow title={file.path.startsWith('imports/') ? '编辑可用副本' : '编辑这份文档'} detail={file.path.startsWith('imports/') ? '保留导入原件，修改后另存文本文档' : '保留本机草稿，核对版本后写回'} icon={<FileText size={22} color={c.ink}/>} onPress={() => setEditing(true)} last/> : null)}
     {!allowed ? <View style={s.paper}><FileText size={34} color={c.muted}/><Text style={s.cardTitle}>打开原件查看</Text><Text style={s.lead}>照片、PDF 和其他文档可保存到文件，或用手机上的应用打开。</Text></View> : loading ? <Loading label="正在打开"/> : error ? <Problem message={error} retry={() => {setLoading(true); setText(''); setError(''); setGeneration(current => current + 1);}}/> : <View style={s.paper}><Text selectable style={s.body}>{text || '这份文件暂时没有内容。'}</Text></View>}
-    {file.size <= WORKSPACE_ORIGINAL_LIMIT ? <TactilePressable disabled={sharing} onPress={() => {void share();}} accessibilityLabel="打开或分享原件" style={s.shareButton}>{sharing ? <ActivityIndicator color={c.ink}/> : <Share2 size={20} color={c.ink}/>}<Text style={s.rowTitle}>{sharing ? '正在准备原件…' : '打开或分享原件'}</Text></TactilePressable> : <Text style={s.detail}>原件超过 20 MB，请在电脑上打开。</Text>}
+    {file.size <= WORKSPACE_ORIGINAL_LIMIT ? <TactilePressable disabled={sharing} onPress={() => {void share();}} accessibilityLabel="打开或分享原件" style={s.shareButton}>{sharing ? <ActivityIndicator color={c.ink}/> : <Share2 size={20} color={c.ink}/>}<Text style={s.rowTitle}>{sharing ? '正在准备原件…' : '打开或分享原件'}</Text></TactilePressable> : <Text style={s.detail}>这份原件超过 App 的 20 MB 分享上限，当前无法在此取回。</Text>}
     {shareError ? <Problem message={shareError} retry={() => {void share();}}/> : null}
-    <HubRow title="让 Pajio 读这份文件" detail="把文件路径带到对话，再补充你的要求" icon={<MessageCircle size={22} color={c.ink}/>} onPress={() => onChat(workspaceFileDraft(file.path))} last/>
+    {access.mode === 'editable' ? <HubRow title="让 Pajio 读这份文件" detail="把文件路径带到对话，再补充你的要求" icon={<MessageCircle size={22} color={c.ink}/>} onPress={() => access.onChat(workspaceFileDraft(file.path))} last/> : null}
   </>;
 }
 
-export type SettingsHubProps = {connection: Connection | null; identity: string; connected: boolean; wardrobe: WardrobeController; personal?: boolean; onConnection: () => void; onFiles: () => void; onNative: () => void; onChat: (text: string) => void; onAccountDeletion?: () => void; onOnboarding?: () => void; onBookmarks?: () => void; onSync?: () => void; pendingCount?: number; syncing?: boolean};
+export type SettingsHubProps = {connection: Connection | null; identity: string; connected: boolean; wardrobe: WardrobeController; personal?: boolean; onConnection: () => void; onFiles: () => void; onNative: () => void; onChat: (text: string) => void; onAIPrivacy?: () => void; onAccountDeletion?: () => void; onOnboarding?: () => void; onBookmarks?: () => void; onSync?: () => void; pendingCount?: number; syncing?: boolean};
 export function SettingsHub(props: SettingsHubProps) {return <SettingsHubContent key={(props.connection ? scopeOf(props.connection) : 'disconnected') + '|' + props.connected} {...props}/>;}
-function SettingsHubContent({connection, identity, connected, wardrobe, personal, onConnection, onFiles, onNative, onAccountDeletion, onOnboarding, onBookmarks, onSync, pendingCount = 0, syncing = false}: SettingsHubProps) {
+function SettingsHubContent({connection, identity, connected, wardrobe, personal, onConnection, onFiles, onNative, onAIPrivacy, onAccountDeletion, onOnboarding, onBookmarks, onSync, pendingCount = 0, syncing = false}: SettingsHubProps) {
   const {colors: c} = useAppTheme();
   const s = useThemedStyles(makeStyles);
 
@@ -289,6 +313,7 @@ function SettingsHubContent({connection, identity, connected, wardrobe, personal
     </View>
     <HubRow title="用量与试用额度" detail="已使用的模型与语音服务" icon={<Layers size={24} color={c.ink}/>} onPress={()=>open('usage')}/>
     <HubRow title="带走我的数据" detail="导出当前身份的记录、记忆和原件" icon={<Share2 size={24} color={c.ink}/>} onPress={()=>open('data')}/>
+    {onAIPrivacy ? <HubRow title="AI 服务与数据授权" detail="查看处理服务，管理或撤回 AI 授权" icon={<ShieldCheck size={24} color={c.ink}/>} onPress={onAIPrivacy}/> : null}
     {onAccountDeletion ? <HubRow title="注销账户" detail="核对清理范围、验证身份与查看处理进度" icon={<ShieldCheck size={24} color={c.ink}/>} onPress={onAccountDeletion}/> : null}
     <HubRow title="连接与运行诊断" detail="查看状态或分享不含正文的故障报告" icon={<ShieldCheck size={24} color={c.ink}/>} onPress={()=>open('diagnostics')}/>
     <SectionLabel>偏好设置</SectionLabel><View style={s.group}>
@@ -297,6 +322,7 @@ function SettingsHubContent({connection, identity, connected, wardrobe, personal
       <HubRow title="外观与个性化" detail="显示模式与睡衣衣橱" icon={<SlidersHorizontal size={24} color={c.ink}/>} onPress={() => open('appearance')} last/>
     </View>
     <View style={s.privacy}><ShieldCheck size={15} color={c.muted}/><Text style={s.footnote}>由你选择分享什么，重要操作由你确认。</Text></View>
+    <PublicInformationLinks/>
     {error ? <Problem message={error} retry={refresh}/> : null}
   </View>;
 }

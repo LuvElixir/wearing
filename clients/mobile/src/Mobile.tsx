@@ -7,6 +7,12 @@ import {NotificationClient, notificationInstallation} from './notification-clien
 import ArtifactPanel from './ArtifactPanel';
 import NativeSearchPanel, {type SearchContext} from './NativeSearchPanel';
 import CloudSessionPanel from './CloudSessionPanel';
+import {AIConsentPanel} from './AIConsentPanel';
+import {useAIConsent} from './useAIConsent';
+import {needsAIConsent} from './ai-consent-client';
+import {NativeDataPanel} from './NativeDataPanel';
+import {NativeProvisioningPanel} from './NativeProvisioningPanel';
+import {needsProvisioning, ProvisioningGate} from './provisioning-client';
 import {persistNativeConnection, restoreNativeConnection} from './native-session';
 import {assertNativeServiceAddress, initialConnection, PUBLIC_PAJIO_ENDPOINT, requiresNativeSignIn} from './connection-default';
 import {developmentConnectionsEnabled} from './development-access';
@@ -53,7 +59,7 @@ import {ScheduleSuggestions} from './TodayPanel';
 import AgentTaskList from './AgentTaskList';
 import TaskDetailPanel from './TaskDetailPanel';
 import TaskListsPanel from './TaskListsPanel';
-import {MemoryLibrary, SettingsHub} from './PersonalHub';
+import {MemoryLibrary, SettingsHub, WorkspaceFilesPanel} from './PersonalHub';
 import {useWardrobe} from './useWardrobe';
 import {NativeConnections} from './NativeConnections';
 import {NativeActionPanel} from './NativeActionPanel';
@@ -81,7 +87,7 @@ import {TabScrollMemory} from './tab-scroll-memory';
 import {NativeRemoteDevicePanel} from './NativeRemoteDevicePanel';
 
 type Form = {id: string; text: string; kind: Kind; media: Media[]; organize: boolean; start: string; end: string};
-type Screen = 'capture' | 'tools' | 'tasks' | 'agenda' | 'notes' | 'conversation' | 'settings' | 'detail' | 'memory' | 'companion' | 'today' | 'connection' | 'native' | 'trash' | 'briefing' | 'artifact' | 'search' | 'share-intake' | 'chat-import' | 'account-deletion' | 'task-detail' | 'calendar-series' | 'bookmarks' | 'conversation-sources' | 'onboarding' | 'remote-device';
+type Screen = 'capture' | 'tools' | 'tasks' | 'agenda' | 'notes' | 'conversation' | 'settings' | 'detail' | 'memory' | 'companion' | 'today' | 'connection' | 'native' | 'trash' | 'briefing' | 'artifact' | 'search' | 'share-intake' | 'chat-import' | 'account-deletion' | 'task-detail' | 'calendar-series' | 'bookmarks' | 'conversation-sources' | 'onboarding' | 'remote-device' | 'ai-privacy' | 'account-data' | 'account-files';
 function tabForScreen(screen: Screen): BottomNavigationPage | null {
   return screen==='conversation'?'now':screen==='today'||screen==='agenda'||screen==='notes'?'review':screen==='tasks'?'goals':screen==='memory'?'memory':screen==='companion'?'companion':null;
 }
@@ -149,10 +155,12 @@ function Mobile() {
   const wide = useWindowDimensions().width >= 840;
   const [connection, setConnection] = useState<Connection | null>(null); const current = useRef<Connection | null>(null);
   const [deletionFrozen, setDeletionFrozen] = useState(false);
+  const provisioningGate = useRef(new ProvisioningGate());
+  const [, setProvisioningRevision] = useState(0);
   const wardrobe = useWardrobe(connection);
   const [identities, setIdentities] = useState<{id: string; name: string}[]>([]);
   const {view,memoryPath,memoryFile,memorySection,hubSection,artifact,authDone,authError,resource,deviceKind,deviceName} = useLocalSearchParams<{view?: string;memoryPath?:string;memoryFile?:string;memorySection?:string;hubSection?:string;artifact?:string;authDone?:string;authError?:string;resource?:string;deviceKind?:string;deviceName?:string}>();
-  const screen: Screen = ['capture','tools','tasks','agenda','notes','conversation','settings','detail','memory','companion','today','connection','native','trash','briefing','artifact','search','share-intake','chat-import','account-deletion','task-detail','calendar-series','bookmarks','conversation-sources','onboarding','remote-device'].includes(view || '') ? view as Screen : 'conversation';
+  const screen: Screen = ['capture','tools','tasks','agenda','notes','conversation','settings','detail','memory','companion','today','connection','native','trash','briefing','artifact','search','share-intake','chat-import','account-deletion','task-detail','calendar-series','bookmarks','conversation-sources','onboarding','remote-device','ai-privacy','account-data','account-files'].includes(view || '') ? view as Screen : 'conversation';
   const [menu, setMenu] = useState(false), [adding, setAdding] = useState(false);
   const [taskTab, setTaskTab] = useState<'tasks' | 'goals' | 'schedules' | 'lists'>('tasks');
   const [readingPositions] = useState(() => new TabScrollMemory());
@@ -180,6 +188,8 @@ function Mobile() {
   const selectedTab = tabForScreen(screen)||lastTab;
   function selectTab(tab: BottomNavigationPage) {Keyboard.dismiss();setLastTab(tab);setReviewRequest(null);setScreen(tab==='now'?'conversation':tab==='review'?'today':tab==='goals'?'tasks':tab);}
   function goBack(){
+    if(screen==='account-files'){setScreen('account-data');return;}
+    if(screen==='ai-privacy'||screen==='account-data'){setScreen('settings');return;}
     if(screen==='remote-device'){router.setParams({view:'settings',hubSection:'devices',resource:'',deviceKind:'',deviceName:''});return;}
     if((screen==='settings'||screen==='companion')&&hubSection){router.setParams({hubSection:hubSection==='wardrobe'?'appearance':''});return;}
     if(screen==='memory'&&memoryFile){router.setParams({memoryFile:''});return;}
@@ -245,11 +255,13 @@ function Mobile() {
   const input = useRef<Input>(null); const [outbox] = useState(() => new Outbox(storage));
   const [mutations] = useState(() => new RecordMutations(storage, () => Crypto.randomUUID()));
   const [manualSync, setManualSync] = useState(false);
-  const onboarding = useOnboarding(connection, ready && connected && !deletionFrozen);
+  const aiConsent = useAIConsent(connection,ready && !deletionFrozen && !!connection && provisioningGate.current.allows(connection));
+  const aiAllowed = !!connection && aiConsent.allows(connection);
+  const onboarding = useOnboarding(connection, ready && connected && !deletionFrozen && aiAllowed);
   useEffect(() => {
-    if (!connection || !onboarding || onboardingSeen.current===connection || deletionFrozen || !shouldEnterOnboarding(onboarding,screen,!!connection.session?.accessToken)) return;
+    if (!aiAllowed || !connection || !onboarding || onboardingSeen.current===connection || deletionFrozen || !shouldEnterOnboarding(onboarding,screen,!!connection.session?.accessToken)) return;
     onboardingSeen.current=connection; onboardingReturn.current='conversation'; setScreen('onboarding');
-  }, [connection,onboarding,screen,deletionFrozen]);
+  }, [connection,onboarding,screen,deletionFrozen,aiAllowed]);
   const [moreCapture, setMoreCapture] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   async function refresh() {setManualSync(true);try {await synchronize(current.current, true);} finally {setManualSync(false);}}
@@ -270,16 +282,17 @@ function Mobile() {
     if (!connection || syncBusy.current || AppState.currentState !== 'active') return;
     if (requiresNativeSignIn(connection, Platform.OS)) {setConnected(false); await local(connection); return;}
     if(connection.session && (!connection.session.accessToken || Date.parse(connection.session.expiresAt)<=Date.now())){setConnected(false);await local(connection);return;}
+    if (!provisioningGate.current.allows(connection) || !aiConsent.allows(connection) || !accountWorkAllowed(connection)) {setConnected(false); return;}
     syncBusy.current = true; setBusy(true);
     try {
       const api = new WearingApi(connection, serviceFetch); const data = await api.bootstrap();
-      if (current.current !== connection) return;
+      if (current.current !== connection || !provisioningGate.current.allows(connection) || !aiConsent.allows(connection) || !accountWorkAllowed(connection)) return;
       setIdentities(data.identities);
       // Opening a short-term development pairing must not send an existing queue.
-      let sent = allowPending ? await outbox.flush(scopeOf(connection), api, () => current.current === connection && AppState.currentState === 'active') : 0;
-      if (allowPending) sent += await mutations.flush(scopeOf(connection), api, () => current.current === connection && AppState.currentState === 'active', Date.now(), error => observeDiagnosticError(connection, 'record', error));
+      let sent = allowPending ? await outbox.flush(scopeOf(connection), api, () => current.current === connection && provisioningGate.current.allows(connection) && aiConsent.allows(connection) && accountWorkAllowed(connection) && AppState.currentState === 'active') : 0;
+      if (allowPending) sent += await mutations.flush(scopeOf(connection), api, () => current.current === connection && provisioningGate.current.allows(connection) && aiConsent.allows(connection) && accountWorkAllowed(connection) && AppState.currentState === 'active', Date.now(), error => observeDiagnosticError(connection, 'record', error));
       const snapshot = await api.snapshot(); await commitRecordSnapshot(storage, scopeOf(connection), snapshot);
-      if (current.current === connection) {
+      if (current.current === connection && provisioningGate.current.allows(connection) && aiConsent.allows(connection) && accountWorkAllowed(connection)) {
         setConnected(true);
         setFeedback(previous => feedbackAfterSynchronization(previous, sent));
       }
@@ -290,6 +303,7 @@ function Mobile() {
       finally {syncBusy.current = false; setBusy(false); if (current.current && current.current !== connection) void synchronize(current.current);}
     }
   }
+  useEffect(()=>{if(aiAllowed && connection)void handlers.current.synchronize(connection);},[aiAllowed,connection]);
   async function activateConnection(connection: Connection) {
     if (Platform.OS !== 'web') assertNativeServiceAddress(connection.endpoint);
     const release = beginCaptureWrite();
@@ -311,6 +325,7 @@ function Mobile() {
       assertActivation();
       if (!frozen) await persistNativeConnection(connection);
       assertActivation();
+      provisioningGate.current.activate(connection);
       current.current = connection; formRef.current = next; setForm(next);
       setDeletionFrozen(frozen);
       setConnection(connection); setConnected(false); setRecords([]); setPending([]); setPendingMutations([]); setDetail(null); setChatRecord(null); setReviewRequest(null); setActivityOpen(false); setLastReview('agenda');
@@ -319,7 +334,7 @@ function Mobile() {
       if (frozen) {current.current = null; const {accessToken: _removed, ...session} = connection.session!; setConnection({...connection, session}); formRef.current = blank(); setForm(formRef.current); setScreen('account-deletion');}
       else {
         await local(connection); void synchronize(connection);
-        if (Platform.OS === 'android') try {await recoverPicker(connection);} catch (error) {if (current.current === connection) setMessage(error instanceof Error ? error.message : '上次选图还未恢复，请重新打开草稿。');}
+        if (Platform.OS === 'android' && provisioningGate.current.allows(connection)) try {await recoverPicker(connection);} catch (error) {if (current.current === connection) setMessage(error instanceof Error ? error.message : '上次选图还未恢复，请重新打开草稿。');}
       }
     } finally {release();}
   }
@@ -335,7 +350,7 @@ function Mobile() {
   }, [startupAttempt,authDone]);
   useEffect(()=>{if(authError)setMessage('登录没有完成，请重新登录。');},[authError]);
   useEffect(() => {
-    if (!connection || !ready || !connected || (connection.session && !connection.session.accessToken)) return;
+    if (!connection || !ready || !connected || !aiAllowed || (connection.session && !connection.session.accessToken)) return;
     let live = true;
     const stop = observeNotificationResponses(async target => {
       const original = current.current;
@@ -361,7 +376,7 @@ function Mobile() {
       return true;
     }, message => {if(live)setMessage(message);});
     return () => {live = false; stop();};
-  }, [connection,ready,connected]);
+  }, [connection,ready,connected,aiAllowed]);
   useEffect(() => {
     if (!connection || !ready || captureLocked || deletionFrozen) return;
     draftTimer.current = setTimeout(() => {storage.put(`draft:${scopeOf(connection)}`, form).catch(() => setMessage('草稿还没保存好，请保留输入并检查存储空间。'));}, 150);
@@ -581,10 +596,10 @@ function Mobile() {
     onFrozen={freezeAccount}
     isCurrent={() => !!connection?.session && (current.current?.session ? sameAccount(current.current, connection) : deletionFrozen)}/>;
   const name = identities.find(i => i.id === connection?.identity)?.name || '日常';
-  const accountPanel = <CloudSessionPanel connection={connection} disabled={!ready||busy||captureLocked} onConnected={async next=>{
+  const accountPanel = <CloudSessionPanel connection={connection} disabled={!ready||busy||captureLocked} onConnected={async (next,notice)=>{
     await activateConnection(next); setReady(true); setAdvancedConnection(false);
-    if (next.session?.accessToken) {setScreen('conversation');setMessage('登录已完成。');}
-    else {setScreen('connection');setMessage('已退出账户，本机草稿仍保留。');}
+    if (next.session?.accessToken) {setScreen('conversation');setMessage(needsProvisioning(next) ? '' : '登录已完成。');}
+    else {setScreen('connection');setMessage(notice || '已退出账户，本机草稿仍保留。');}
   }}/>;
   const visibleRecords=records.filter(r=>!r.deleted_at);
   const events = visibleRecords.filter(r => r.kind === 'event').sort((a, b) => (a.start_at || '').localeCompare(b.start_at || ''));
@@ -633,8 +648,9 @@ function Mobile() {
     {screen === 'bookmarks' && connection && <BookmarksPanel connection={connection} outbox={outbox} mutations={mutations} isCurrent={()=>current.current===connection} onChanged={()=>{void synchronize(current.current,false);}}/>}
     {screen === 'conversation-sources' && connection && <ConversationSourcesPanel connection={connection}/>}
     {screen === 'memory' && connection && <MemoryLibrary key={scopeOf(connection)} connection={connection} onSources={()=>setScreen('conversation-sources')} onFiles={()=>openReviewTool('files')} onChat={text=>text?prepareMessage(text):setScreen('conversation')} onConnect={()=>setScreen('settings')}/>}
-    {(screen === 'companion'||screen === 'settings') && <SettingsHub key={connection?scopeOf(connection):'disconnected'} onOnboarding={connection?()=>{onboardingReturn.current=screen;onboardingSeen.current=connection;setScreen('onboarding');}:undefined} onAccountDeletion={()=>setScreen('account-deletion')} onBookmarks={()=>setScreen('bookmarks')} onChat={prepareMessage} onSync={()=>void refresh()} pendingCount={pending.length+pendingMutations.length} syncing={busy||manualSync} wardrobe={wardrobe} personal={screen === 'companion'} connection={connection} identity={name} connected={connected} onConnection={()=>setScreen('connection')} onFiles={()=>openReviewTool('files')} onNative={()=>setScreen('native')}/>}
+    {(screen === 'companion'||screen === 'settings') && <SettingsHub key={connection?scopeOf(connection):'disconnected'} onOnboarding={connection?()=>{onboardingReturn.current=screen;onboardingSeen.current=connection;setScreen('onboarding');}:undefined} onAIPrivacy={needsAIConsent(connection)?()=>setScreen('ai-privacy'):undefined} onAccountDeletion={()=>setScreen('account-deletion')} onBookmarks={()=>setScreen('bookmarks')} onChat={prepareMessage} onSync={()=>void refresh()} pendingCount={pending.length+pendingMutations.length} syncing={busy||manualSync} wardrobe={wardrobe} personal={screen === 'companion'} connection={connection} identity={name} connected={connected} onConnection={()=>setScreen('connection')} onFiles={()=>openReviewTool('files')} onNative={()=>setScreen('native')}/>}
     {screen === 'notes' && <><View style={s.section}>{visibleRecords.some(r => r.kind === 'note') ? visibleRecords.filter(r => r.kind === 'note').map(row) : <Text style={s.empty}>还没有笔记。Pajio 整理出的想法和资料会出现在这里。</Text>}</View></>}
+    {screen === 'account-data' && connection && <NativeDataPanel connection={connection} fetcher={serviceFetch} pendingCount={pending.length+pendingMutations.length} onFiles={()=>setScreen('account-files')}/>}
     {screen === 'connection' && <>
       <Text variant="headlineLarge" style={s.heading}>账户与身份</Text>
       <Text style={s.muted}>已有记录和未同步内容，会分别留在各自的身份里。</Text>
@@ -667,11 +683,18 @@ function Mobile() {
     {!ready?<Button onPress={()=>setStartupAttempt(value=>value+1)}>重新读取本机记录</Button>:null}
     {developmentConnectionsEnabled()?<Button onPress={()=>{setAdvancedConnection(true);setScreen('connection');}}>开发连接</Button>:null}
   </ScrollView></KeyboardAvoidingView></SafeAreaView>;
+  if (!deletionFrozen && needsProvisioning(connection) && !provisioningGate.current.allows(connection)) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><ScrollView contentContainerStyle={[s.scroll,{paddingHorizontal:28,paddingTop:Math.max(8,64-safeInsets.top)}]}><NativeProvisioningPanel key={scopeOf(connection)+'|'+connection.session!.credentialId} connection={connection} isCurrent={()=>current.current===connection&&accountWorkAllowed(connection)} account={accountPanel} onReady={snapshot=>{
+    if (current.current!==connection || !accountWorkAllowed(connection) || AppState.currentState!=='active' || !provisioningGate.current.accept(connection,snapshot)) return;
+    setProvisioningRevision(value=>value+1); void synchronize(connection);
+    if(Platform.OS==='android')void recoverPicker(connection).catch(()=>{if(current.current===connection)setMessage('上次选图还未恢复，请重新打开草稿。');});
+  }}/></ScrollView></SafeAreaView>;
+  if(!deletionFrozen && connection && screen==='account-files') return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><ScrollView contentContainerStyle={s.scroll}><WorkspaceFilesPanel connection={connection} onBack={()=>setScreen('account-data')}/></ScrollView></SafeAreaView>;
+  if(!deletionFrozen && needsAIConsent(connection) && (screen==='ai-privacy' || !aiAllowed && !['connection','account-deletion','account-data'].includes(screen))) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><ScrollView contentContainerStyle={[s.scroll,{paddingHorizontal:28,paddingTop:20}]}><AIConsentPanel key={scopeOf(connection)+'|'+connection.session!.credentialId} snapshot={aiConsent.snapshot} busy={aiConsent.busy} error={aiConsent.error} onRefresh={()=>void aiConsent.refresh()} onChange={action=>void aiConsent.change(action)} onBack={aiAllowed?()=>setScreen('settings'):undefined} onData={()=>setScreen('account-data')} onDelete={()=>setScreen('account-deletion')} account={accountPanel}/></ScrollView></SafeAreaView>;
   if(screen==='remote-device' && connection && !deletionFrozen) return <SafeAreaView style={{flex:1,backgroundColor:c.canvas}}><StatusBar style={mode==='night'?'light':'dark'}/><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}><NativeRemoteDevicePanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')+'|'+resource} connection={connection} resource={resource||''} name={(deviceName||'').slice(0,100)} kind={deviceKind==='android'?'android':'computer'} onBack={goBack}/></KeyboardAvoidingView></SafeAreaView>;
   if(screen==='onboarding' && connection && !deletionFrozen) return <View style={{flex:1}}><AppBackdrop/><NativeSyncSession connection={connection} isCurrent={()=>current.current===connection} onRecordsChanged={()=>{void synchronize(current.current,false);}}/><SafeAreaView style={{flex:1,backgroundColor:'transparent'}}><StatusBar style={mode==='night'?'light':'dark'}/><OnboardingPanel key={scopeOf(connection)+'|'+(connection.session?.credentialId||'local')} connection={connection} outfit={wardrobe.state.outfit} isCurrent={()=>current.current===connection&&!deletionFrozen} onComplete={destination=>{if(current.current===connection){onboardingSeen.current=connection;setBriefingIntro(destination==='briefing');setScreen(destination||'today');}}} onClose={()=>{if(current.current===connection){onboardingSeen.current=connection;setScreen(onboardingReturn.current);}}}/></SafeAreaView></View>;
   return <View style={{flex:1}}><AppBackdrop/>
-    {connection && !deletionFrozen && <><NativeActionSession connection={connection}/><NativeSyncSession connection={connection} isCurrent={()=>current.current===connection} onRecordsChanged={()=>{void synchronize(current.current,false);}}/></>}
-    {connection&&connected?<NativeNotificationSession connection={connection}/>:null}
+    {connection && !deletionFrozen && aiAllowed && <><NativeActionSession connection={connection}/><NativeSyncSession connection={connection} isCurrent={()=>current.current===connection} onRecordsChanged={()=>{void synchronize(current.current,false);}}/></>}
+    {connection&&connected&&aiAllowed?<NativeNotificationSession connection={connection}/>:null}
     <SafeAreaView style={{flex: 1, backgroundColor: 'transparent'}}><StatusBar style={mode === 'night' ? 'light' : 'dark'}/><KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     {screen!=='artifact'&&(screen==='conversation'||!primary||screen==='agenda'||screen==='notes')&&<View style={s.top}>
       {screen === 'conversation' && connection ? <ActivityReview key={scopeOf(connection)} compact outfit={wardrobe.state.outfit} identity={name} connection={connection} active={foreground} connected={connected} open={activityOpen} onOpenChange={setActivityOpen} onOpenTask={openActivityTask}/> : <IconButton label="返回" style={s.headerCircle} onPress={goBack}><ChevronLeft size={25} color={c.ink}/></IconButton>}
@@ -681,9 +704,9 @@ function Mobile() {
     </View>}
     {!ready&&<View style={s.feedback}><Text style={[s.muted,{flex:1}]}>本机记录尚未就绪</Text><Button onPress={()=>setStartupAttempt(value=>value+1)}>重新读取</Button><Button onPress={()=>setScreen('connection')}>连接设置</Button></View>}
     {message ? <View style={s.feedback}><Text accessibilityLiveRegion="polite" style={[s.muted, {flex: 1, fontSize: 13}]}>{message}</Text><Pressable accessibilityLabel="收起提示" accessibilityRole="button" onPress={() => setMessage('')} style={s.dismiss}><X size={18} color={c.muted}/></Pressable></View> : null}
-    {connection && !deletionFrozen && screen !== 'share-intake' ? <ShareInboxNotice key={scopeOf(connection)} connection={connection} onOpen={() => setScreen('share-intake')}/> : null}
+    {connection && !deletionFrozen && aiAllowed && screen !== 'share-intake' ? <ShareInboxNotice key={scopeOf(connection)} connection={connection} onOpen={() => setScreen('share-intake')}/> : null}
     <View style={s.body}>
-      {connection && !deletionFrozen ? <RetainedConversation key={scopeOf(connection)} active={foreground&&!activityOpen&&!menu&&!adding&&screen!=='capture'&&screen!=='account-deletion'} visible={screen==='conversation'} inputScope={screen} showComposer={!['settings','companion','native','connection','capture','trash','detail','search','share-intake','chat-import','account-deletion','task-detail','calendar-series','bookmarks','conversation-sources'].includes(screen)} compactComposer={screen!=='conversation'} connection={connection} record={chatRecord} reviewRequest={reviewRequest}
+      {connection && !deletionFrozen && aiAllowed ? <RetainedConversation key={scopeOf(connection)} active={foreground&&!activityOpen&&!menu&&!adding&&screen!=='capture'&&screen!=='account-deletion'} visible={screen==='conversation'} inputScope={screen} showComposer={!['settings','companion','native','connection','capture','trash','detail','search','share-intake','chat-import','account-deletion','task-detail','calendar-series','bookmarks','conversation-sources'].includes(screen)} compactComposer={screen!=='conversation'} connection={connection} record={chatRecord} reviewRequest={reviewRequest}
         onSend={()=>setScreen('conversation')} onOpenChat={()=>setScreen('conversation')} onArtifact={openArtifact}
         onCapture={()=>{setScreen('capture');void photo(true);}} onAdd={()=>setAdding(true)}
         navigation={<BottomNavigation outfit={wardrobe.state.outfit} selected={selectedTab} onSelect={selectTab}/>}

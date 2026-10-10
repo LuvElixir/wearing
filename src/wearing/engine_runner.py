@@ -18,6 +18,7 @@ import sys
 
 CONFIRMATION_GUARD_ACTIVE = False
 RECALL_GUARD_ACTIVE = False
+AI_CONSENT_GUARD_ACTIVE = False
 
 ALLOWED_ROUTES = frozenset({
     ("GET", "/health"), ("GET", "/v1/capabilities"),
@@ -196,6 +197,7 @@ def adapter_class():
             data["wearing"]["media_tools"] = self.media_tools
             data["wearing"]["confirmation_guard"] = "durable-v1" if CONFIRMATION_GUARD_ACTIVE else None
             data["wearing"]["session_recall_guard"] = "sources-v1" if RECALL_GUARD_ACTIVE else None
+            data["wearing"]["ai_consent_guard"] = "deepseek-v1" if AI_CONSENT_GUARD_ACTIVE else None
             data["wearing"]["research_receipts"] = True
             data["wearing"]["app_observation_receipts"] = True
             return web.json_response(data)
@@ -349,6 +351,8 @@ def main():
                 os.environ[name] = shared[name]
     load_dotenv(Path(os.environ["HERMES_HOME"]) / ".env", override=True)
     install_usage_guard(usage_config)
+    global AI_CONSENT_GUARD_ACTIVE
+    AI_CONSENT_GUARD_ACTIVE = usage_config.consent_required
     from wearing.confirmation_guard import install_confirmation_guard
     global CONFIRMATION_GUARD_ACTIVE
     CONFIRMATION_GUARD_ACTIVE = install_confirmation_guard()

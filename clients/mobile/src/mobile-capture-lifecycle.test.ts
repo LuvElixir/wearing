@@ -8,6 +8,9 @@ import {RecordMutations, projectRecordMutations, type RecordMutation} from './re
 import {commitRecordReceipt, commitRecordSnapshot, localRecords} from './record-sync';
 import {observeDiagnosticError, recentDiagnosticErrors, clearDiagnosticErrors} from './diagnostics-client';
 import {feedbackAfterSynchronization, feedbackAfterSyncFailure, type MobileFeedback} from './mobile-sync-feedback';
+import {ProvisioningGate, type ProvisioningSnapshot} from './provisioning-client';
+import {AIConsentGate, AI_PRIVACY_URL, type AIConsentSnapshot} from './ai-consent-client';
+import {accountWorkAllowed} from './account-work';
 import {sameAccount} from './account-deletion-client';
 import {assertNativeServiceAddress, PUBLIC_PAJIO_ENDPOINT, requiresNativeSignIn} from './connection-default';
 
@@ -24,6 +27,12 @@ function deferred<T>() {let resolve!: (value: T) => void; const promise = new Pr
 const settle = async () => {for (let count = 0; count < 20; count++) await Promise.resolve();};
 const daily: Connection = {endpoint: PUBLIC_PAJIO_ENDPOINT, identity: 'daily', session:{userId:'user_'+'a'.repeat(32),tenantId:'tenant-fixture',credentialId:'b'.repeat(32),accessToken:'s'.repeat(64),expiresAt:'2099-01-01T00:00:00Z'}};
 const work: Connection = {...daily, identity: 'work'};
+const consentReceipt = (state: AIConsentSnapshot['state'] = 'accepted'): AIConsentSnapshot => ({
+  required: true, provider: {id: 'deepseek', name: 'DeepSeek', origin: 'https://api.deepseek.com', privacy_url: AI_PRIVACY_URL},
+  policy_version: 'deepseek-2026-10-10-v1', disclosure: {title: '合成授权说明', purpose: '合成同步测试', data_categories: ['合成记录'], withdrawal: '撤回后停止新的 AI 处理。'},
+  accepted: state === 'accepted', state, revision: state === 'not_granted' ? 0 : state === 'revoked' ? 2 : 1,
+  updated_at: state === 'not_granted' ? null : 1791600000.125,
+});
 type Form = {id: string; text: string; kind: 'note'; media: Media[]; organize: boolean; start: string; end: string};
 const blank = (): Form => ({id: 'next', text: '', kind: 'note', media: [], organize: false, start: '2026-10-07T00:00:00Z', end: '2026-10-07T01:00:00Z'});
 function fixture(names = ['beginCaptureWrite', 'changeForm', 'save', 'activateConnection', 'photo', 'addOriginal']) {
@@ -35,10 +44,14 @@ function fixture(names = ['beginCaptureWrite', 'changeForm', 'save', 'activateCo
     blob: async () => new Blob(['synthetic']),
   };
   const state = {form: {...blank(), id: 'draft-one', text: '已输入的原话'}, locked: false, saving: false, busy: false, feedback: {text: '', source: 'action'} as MobileFeedback, connected: false, frozen: false, screen: '', connection: daily, records: [] as RecordItem[], edits: [] as RecordMutation[], pending: [] as unknown[]};
-  const apiState = {items: [] as RecordItem[], version: 0, updates: 0, snapshots: 0, bootstrapFailure: null as Error | null, updateFailure: null as Error | null};
+  const apiState = {items: [] as RecordItem[], version: 0, updates: 0, snapshots: 0, bootstraps:0, bootstrapFailure: null as Error | null, updateFailure: null as Error | null};
   let requestKey = 0;
+  const provisioningGate = {current:new ProvisioningGate()};
+  provisioningGate.current.activate(daily); provisioningGate.current.accept(daily,readyReceipt());
+  const aiConsent = new AIConsentGate();
+  aiConsent.activate(daily); aiConsent.observe(daily, consentReceipt());
   const context = {
-    Error, Promise, Date, clearTimeout, setTimeout, Platform:{OS:'ios'}, data, state, apiState, storage, sameAccount, assertNativeServiceAddress, requiresNativeSignIn, persistNativeConnection:(connection:Connection)=>storage.put('connection',connection), outbox: new Outbox(storage), makeDraft, scopeOf, blank,
+    Error, Promise, Date, clearTimeout, setTimeout, provisioningGate, aiConsent, accountWorkAllowed, Platform:{OS:'ios'}, data, state, apiState, storage, sameAccount, assertNativeServiceAddress, requiresNativeSignIn, persistNativeConnection:(connection:Connection)=>storage.put('connection',connection), outbox: new Outbox(storage), makeDraft, scopeOf, blank,
     connection: daily, current: {current: daily}, formRef: {current: state.form}, ready: true, saving: false,
     startupDeletionDisposition: async (_connection: Connection) => 'clear', setDeletionFrozen: (value: boolean) => {state.frozen = value;}, setScreen: (value: string) => {state.screen = value;},
     mutations: new RecordMutations(storage, () => `synthetic-request-${++requestKey}`), localRead: {current: 0}, commitRecordReceipt, commitRecordSnapshot, localRecords, projectRecordMutations, observeDiagnosticError,
@@ -57,7 +70,7 @@ function fixture(names = ['beginCaptureWrite', 'changeForm', 'save', 'activateCo
     Picker: {launchImageLibraryAsync: async () => ({canceled: false, assets: [{uri: 'file://synthetic', mimeType: 'image/jpeg', fileName: '合成.jpg', width: 20, height: 20}]})},
     feedbackAfterSynchronization, feedbackAfterSyncFailure,
     WearingApi: class {
-      async bootstrap() {if (apiState.bootstrapFailure) throw apiState.bootstrapFailure; return {identities: []};}
+      async bootstrap() {apiState.bootstraps++;if (apiState.bootstrapFailure) throw apiState.bootstrapFailure; return {identities: []};}
       async snapshot() {apiState.snapshots++;return {items: structuredClone(apiState.items), version: apiState.version};}
       async update(base: RecordItem, patch: Partial<RecordItem>) {apiState.updates++;if (apiState.updateFailure) throw apiState.updateFailure;const receipt = {...base, ...patch, revision: base.revision + 1};apiState.items = [receipt];apiState.version++;return receipt;}
       async record(id: string) {const item = apiState.items.find(row => row.id === id);if (!item) throw Error('synthetic missing record');return structuredClone(item);}
@@ -244,4 +257,46 @@ test('a connection persisted after account freeze cannot reactivate credentials 
   persisted.resolve();await rejected;
   assert.equal(h.current.current,null);assert.equal(h.state.frozen,true);assert.equal(h.state.connection.session?.accessToken,undefined);
   assert.equal(h.state.screen,'account-deletion');assert.equal(businessReads,0);assert.equal(h.state.locked,false);
+});
+
+const readyReceipt=():ProvisioningSnapshot=>({state:'ready',members:{core:{state:'ready'},linux:{state:'ready'},android:{state:'ready'}},updated_at:1791600000,retry_after:5,reason:null});
+test('actual synchronize blocks bootstrap and queued mutations until the current activation has a confirmed complete bundle',async()=>{
+ const h=fixture(['synchronize','local']);const item=syntheticRecord();h.apiState.items=[item];h.apiState.version=1;
+ h.provisioningGate.current.activate(daily);await h.mutations.enqueue(scopeOf(daily),item,{completed:true});
+ await h.synchronize(daily);assert.equal(h.apiState.bootstraps,0);assert.equal(h.apiState.updates,0);assert.equal(h.apiState.snapshots,0);assert.equal(h.state.connected,false);assert.equal((await h.mutations.items(scopeOf(daily))).length,1);
+ assert.equal(h.provisioningGate.current.accept(daily,{...readyReceipt(),state:'pairing'}),false);await h.synchronize(daily);assert.equal(h.apiState.bootstraps,0);
+ h.provisioningGate.current.accept(daily,readyReceipt());await h.synchronize(daily);assert.equal(h.apiState.bootstraps,1);assert.equal(h.apiState.updates,1);assert.equal(h.state.connected,true);
+});
+test('activation reset during an outstanding bootstrap cannot flush old work even when the connection object is reused',async()=>{
+ const h=fixture(['synchronize','local']);const item=syntheticRecord();await h.mutations.enqueue(scopeOf(daily),item,{completed:true});
+ const pending=deferred<{identities:never[]}>();h.WearingApi.prototype.bootstrap=async()=>pending.promise;
+ const syncing=h.synchronize(daily);await settle();h.provisioningGate.current.activate(daily);pending.resolve({identities:[]});await syncing;
+ assert.equal(h.apiState.updates,0);assert.equal(h.apiState.snapshots,0);assert.equal(h.state.connected,false);assert.equal((await h.mutations.items(scopeOf(daily))).length,1);
+});
+
+test('actual synchronize preserves queued originals and edits without consent or after withdrawal', async () => {
+  for (const state of ['not_granted', 'revoked'] as const) {
+    const h = fixture(['synchronize', 'local']), item = syntheticRecord();
+    h.aiConsent.observe(daily, consentReceipt(state));
+    await h.outbox.enqueue({id: 'unconsented-original', scope: scopeOf(daily), draft: makeDraft('合成待授权原件', 'note'), media: [], uploaded: [], organize: true, state: 'pending', attempts: 0, nextAt: 0, createdAt: ''});
+    await h.mutations.enqueue(scopeOf(daily), item, {completed: true});
+    await h.synchronize(daily);
+    assert.equal(h.apiState.bootstraps, 0); assert.equal(h.apiState.updates, 0); assert.equal(h.apiState.snapshots, 0);
+    assert.equal(h.state.connected, false); assert.equal(h.syncBusy.current, false); assert.equal(h.state.busy, false);
+    const originals = await h.outbox.items(scopeOf(daily));
+    assert.equal(originals.length, 1); assert.equal(originals[0].state, 'pending'); assert.equal(originals[0].attempts, 0);
+    assert.equal((await h.mutations.items(scopeOf(daily))).length, 1);
+  }
+});
+
+test('consent withdrawal during the actual bootstrap prevents late queue flush and connected state', async () => {
+  const h = fixture(['synchronize', 'local']), pending = deferred<{identities: never[]}>();
+  await h.mutations.enqueue(scopeOf(daily), syntheticRecord(), {completed: true});
+  h.WearingApi.prototype.bootstrap = async () => {h.apiState.bootstraps++; return pending.promise;};
+  const syncing = h.synchronize(daily); await settle();
+  assert.equal(h.apiState.bootstraps, 1); assert.equal(h.syncBusy.current, true);
+  h.aiConsent.observe(daily, consentReceipt('revoked')); pending.resolve({identities: []}); await syncing;
+  assert.equal(h.apiState.updates, 0); assert.equal(h.apiState.snapshots, 0); assert.equal(h.state.connected, false);
+  assert.equal((await h.mutations.items(scopeOf(daily))).length, 1);
+  assert.equal(h.syncBusy.current, false); assert.equal(h.state.busy, false);
 });

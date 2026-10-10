@@ -15,12 +15,8 @@ from wearing.cloud.postgres import DatabaseBoundaryError
 
 
 def fresh(pg):
-    ops = InvitationStore(pg['operator_store'])
-    tenant = 'invite_' + uuid.uuid4().hex
-    ops.reserve_tenant(tenant)
-    pg['operator_store'].bind(tenant, 'instance_' + tenant, 'https://worker.example', tenant + '.json')
-    code, ident = 'pajio_' + secrets.token_urlsafe(32), uuid.uuid4().hex
-    ops.issue(issuer=pg['issuer'], tenant_id=tenant, invitation_id=ident, code=code, expires_at=int(time.time())+3600)
+    from test_bundle_activation_db import issue_bundle
+    code, ident, tenant, _, _ = issue_bundle(pg['operator_store'], pg['issuer'])
     return code, ident, tenant
 
 

@@ -24,9 +24,9 @@ export function notificationProject(): string | null {
   const value = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   return validProjectId(value) ? value : null;
 }
-async function clientFor(connection: Connection) {return new NotificationClient(connection, await notificationInstallation(storage, () => Crypto.randomUUID()), serviceFetch);}
+async function clientFor(connection: Connection) {return new NotificationClient(connection, await notificationInstallation(storage, () => Crypto.randomUUID()), serviceFetch, storage);}
 /** Call before removing authentication on logout / changing accounts. */
-export async function disableInstallationNotifications(connection: Connection) {return (await clientFor(connection)).disableInstallation();}
+export async function disableInstallationNotifications(connection: Connection, installation: string, signal: AbortSignal) {return new NotificationClient(connection, installation, serviceFetch, storage).disableInstallation(signal);}
 
 /** Mount once outside tab screens. Callback must authenticate/switch identity,
  * resolve the event through NotificationClient.resolve, THEN navigate. Returning

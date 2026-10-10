@@ -39,7 +39,7 @@ def page(ticket, *, stage='invite', error=None, status=200, username='', issuer_
 <button class="primary" type="submit">继续</button></form>'''
     nonce = secrets.token_urlsafe(24)
     body_class = 'account-stage' if stage == 'account' else 'invite-stage'
-    document = f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>加入 Pajio</title><style nonce="{nonce}">{STYLE}</style><script nonce="{nonce}" src="/auth/art/auth.js" defer></script></head><body class="{body_class}">{CONTRACT}<header class="brand">{WORDMARK}</header><main class="auth-stack"><section class="auth-card"><h1>{title}</h1><p class="intro">{intro}</p>{navigation}{alert}{form}</section></main><footer class="foot">Pajio · 让日常轻松一点</footer></body></html>'''
+    document = f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>加入 Pajio</title><style nonce="{nonce}">{STYLE}</style><script nonce="{nonce}" src="/auth/art/auth.js" defer></script></head><body class="{body_class}">{CONTRACT}<header class="brand">{WORDMARK}</header><main class="auth-stack"><section class="auth-card"><h1>{title}</h1><p class="intro">{intro}</p>{navigation}{alert}{form}</section></main><footer class="foot"><a href="/privacy">隐私说明</a> · <a href="/support">测试支持</a></footer></body></html>'''
     return HTMLResponse(document, status_code=status, headers={
         'Cache-Control':'no-store', 'Referrer-Policy':'same-origin',
         'X-Content-Type-Options':'nosniff', 'X-Frame-Options':'DENY',

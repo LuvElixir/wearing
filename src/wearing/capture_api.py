@@ -4,9 +4,19 @@ from fastapi.responses import FileResponse
 
 from .capture import CaptureDraft, MAX_ASSET_BYTES
 from .life import LifeError
+from .ai_consent import ConsentBook, ConsentError
 
 
 def install_capture_routes(app,book,worker):
+    def organization_owner(request):
+        if worker.local_devices: return None
+        from .task_visibility import request_owner
+        actor = request_owner(request, local_devices=False)
+        if request.scope.get('pajio.private_owner_scope') != actor:
+            raise LifeError('AI 整理需要经过验证的个人空间。', 403)
+        try: ConsentBook(book.store.path.parent).require(request.state.identity_id, actor=actor)
+        except ConsentError as error: raise LifeError(str(error), error.status) from error
+        return actor
     @app.get("/api/capture/capabilities")
     async def capabilities():return worker.capabilities()
 
@@ -27,7 +37,8 @@ def install_capture_routes(app,book,worker):
 
     @app.post("/api/captures",status_code=201)
     async def create(request:Request,body:CaptureDraft):
-        job=book.create(request.state.identity_id,body)
+        actor = organization_owner(request) if body.organize else None
+        job=book.create(request.state.identity_id,body,owner_scope=actor)
         return {"record":book.life.get(request.state.identity_id,job["record_id"])}
 
     @app.post("/api/life/assets/{asset_id}/transcribe")
@@ -37,5 +48,8 @@ def install_capture_routes(app,book,worker):
 
     @app.post("/api/captures/{capture_id}/retry")
     async def retry(request:Request,capture_id:str):
+        actor = organization_owner(request)
+        if actor is not None and book.get(request.state.identity_id, capture_id).get('owner_scope') != actor:
+            raise LifeError('旧记录的 AI 整理归属无法核对，原件仍保留。', 403)
         job=book.retry(request.state.identity_id,capture_id)
         return {"record":book.life.get(request.state.identity_id,job["record_id"])}
