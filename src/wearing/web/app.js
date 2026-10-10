@@ -493,7 +493,7 @@ function updateCompanion(){
   const remote=state.remoteDevices.filter(r=>r.kind==='computer'&&r.methods.includes('computer.input'));
   const remoteComputer=remote.length===1?remote[0]:null;
   $("computer-takeover").hidden=state.deployment==='cloud'?!remoteComputer:!computer?.connector?.enrolled;
-  $("computer-takeover").textContent=state.deployment==='cloud'?(remoteComputer?.control_pending?'正在交接……':remoteComputer?.paused?'交回 Pajio':'我来接管'):computer?.control?.holder==='human'?'交回 Pajio':'我来接管';
+  $("computer-takeover").textContent=state.deployment==='cloud'?(remoteComputer?.control_pending?'正在交接……':remoteComputer?.control_pending?'正在交接……':remoteComputer?.paused?'查看并交还':'我来接管'):computer?.control?.holder==='human'?'交回 Pajio':'我来接管';
   $("computer-takeover").disabled=!!remoteComputer?.control_pending;
   companionMode=mode;
   presencePlayer?.setState(mode==="offline"?"idle":mode==="handoff"?"waiting":mode==="working"?(state.sending||turn?.status==="starting"?"working":"thinking"):mode);
@@ -559,8 +559,7 @@ $("computer-takeover").addEventListener("click",()=>busy($("computer-takeover"),
   const remote=state.remoteDevices.filter(r=>r.kind==='computer'&&r.methods.includes('computer.input'));
   if(remote.length!==1)return showSettings();
   const r=remote[0];
-  await api('/api/devices/control',{method:'POST',body:JSON.stringify({resource_id:r.resource_id,paused:!r.paused,expected_generation:r.control_generation})});
-  await loadDesktopApprovals();
+  await dispatchCloudControl(r.resource_id,r.control_generation,r.paused,r.control_pending,$("cloud-devices-feedback"));
 }));
 function configureDeployment(){
   if(state.deployment!=="cloud")return;
@@ -587,25 +586,86 @@ async function loadDevices(){
     }
     const signature=JSON.stringify([state.identityId,...result.devices.map(({last_seen_at,...r})=>r)]);
     if(signature===remoteDeviceSignature)return;remoteDeviceSignature=signature;
+    // 远程接管入口按显式输入方法白名单：电脑 computer.input；云手机 phone.* 输入方法集合
+    //（App device-management.ts 同集合）；files.* 与只读观察不算接管能力。
+    const phoneRemoteInput=r=>["phone.mobile_click_on_screen_at_coordinates","phone.mobile_swipe_on_screen","phone.mobile_type_keys","phone.mobile_set_text","phone.mobile_press_button","phone.mobile_launch_app"].some(m=>r.methods.includes(m));
     $("cloud-devices").innerHTML=result.devices.length?result.devices.map(r=>{
       const canInput=r.methods.includes('computer.input');
       const status=r.paused?(r.control_pending?"云端已暂停 · 等待设备确认":"已暂停"):
         r.control_pending?"等待设备确认恢复":r.needs_review?"有一步待核对 · 后续操作暂停":r.online?(r.kind==="computer"&&!canInput?"可以帮你观察":"可以一起做事"):r.connected?"本机已暂停或设备未就绪":"设备离线";
       const capability=r.kind==="android"?(r.methods.some(m=>!['phone.mobile_list_apps','phone.mobile_get_screen_size','phone.mobile_list_elements_on_screen','phone.mobile_take_screenshot'].includes(m))?"读取、点击与输入":"只读界面与应用"):canInput?"按任务连续操作":"已接通电脑观察";
-      return `<article class="cloud-device-row"><div class="cloud-device-icon">${deviceIcon(r.kind)}</div><div class="cloud-device-copy"><strong>${esc(r.name)}</strong><p><span class="device-state-dot ${r.online?"ready":""}"></span>${status}</p><small>${capability}</small>${r.kind==='computer'?`<button class="text-button device-permission-open" data-permission-resource="${esc(r.resource_id)}">${canInput?'调整权限':'让 Pajio 动手'}</button>`:''}</div><button class="secondary" data-cloud-control="${esc(r.resource_id)}" data-generation="${r.control_generation}" data-paused="${r.paused}" aria-label="${r.paused?"交回":"暂停"} ${esc(r.name)}">${r.paused?"交回 Pajio":r.kind==="computer"?"我来接管":"暂停"}</button></article>`;
+      // P2 回归修复：恢复独立暂停/恢复入口（所有设备可用，含只读/files-only/旧 connector——
+      // 走原 /api/devices/control 流程，control_pending 期间禁用）；远程接管另列，仅显式
+      // 输入白名单设备可见，files.* 不算输入。
+      const remoteTakeover=r.kind==="computer"&&canInput||r.kind==="android"&&phoneRemoteInput(r);
+      return `<article class="cloud-device-row"><div class="cloud-device-icon">${deviceIcon(r.kind)}</div><div class="cloud-device-copy"><strong>${esc(r.name)}</strong><p><span class="device-state-dot ${r.online?"ready":""}"></span>${status}</p><small>${capability}</small>${r.kind==='computer'?`<button class="text-button device-permission-open" data-permission-resource="${esc(r.resource_id)}">${canInput?'调整权限':'让 Pajio 动手'}</button>`:''}</div><span class="cloud-device-actions">${remoteTakeover?`<button class="secondary" data-rd-open data-rd-resource="${esc(r.resource_id)}" data-rd-name="${esc(r.name)}" data-rd-kind="${r.kind}">远程接管</button>`:""}<button class="secondary" data-cloud-control="${esc(r.resource_id)}" data-generation="${r.control_generation}" data-paused="${r.paused}" data-pending="${r.control_pending}" aria-label="${r.paused?"查看并交还":"暂停"} ${esc(r.name)}"${r.control_pending?" disabled":""}>${r.paused?r.control_pending?"等待确认":"查看并交还":"暂停"}</button></span></article>`;
     }).join(""):'<p class="cloud-device-empty">这个身份还没有接入设备。先接入电脑连接器，再把手机交给 Pajio。</p>';
   }finally{devicesLoading=false;}
 }
 $("cloud-devices-refresh").addEventListener("click",()=>busy($("cloud-devices-refresh"),loadDevices,$("cloud-devices-feedback")));
+/** 私密会话暂停只能走显式交还流（human_session_requires_explicit_return），
+    普通 /control resume 会被拒——点击前先读 access 冻结快照分派（对齐 App deviceControlAction）。
+    只读/legacy connector（supported:false）保持普通暂停/恢复。 */
+function captureControlSnapshot(resourceId, generation, paused, pending){
+  const device = state.remoteDevices.find(r => r.resource_id === resourceId);
+  const atGeneration = Number(generation);
+  if (!device || !Number.isSafeInteger(atGeneration) || atGeneration < 0 || device.control_generation !== atGeneration ||
+      typeof paused !== "boolean" || typeof pending !== "boolean" || device.paused !== paused || device.control_pending !== pending) return null;
+  return Object.freeze({resourceId, generation:atGeneration, paused, pending, kind:device.kind, name:device.name||"",
+    epoch:state.identityEpoch, identity:state.identityId});
+}
+function controlSnapshotCurrent(snapshot){
+  if (!snapshot || state.identityEpoch !== snapshot.epoch || state.identityId !== snapshot.identity) return false;
+  const device=state.remoteDevices.find(r=>r.resource_id===snapshot.resourceId);
+  return !!device && device.control_generation===snapshot.generation && device.paused===snapshot.paused &&
+    device.control_pending===snapshot.pending && device.kind===snapshot.kind;
+}
+async function resolveControlAction(resourceId, generation, paused, pending){
+  const snapshot=captureControlSnapshot(resourceId,generation,paused,pending);
+  if (!snapshot) return "check";
+  if (pending) return "wait";
+  if (!paused) return "pause";
+  let access;
+  try { access = await api(`/api/devices/access/${encodeURIComponent(resourceId)}`); }
+  catch { return "check"; }
+  if (!controlSnapshotCurrent(snapshot)) return "check";
+  if (!access || typeof access !== "object" || access.resource_id !== resourceId) return "check";
+  // supported 严格布尔：仅 supported===false 为 legacy/只读（普通恢复）；缺值/字符串/其它均 fail-closed。
+  if (access.supported === false) return "resume";
+  if (access.supported !== true) return "check";
+  if (!Number.isSafeInteger(access.control_generation) || access.control_generation !== snapshot.generation) return "check";
+  const st = String(access.state || "");
+  if (st === "handoff_pending" || st === "return_pending") return "wait";
+  if (st === "paused" || st === "human_private") return "return";
+  if (st === "agent_ready") return "resume";
+  return "check";
+}
+async function dispatchCloudControl(resourceId,generation,paused,pending,feedback){
+  const snapshot=captureControlSnapshot(resourceId,generation,paused,pending);
+  const action=await resolveControlAction(resourceId,generation,paused,pending);
+  // The await also yields for a direct pause. Recheck before any mutation or panel opening.
+  if (!controlSnapshotCurrent(snapshot) || action==="check"){
+    feedback.textContent="设备状态需要重新检查，请刷新设备列表后再操作。";return;
+  }
+  if(action==="wait"){feedback.textContent="设备正在确认上一次切换，请稍候。";return;}
+  if(action==="return"){
+    if(!["computer","android"].includes(snapshot.kind)){feedback.textContent="请重新检查设备类型。";return;}
+    feedback.textContent="请查看设备画面，并明确交还。";
+    window.WearingRemoteDevice?.open(snapshot.resourceId,snapshot.name,snapshot.kind);return;
+  }
+  const nextPaused=action==="pause";
+  feedback.textContent=nextPaused?"正在暂停这台设备……":"正在交回这台设备……";
+  await api("/api/devices/control",{method:"POST",body:JSON.stringify({resource_id:snapshot.resourceId,paused:nextPaused,expected_generation:snapshot.generation})});
+  if(state.identityEpoch!==snapshot.epoch || state.identityId!==snapshot.identity)return;
+  state.pendingDeviceControl=snapshot.resourceId;
+  feedback.textContent=nextPaused?"云端已停止派发新动作，正在等待设备确认。":"正在等待设备确认恢复。旧操作不会重新执行。";
+  await loadDevices();
+}
 $("cloud-devices").addEventListener("click",event=>{
   const button=event.target.closest("[data-cloud-control]");if(!button)return;
-  busy(button,async()=>{
-    const paused=button.dataset.paused!=="true";
-    $("cloud-devices-feedback").textContent=paused?"正在暂停这台设备……":"正在交回这台设备……";
-    await api("/api/devices/control",{method:"POST",body:JSON.stringify({resource_id:button.dataset.cloudControl,paused,expected_generation:Number(button.dataset.generation)})});
-    state.pendingDeviceControl=button.dataset.cloudControl;
-    $("cloud-devices-feedback").textContent=paused?"云端已停止派发新动作，正在等待设备确认。":"正在等待设备确认恢复。旧操作不会重新执行。";await loadDevices();
-  },$("cloud-devices-feedback"));
+  if(button.disabled||button.dataset.pending==="true"){$("cloud-devices-feedback").textContent="设备正在确认上一次切换，请稍候。";return;}
+  const {cloudControl,generation,paused,pending}=button.dataset;
+  busy(button,()=>dispatchCloudControl(cloudControl,generation,paused==="true",pending==="true",$("cloud-devices-feedback")),$("cloud-devices-feedback"));
 });
 let permissionDevice=null,permissionRequest=null;
 function closePermissionChange(){permissionDevice=null;permissionRequest=null;$("device-permission-form").hidden=true;$("device-permission-next").hidden=true;$("device-permission-feedback").textContent='';}
@@ -780,6 +840,7 @@ async function switchIdentity(id){
   window.WearingActivity?.reset();
   window.WearingOnboarding?.reset();
   window.WearingChatImport?.reset();
+  window.WearingRemoteDevice?.reset();
   lastGoalUpdates=0;goalUpdatesSignature="";renderGoalUpdates({unread:0,items:[]});$("goal-updates-feedback").textContent="";
   $('desktop-input-section').hidden=true;$('desktop-input-cards').innerHTML='';
   deviceOffer=null;pairRequest=null;deviceReviewSignature="";remoteDeviceSignature="";desktopApprovalSignature="";state.remoteDevices=[];state.currentDesktopApproval=null;$("desktop-input-cards").replaceChildren();$("desktop-input-section").hidden=true;

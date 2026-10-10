@@ -7,7 +7,12 @@ use std::{
 };
 use url::Url;
 
-pub const DEFAULT_SERVER: &str = "http://127.0.0.1:8765/";
+pub const DEFAULT_SERVER: &str = "https://pajio.luckyloading.com/";
+pub const LOCAL_SERVER: &str = "http://127.0.0.1:8765/";
+// 正式服务的固定登录边界：只有这个服务地址允许“未登录 401 引导”，只有这个 IdP
+// 主机的 /realms/pajio/ 前缀允许在主窗口导航。除此之外不放宽任何 HTTPS/重定向。
+pub const OFFICIAL_IDP_HOST: &str = "id.pajio.luckyloading.com";
+pub const OFFICIAL_IDP_REALM_PREFIX: &str = "/realms/pajio/";
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -40,6 +45,36 @@ pub fn server_url(value: &str) -> Result<Url, String> {
         return Err("请填写 Pajio 首页地址，去掉账号、路径、查询参数和页内位置。".into());
     }
     Ok(url)
+}
+
+/// 严格相等比较正式服务 origin（scheme/host/port 全等；不带 userinfo/query）。
+pub fn official_origin(url: &Url) -> bool {
+    url.scheme() == "https"
+        && url.host_str() == Some("pajio.luckyloading.com")
+        && url.port().is_none()
+        && url.username().is_empty()
+        && url.password().is_none()
+}
+
+/// 官方 IdP 登录导航：仅 https + 固定主机 + 默认端口 + /realms/pajio/ 前缀，
+/// 允许 OIDC 所需的查询串；拒绝 userinfo、其他主机/端口/路径。
+pub fn idp_login_url_allowed(url: &Url) -> bool {
+    url.scheme() == "https"
+        && url.host_str() == Some(OFFICIAL_IDP_HOST)
+        && url.port().is_none()
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.path().starts_with(OFFICIAL_IDP_REALM_PREFIX)
+        && url.fragment().is_none()
+}
+
+/// 主窗口导航许可：本机壳 / 已连服务 / （仅当连接的是正式服务时的）官方 IdP 登录。
+pub fn login_navigation_allowed(connection: &Connection, url: &Url) -> bool {
+    let server = match server_url(&connection.url) {
+        Ok(value) => value,
+        Err(_) => return false,
+    };
+    official_origin(&server) && idp_login_url_allowed(url)
 }
 
 pub fn bundled_origin(url: &Url) -> bool {
@@ -111,6 +146,13 @@ struct Bootstrap {
 }
 
 pub fn verify(url: &Url) -> Result<(), String> {
+    // 只有严格匹配的正式服务地址允许 401 未登录引导；自定义地址一律要求 200。
+    verify_probe(url, official_origin(url))
+}
+
+/// `official_entry`：目标是否为正式服务（生产路径由 official_origin 纯判定，
+/// 测试可注入以覆盖 401 分支）。TLS 校验始终启用（reqwest 默认验证证书链）。
+pub fn verify_probe(url: &Url, official_entry: bool) -> Result<(), String> {
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(6))
         .redirect(reqwest::redirect::Policy::none())
@@ -120,6 +162,10 @@ pub fn verify(url: &Url) -> Result<(), String> {
         .get(url.join("api/bootstrap").unwrap())
         .send()
         .map_err(|_| "Pajio 暂时没连上。检查服务是否已启动，再试一次。")?;
+    if response.status().as_u16() == 401 && official_entry {
+        // 正式服务未登录：接受并进入页面内登录流程。
+        return Ok(());
+    }
     if !response.status().is_success() {
         return Err("这个地址暂时没有返回可用的 Pajio 页面。".into());
     }
@@ -143,9 +189,10 @@ pub fn verify(url: &Url) -> Result<(), String> {
 mod tests {
     use super::*;
     #[test]
-    fn endpoints_allow_loopback_and_https() {
+    fn default_is_official_and_local_still_allowed() {
+        assert!(official_origin(&server_url(DEFAULT_SERVER).unwrap()));
         for s in [
-            DEFAULT_SERVER,
+            LOCAL_SERVER,
             "http://localhost:8765",
             "http://[::1]:8765/",
             "https://wearing.example/",
@@ -193,6 +240,54 @@ mod tests {
         ));
     }
     #[test]
+    fn official_origin_rejects_spoofs() {
+        for s in [
+            "https://pajio.luckyloading.com.evil.example/",
+            "https://pajio.luckyloading.com:8443/",
+            "http://pajio.luckyloading.com/",
+            "https://user@pajio.luckyloading.com/",
+            "https://xn--pajio-luckyloading-331b.example/",
+        ] {
+            let url = match server_url(s) {
+                Ok(value) => value,
+                Err(_) => continue, // server_url 层已拒绝
+            };
+            assert!(!official_origin(&url), "{s}");
+        }
+        assert!(official_origin(&server_url("https://pajio.luckyloading.com/").unwrap()));
+    }
+    #[test]
+    fn idp_login_allows_only_official_realm() {
+        for s in [
+            "https://id.pajio.luckyloading.com/realms/pajio/protocol/openid-connect/auth?state=x",
+            "https://id.pajio.luckyloading.com/realms/pajio/login-actions-authenticate?client_id=y",
+        ] {
+            assert!(idp_login_url_allowed(&Url::parse(s).unwrap()), "{s}");
+        }
+        for s in [
+            "http://id.pajio.luckyloading.com/realms/pajio/auth",                    // 非 https
+            "https://id.pajio.luckyloading.com:8443/realms/pajio/auth",              // 端口
+            "https://evil.example/realms/pajio/auth",                                 // 主机
+            "https://id.pajio.luckyloading.com/realms/other/auth",                   // 错 realm
+            "https://id.pajio.luckyloading.com/admin/console",                       // 错路径
+            "https://user@id.pajio.luckyloading.com/realms/pajio/auth",              // userinfo
+            "https://id.pajio.luckyloading.com/realms/pajio/auth#frag",              // fragment
+        ] {
+            assert!(!idp_login_url_allowed(&Url::parse(s).unwrap()), "{s}");
+        }
+    }
+    #[test]
+    fn login_navigation_only_when_connected_to_official() {
+        let official = Connection { url: "https://pajio.luckyloading.com/".into() };
+        let local = Connection { url: LOCAL_SERVER.into() };
+        let idp = Url::parse("https://id.pajio.luckyloading.com/realms/pajio/auth?state=1").unwrap();
+        let evil = Url::parse("https://evil.example/realms/pajio/auth").unwrap();
+        assert!(login_navigation_allowed(&official, &idp));
+        assert!(!login_navigation_allowed(&local, &idp));
+        assert!(!login_navigation_allowed(&official, &evil));
+        assert!(!login_navigation_allowed(&official, &Url::parse("https://id.pajio.luckyloading.com/admin").unwrap()));
+    }
+    #[test]
     fn invalid_saved_settings_are_reported_and_not_replaced() {
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("connection.json");
@@ -222,6 +317,9 @@ mod tests {
         }
     }
     fn probe_response(status: &str, body: &str, extra: &str) -> Result<(), String> {
+        probe_response_as(status, body, extra, false)
+    }
+    fn probe_response_as(status: &str, body: &str, extra: &str, official_entry: bool) -> Result<(), String> {
         use std::net::TcpListener;
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let url = Url::parse(&format!("http://{}/", listener.local_addr().unwrap())).unwrap();
@@ -236,9 +334,17 @@ mod tests {
             assert!(String::from_utf8_lossy(&request).starts_with("GET /api/bootstrap "));
             let _ = stream.write_all(response.as_bytes());
         });
-        let result = verify(&url);
+        let result = verify_probe(&url, official_entry);
         handler.join().unwrap();
         result
+    }
+    #[test]
+    fn official_401_guides_login_but_custom_stays_strict() {
+        // 正式入口：401 = 未登录引导（注入 official_entry=true 覆盖分支语义）；
+        // 自定义地址（official_entry=false）维持严格 200。
+        assert!(probe_response_as("401 Unauthorized", "", "", true).is_ok());
+        assert!(probe_response_as("401 Unauthorized", "", "", false).is_err());
+        assert!(probe_response_as("302 Found", "", "Location: https://pajio.luckyloading.com/\r\n", true).is_err());
     }
     #[test]
     fn handshake_requires_a_wearing_response() {

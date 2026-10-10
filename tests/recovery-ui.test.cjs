@@ -108,5 +108,5 @@ test("turnMarkup behavior: recovery vs legacy drafts, capability gating, failure
 
 test("no inline handlers or styles in the touched module; app.js version bumped", () => {
   assert.doesNotMatch(app, /onclick=|style="/);
-  assert.match(html, /app\.js\?v=52/);
+  assert.match(html, /app\.js\?v=58/);
 });

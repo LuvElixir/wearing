@@ -1,5 +1,7 @@
 # ZCode Web/Desktop 下一会话交接 · 2026-10-09（第二十二轮后更新）
 
+> 2026-10-10 用户变更分工：ZCode 已完成最后一项在途任务，后续 Web/Desktop 由 Codex 统一开发。本文件保留为历史记录，不再作为向 ZCode 派发后续任务的依据。现行计划：`docs/plans/pajio-unified-delivery-2026-10-10.md`。
+
 作者：ZCode（Web/Desktop 负责人）。App/backend 只读不变；QA 8891（合成数据）是唯一验收环境；8765 不动；不真实注销/推送/模型/部署。
 
 ## 第二十轮状态（2026-10-08，已完成）
@@ -23,6 +25,10 @@ recovery-presentation-contract Web 侧已交付并 QA 实证（改动收敛在 a
 ### 后续（未开始）
 
 - **密码管理器**：root 设计文档 `docs/plans/pajio-private-credentials-2026-10-08.md`（用户需求，尚未实现）。合同冻结且后端路由就绪前，Web/桌面不做入口、不做假可用占位。
+
+## 第二十四轮状态（2026-10-10，源码冻结待 root A/B）
+
+远程接管 Web/桌面交付：remote-device.js v4（能力白名单一律 ===true；239/239 web＋13/13 rust；三批复核全修：遮蔽变量/草稿重绘/会话局部捕获+单调代数+身份冻结/协商失败释放 busy/window-hidden+注销门/phone.* 输入白名单/A-B 读取绑定/touch 白名单/滑动时长协议截取/reset 清私密 DOM）；桌面公开登录 P1（正式服务 401 引导+官方 IdP 固定 realm 导航+默认正式地址，TLS/origin 未放宽）；QA 包 remoteqa20261010 已构建未启动。**真实公网 A/B 由 root 验收**。attempt 2（终复审 P2）：云设备行恢复独立暂停/恢复入口（全设备含 observe-only/files-only/旧 connector；control_pending 禁用；原 control 流程不变）与远程接管并列——入口回归 5 项（实际 render 提取执行），全套 244/244，新冻结 hash 见交付文档（v4 证据未改动）。线上 v4 已 A/B 且留备份，root 以新 attempt 部署修复。详见 docs/evidence/pajio-desktop-remote-20261010/zcode-delivery.md。 **attempt 3（WK 阻断诊断）**：remote-device.js v5——真实桌面「ACK 后自动 stop paused 无原因」现可诊断（全部停止原因固定文案＋阶段标记＋严格诊断白名单：DOMException.name 枚举＋HTTP 状态，原始 message/SDP/ICE/URL/body 零泄漏）；门禁/期限/重试不变；245/245；root 部署后实测 WKWebView 实流。
 
 ## 第二十三轮状态（2026-10-09，已完成）
 

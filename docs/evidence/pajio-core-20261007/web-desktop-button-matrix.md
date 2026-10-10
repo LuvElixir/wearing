@@ -401,3 +401,13 @@ QA 实拍：网关未挂路由 → 如实「Not Found」+ 重试（截图 `pajio
 | 选定聊天导入 | 新 `chat-import.js` v2（window.WearingChatImport）：解析器逐行移植（严格 ZIP/UTF-8/路径/CRC/全部上限，本地 fflate 0.8.3 vendor＋license）；本机预览（20 条分组/作者单选/附件声明未导入/重复警告）零网络；幂等确认（pending journal 先持久成功才 POST、重试先查 receipts/{key}、404 才补交、回执严格校验、deleted 不重发、未知保留同键）；批次详情逐消息来源编号；删除两步＋范围说明＋409 如实；入口×2（设置＋文件面板，进入即关父设置）；搜索 kind=chat_import 标签「聊天来源」＋深链；注销冻结门/身份围栏/独立票据；account-deletion v8 补两键清理 | chat-import-ui 17 项（真实 fixture 解析/五种拒绝/预览零网络/先持久后发/未知同键不重发/deleted/重复+删除+409/身份切换/冻结/P1-1×2/P1-2×2/交接/隔离） | ✅ QA 8892 全链：注入合成 ZIP→预览零 POST（spy）→选本人→确认（先查回执）→刷新读回→详情（来源编号）→搜索命中 chat_import→拦截 POST→未知结果（重复点击仅 1 次尝试）→刷新→同键重试成功→两步删除→列表清零；截图 round23-chatimport-*。**桌面隔离实例（8892）面板完整渲染＋交接；文件选择/确认点击未验**（WKWebView 合成输入不派发，留 root 实际像素坐标流程），分别记录 |
 
 全套 **225/225**（保留 200 基线＋25 项）。两批复核全修：P1×2（异步边界后的存储/网络写前复核围栏；关闭/冻结/换身份作废票据并释放 busy；未知提交保留同请求键）＋P2×2（File.size 预检零读取即拒；journal 删除可验证＋discard 如实失败）＋接线三修（嵌套入口/关闭按钮未接线/文件父面板交接）。**Web 源码冻结于 chat-import.js v6**（含 root 桌面闭环后两处显示收尾：面板正文内边距/长内容滚动、导入时间本地可读）；浏览器复验含关闭真实点击（160ms 动画时序）与超大 File 预检。桌面文件选择/确认/删除 **root CUA 已验收通过**（真实 NSOpenPanel→预览零 POST→确认 chi_93944870…→读回→详情→两步删除→关闭，2026-10-09）。私密远控未实现未提供入口。详见 docs/evidence/pajio-context-20261009/zcode-delivery.md。
+
+
+## 第二十四轮 · 真实设备远程接管 + 桌面公开登录（2026-10-10，remoteqa20261010）
+
+| 能力 | 实现 | 行为测试 | 验收 |
+| --- | --- | --- | --- |
+| Web 远程接管 | 新 `remote-device.js` v4（能力白名单一律 ===true，缺字段/字符串/1 零输入）：状态机/transport/offer/首帧/显式开始操作/双确认交还逐项对齐 App；本地 session 对象捕获＋单调代数＋身份冻结；输入按 touch/keyboard/pointer/scroll 白名单＋黑边拒绝＋滑动 50..1000ms 协议截取；password 私密输入（超长保留不截断、重绘保草稿焦点、reset 清 DOM）；隐藏/window-hidden/离线/换身份/注销冻结立即停止，无自动重发；入口按 phone.*/computer.input 显式白名单 | remote-device-ui 14 项（239/239 全套）＋复核方 repro 4/4（v4 复跑） | 真实公网 A/B 归 root（本包已冻结待验）；8892 无私网路由——unsupported 如实，未冒充 |
+| 桌面公开登录 | endpoint.rs：verify 仅对严格匹配正式服务接受 401 引导（TLS 默认校验不放宽、302 不跟随）；main.rs 主窗口导航允许官方 IdP 固定 realm（仅当连接正式服务；查询串允许、userinfo/fragment/端口拒绝）；默认地址改正式；本机 loopback 兼容不变；IdP/远程页零原生 IPC | Rust 13/13（伪装域名/端口/userinfo、错 issuer/路径、401 分支、自定义严格、本地兼容） | 真实登录由 root 验（QA 包 `/tmp/pajio-desktop-remote-qa-target/debug/bundle/macos/Pajio Remote QA.app`，预置正式地址，未启动避免抢设备） |
+
+三批复核修复全记录于交付文档。**attempt 2（终复审 P2）**：恢复全设备独立暂停/恢复入口（observe-only/files-only/旧 connector 均可用，control_pending 禁用，原 /api/devices/control 流程不变），远程接管并列白名单；入口回归 5 项（实际 render 提取），全套 **244/244**；新冻结 hash 见交付文档（v4 证据未改动）。详见 docs/evidence/pajio-desktop-remote-20261010/zcode-delivery.md。**attempt 3（WK 阻断诊断）**：remote-device.js v5——全部停止原因固定可区分文案＋阶段标记＋严格诊断白名单（DOMException.name 枚举＋数字 HTTP 状态；原始 message/SDP/ICE/URL/body 零泄漏）；门禁/期限/重试不变；全套 245/245。

@@ -25,7 +25,7 @@
   <script src="/assets/conversation-submissions.js?v=2" defer></script>
   <script src="/assets/confirmations.js?v=2" defer></script>
   <script src="/assets/activity.js?v=4" defer></script>
-  <script src="/assets/app.js?v=52" defer></script>
+  <script src="/assets/app.js?v=58" defer></script>
   <script src="/assets/vendor/fullcalendar/all/global.js" defer></script>
   <script src="/assets/vendor/fullcalendar/themes/monarch/global.js" defer></script>
   <script src="/assets/reminders.js?v=2" defer></script>
@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="/assets/result-controls.css?v=1">
   <link rel="stylesheet" href="/assets/mobile-host.css?v=3">
   <link rel="stylesheet" href="/assets/now.css?v=3">
-  <link rel="stylesheet" href="/assets/pajio.css?v=20">
+  <link rel="stylesheet" href="/assets/pajio.css?v=22">
   <link rel="stylesheet" href="/assets/confirmations.css?v=2">
   <link rel="stylesheet" href="/assets/activity.css?v=1">
   <script src="/assets/now.js?v=6" defer></script>
@@ -50,13 +50,15 @@
   <script src="/assets/views.js?v=16" defer></script>
   <script src="/assets/briefings.js?v=4" defer></script>
   <script src="/assets/cloud-apps.js?v=1" defer></script>
-  <script src="/assets/decisions.js?v=5" defer></script>\n  <script src="/assets/data-exports.js?v=3" defer></script>
+  <script src="/assets/decisions.js?v=5" defer></script>
+  <script src="/assets/data-exports.js?v=3" defer></script>
   <script src="/assets/diagnostics.js?v=9" defer></script>
   <script src="/assets/quiet-hours.js?v=2" defer></script>
   <script src="/assets/account-deletion.js?v=8" defer></script>
   <script src="/assets/vendor/fflate/index.js?v=0.8.3" defer></script>
   <script src="/assets/onboarding.js?v=7" defer></script>
   <script src="/assets/chat-import.js?v=6" defer></script>
+  <script src="/assets/remote-device.js?v=6" defer></script>
   <script src="/assets/workspace-text.js?v=2" defer></script>
   <script src="/assets/native-composer.js?v=1" defer></script>
 </head>
@@ -379,6 +381,11 @@ hermes gateway</pre><p>工具权限与设备控制需要在执行电脑上验证
   <div class="panel-header"><h2 id="chat-import-title">导入选定聊天</h2><button class="icon-button" data-ci-close-btn aria-label="关闭导入选定聊天"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
   <input id="ci-file" type="file" accept=".zip,.txt,application/zip,text/plain" hidden>
   <div id="ci-body"></div>
+</dialog>
+<dialog id="remote-device-panel" class="rd-panel" aria-labelledby="rd-title">
+  <div class="panel-header"><button class="text-button" data-rd-close-btn aria-label="结束画面连接并返回设备">← 返回</button><h2 id="rd-title">远程设备</h2><span id="rd-status" class="rd-status"></span><span id="rd-rtt" class="rd-caption"></span></div>
+  <div id="rd-video-box" class="rd-video-box"><video id="rd-video" autoplay playsinline muted></video><div id="rd-cover" class="rd-cover"><p class="rd-cover-title">你的远程设备</p><p class="rd-cover-text">连接后可查看画面，再决定是否开始操作。</p></div></div>
+  <div id="rd-body" class="rd-controls"></div>
 </dialog>
 <dialog id="brief-panel" class="side-panel" aria-labelledby="brief-title">
   <div class="panel-header"><h2 id="brief-title">今日图文简报</h2><button class="icon-button" id="brief-close" aria-label="关闭简报"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>

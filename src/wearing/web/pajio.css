@@ -352,3 +352,29 @@ html:not(.mobile-host) .ci-message{padding:10px 0;display:flex;flex-direction:co
 html:not(.mobile-host) .ci-author{font-size:14px;font-weight:600;margin:0;color:var(--ink)}
 html:not(.mobile-host) [data-ci-batch-card]{padding:14px;display:flex;flex-direction:column;gap:8px}
 html:not(.mobile-host) [data-ci-batch-card]>button:first-child{text-align:left}
+
+/* 远程设备接管：大屏布局、竖屏云手机高度、状态常显 */
+html:not(.mobile-host) .rd-panel[open]{width:min(1100px,calc(100vw - 24px));height:min(92vh,900px);padding:0;display:flex;flex-direction:column;border-radius:18px;overflow:hidden}
+html:not(.mobile-host) .rd-panel .panel-header{padding:14px 18px;gap:12px;align-items:center}
+html:not(.mobile-host) .rd-panel .panel-header h2{flex:1;font-size:17px;margin:0}
+html:not(.mobile-host) .rd-status{font-size:13px;color:var(--muted)}
+html:not(.mobile-host) .rd-caption{font-size:13px;line-height:1.5;color:var(--muted);margin:0}
+html:not(.mobile-host) .rd-error{font-size:13px;line-height:1.5;color:#b3452e;margin:0}
+html:not(.mobile-host) [data-app-theme="night"] .rd-error{color:#e08a75}
+html:not(.mobile-host) .rd-video-box{flex:1;min-height:420px;background:#0c0e12;position:relative;overflow:hidden}
+html:not(.mobile-host) .rd-video-box video{width:100%;height:100%;object-fit:contain;touch-action:none;user-select:none;-webkit-user-select:none}
+html:not(.mobile-host) .rd-cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:30px;background:#0c0e12;color:#e8eaf0}
+html:not(.mobile-host) .rd-cover[hidden]{display:none}
+html:not(.mobile-host) .rd-cover-title{font-size:18px;margin:0;color:#e8eaf0}
+html:not(.mobile-host) .rd-cover-text{font-size:14px;margin:0;color:#9aa3b2;text-align:center}
+html:not(.mobile-host) .rd-controls{flex-grow:0;max-height:46%;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line)}
+html:not(.mobile-host) .rd-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+html:not(.mobile-host) .rd-keys{display:flex;gap:8px;flex-wrap:wrap}
+html:not(.mobile-host) .rd-key{min-width:44px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:14px;color:var(--ink)}
+html:not(.mobile-host) #rd-text{flex:1;min-height:44px;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--surface);color:var(--ink)}
+html:not(.mobile-host) .rd-confirm{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+html:not(.mobile-host) .rd-strong{font-size:16px;font-weight:600;margin:0;color:var(--ink)}
+html:not(.mobile-host) .rd-check{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--ink)}
+
+/* 云设备行：远程接管 + 暂停/恢复双按钮纵排 */
+html:not(.mobile-host) .cloud-device-actions{display:flex;flex-direction:column;gap:8px;justify-content:center}

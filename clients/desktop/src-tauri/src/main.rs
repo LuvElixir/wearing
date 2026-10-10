@@ -129,6 +129,15 @@ fn service_origin(app: &AppHandle, url: &url::Url) -> bool {
         .is_some_and(|server| server.origin() == url.origin())
 }
 
+/// 官方 IdP 登录导航：仅当当前连接的是正式服务时，允许固定主机/realm 的 OIDC 导航。
+fn official_login_origin(app: &AppHandle, url: &url::Url) -> bool {
+    app.state::<DesktopState>()
+        .connection
+        .lock()
+        .ok()
+        .is_some_and(|connection| endpoint::login_navigation_allowed(&connection, url))
+}
+
 fn focus_main(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
@@ -244,7 +253,11 @@ fn build_main(app: &AppHandle) -> tauri::Result<()> {
         .title("Pajio")
         .inner_size(1180.0, 820.0)
         .min_inner_size(760.0, 600.0)
-                .on_navigation(move |url| endpoint::bundled_origin(url) || service_origin(&nav_app, url))
+                .on_navigation(move |url| {
+            endpoint::bundled_origin(url)
+                || service_origin(&nav_app, url)
+                || official_login_origin(&nav_app, url)
+        })
         .on_page_load(move |window, payload| {
             if payload.event() == PageLoadEvent::Finished
                 && service_origin(&load_app, payload.url())
