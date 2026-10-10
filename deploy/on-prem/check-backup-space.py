@@ -8,25 +8,14 @@ import shutil
 import subprocess
 import sys
 
-VMIDS = {'1100', '1101', '1102', '1111', '1112', '1211', '1212'}
+sys.path.insert(0, '/usr/local/lib/pajio')
+from operations_scope import approved, load_scope
+
 RESERVE = 16 * 1024**3
 
 
-def approved_owner(vmid, config):
-    if vmid not in VMIDS:
-        return False
-    if vmid in {'1100', '1101', '1102', '1111', '1112'}:
-        return 'pajio' in config.get('tags', '').split(';')
-    try:
-        owner = json.loads(config.get('description', '{}'))['pajio_provisioning']
-        return (owner.get('version') == 1
-                and owner.get('kind') == {'1211': 'linux', '1212': 'android'}[vmid]
-                and all(isinstance(owner.get(k), str) and owner[k] for k in ('tenant_id', 'identity_id', 'resource_id'))
-                and re.fullmatch('[a-f0-9]{32}', owner.get('request_id', '')) is not None
-                and re.fullmatch('[a-f0-9]{64}', owner.get('nonce', '')) is not None
-                and re.fullmatch('[a-f0-9]{64}', owner.get('request_sha256', '')) is not None)
-    except (ValueError, KeyError, TypeError, AttributeError):
-        return False
+def approved_owner(vmid, config, scope):
+    return approved(vmid, config, scope)
 
 
 def worst_case_bytes(config):
@@ -51,7 +40,8 @@ def worst_case_bytes(config):
 def main():
     if len(sys.argv) < 2 or sys.argv[1] not in ('backup-start', 'backup-end'):
         return
-    if len(sys.argv) != 4 or sys.argv[2] != 'snapshot' or sys.argv[3] not in VMIDS:
+    scope = load_scope()
+    if len(sys.argv) != 4 or sys.argv[2] != 'snapshot' or sys.argv[3] not in scope['guests']:
         raise ValueError('backup_scope_not_approved')
     if os.environ.get('STOREID') != 'local':
         raise ValueError('backup_storage_not_approved')
@@ -74,7 +64,7 @@ def main():
         return
     config = json.loads(subprocess.check_output(['pvesh', 'get',
         '/nodes/pve01/qemu/' + sys.argv[3] + '/config', '--output-format', 'json']))
-    if not approved_owner(sys.argv[3], config):
+    if not approved_owner(sys.argv[3], config, scope):
         raise ValueError('backup_vm_owner_not_approved')
     required = worst_case_bytes(config) + RESERVE
     if shutil.disk_usage(target).free < required:

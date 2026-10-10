@@ -1,35 +1,30 @@
 #!/usr/bin/python3
 """Metadata-only service continuity evidence. Never performs a model/tool task."""
 import concurrent.futures
-import hashlib
 import json
 from pathlib import Path
 import subprocess
 import time
 import urllib.request
+from operations_scope import approved, fingerprint, load_scope
 
 STATE = Path('/var/lib/pajio-health')
-SERVICES = {
-    1100: ['nginx', 'pajio-gateway', 'pajio-identity', 'postgresql@16-main'],
-    1101: ['nginx', 'wearing-tenant', 'pajio-device-relay'],
-    1102: ['nginx', 'wearing-tenant', 'pajio-device-relay'],
-    1111: ['nginx', 'pajio-private-media'],
-    1112: ['nginx', 'pajio-private-media', 'pajio-phone-adb', 'docker'],
-    1211: ['nginx', 'pajio-private-media'],
-    1212: ['nginx', 'pajio-private-media', 'pajio-phone-adb', 'docker'],
-}
-
-
-def guest(vmid):
+def guest(vmid, scope):
     try:
+        config = json.loads(subprocess.check_output(['pvesh', 'get',
+            '/nodes/pve01/qemu/' + str(vmid) + '/config', '--output-format', 'json'],
+            text=True, timeout=8))
+        if not approved(vmid, config, scope):
+            return {'vmid': vmid, 'healthy': False, 'code': 'guest_scope_changed'}
+        services = scope['guests'][str(vmid)]['services']
         result = subprocess.run(['qm', 'guest', 'exec', str(vmid), '--timeout', '8', '--',
-            '/usr/bin/systemctl', 'is-active', *SERVICES[vmid]],
+            '/usr/bin/systemctl', 'is-active', *services],
             capture_output=True, timeout=12, text=True, check=True)
         value = json.loads(result.stdout)
         states = value.get('out-data', '').splitlines()
         return {'vmid': vmid, 'healthy': value.get('exitcode') == 0
-                and len(states) == len(SERVICES[vmid]) and all(s == 'active' for s in states),
-                'services': dict(zip(SERVICES[vmid], states))}
+                and len(states) == len(services) and all(s == 'active' for s in states),
+                'services': dict(zip(services, states))}
     except (OSError, ValueError, subprocess.SubprocessError):
         return {'vmid': vmid, 'healthy': False, 'code': 'guest_probe_unavailable'}
 
@@ -64,13 +59,19 @@ def uninterrupted_seconds(rows):
 def main():
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
     start = time.time()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-        guests = list(pool.map(guest, SERVICES))
-        public_oidc = oidc()
+    try:
+        scope = load_scope()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            guests = list(pool.map(lambda vmid: guest(vmid, scope), scope['guests']))
+            public_oidc = oidc()
+    except (OSError, ValueError, TypeError):
+        scope = {'error': 'operations_scope_unavailable'}
+        guests = [{'healthy': False, 'code': 'operations_scope_unavailable'}]
+        public_oidc = False
     row = {'at': int(start), 'duration_seconds': round(time.time() - start, 2),
            'healthy': public_oidc and all(x['healthy'] for x in guests),
            'public_oidc_tls': public_oidc, 'guests': guests,
-           'scope_sha256': hashlib.sha256(json.dumps(SERVICES, sort_keys=True).encode()).hexdigest(),
+           'scope_sha256': fingerprint(scope),
            'scope': 'infrastructure_only', 'model_or_app_acceptance': False}
     history = STATE / 'history.jsonl'
     try:

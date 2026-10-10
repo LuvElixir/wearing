@@ -1,4 +1,4 @@
-/** Bounded foreground reads. Never accepts a mutation function or replays credentials. */
+/** Foreground reads with bounded failure retries. Never replays a mutation or credentials. */
 export type ReadPollState = {busy: boolean; stopped: boolean; exhausted: boolean};
 type Options<T> = {
   read: (signal: AbortSignal) => Promise<T>;
@@ -6,6 +6,9 @@ type Options<T> = {
   error: (error: unknown) => boolean; // true: stop until an explicit refresh
   change?: (state: ReadPollState) => void;
   limit?: number;
+  // Long-running provisioning remains visible while valid status reads succeed.
+  // It still stops in the background, after three failures, or on terminal status.
+  keepHealthy?: boolean;
   schedule?: (callback: () => void, delay: number) => unknown;
   cancel?: (timer: unknown) => void;
 };
@@ -27,7 +30,8 @@ export class ReadOnlyPoll<T> {
     this.cancel = options.cancel || (timer => clearTimeout(timer as ReturnType<typeof setTimeout>));
   }
   private clear() {if (this.timer !== undefined) this.cancel(this.timer); this.timer = undefined;}
-  private notify() {if (this.active) this.options.change?.({busy: this.inFlight, stopped: this.stopped, exhausted: this.attempts >= (this.options.limit || 20)});}
+  private exhausted() {return !this.options.keepHealthy && this.attempts >= (this.options.limit || 20);}
+  private notify() {if (this.active) this.options.change?.({busy: this.inFlight, stopped: this.stopped, exhausted: this.exhausted()});}
   setForeground(value: boolean, delay?: number) {
     if (!this.active || this.foreground === value) return;
     this.foreground = value;
@@ -43,7 +47,7 @@ export class ReadOnlyPoll<T> {
   }
   dispose() {this.active = false; this.generation++; this.clear(); this.controller?.abort();}
   private queue(delay: number) {
-    if (!this.active || !this.foreground || this.inFlight || this.stopped || this.timer !== undefined || this.attempts >= (this.options.limit || 20)) return;
+    if (!this.active || !this.foreground || this.inFlight || this.stopped || this.timer !== undefined || this.exhausted()) return;
     this.timer = this.schedule(() => {this.timer = undefined; void this.poll();}, delay);
   }
   private async poll() {
@@ -56,7 +60,7 @@ export class ReadOnlyPoll<T> {
       if (valid()) {
         this.failures = 0;
         const next = this.options.accept(value);
-        this.stopped = next === null; this.delay = next === null ? 0 : Math.max(3000, Math.min(900000, next));
+        this.stopped = next === null; this.delay = next === null ? 0 : Math.max(this.options.keepHealthy ? 15000 : 3000, Math.min(900000, next));
       }
     } catch (error) {
       if (valid()) {this.failures++; this.stopped = this.options.error(error) || this.failures >= 3; this.delay = Math.min(30000, 3000 * 2 ** this.failures);}

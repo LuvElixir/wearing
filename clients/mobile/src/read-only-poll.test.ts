@@ -31,3 +31,20 @@ test('network errors back off and stop after three failures; needs-review/401 st
 test('foreground initial read can respect a server registration lease longer than 30 seconds',async()=>{
  const clock=timers();const poll=new ReadOnlyPoll({read:async()=>1,accept:()=>45000,error:()=>true,...clock});poll.setForeground(true,45000);assert.equal([...clock.jobs.values()][0].delay,45000);await clock.fire();assert.equal([...clock.jobs.values()][0].delay,45000);poll.dispose();
 });
+test('long provisioning keeps healthy foreground reads at low frequency without an arbitrary pause',async()=>{
+ const clock=timers();let reads=0;const states:unknown[]=[];
+ const poll=new ReadOnlyPoll({read:async()=>++reads,accept:()=>3000,error:()=>false,limit:2,keepHealthy:true,change:s=>states.push(s),...clock});
+ poll.setForeground(true);
+ for(let i=0;i<25;i++){await clock.fire();assert.equal([...clock.jobs.values()][0].delay,15000);}
+ assert.deepEqual(states.at(-1),{busy:false,stopped:false,exhausted:false});
+ poll.setForeground(false);assert.equal(clock.jobs.size,0);
+ poll.setForeground(true);await clock.fire();assert.equal(reads,26);poll.dispose();assert.equal(clock.jobs.size,0);
+});
+test('long provisioning still stops on failure or a terminal response',async()=>{
+ const clock=timers();let fail=false,reads=0;
+ const poll=new ReadOnlyPoll({read:async()=>{reads++;if(fail)throw Error('offline');return 'pending';},accept:()=>45000,error:()=>false,keepHealthy:true,...clock});
+ poll.setForeground(true);await clock.fire();assert.equal([...clock.jobs.values()][0].delay,45000);
+ fail=true;for(let i=0;i<3;i++)await clock.fire();assert.equal(reads,4);assert.equal(clock.jobs.size,0);poll.dispose();
+ const done=timers();const terminal=new ReadOnlyPoll({read:async()=>1,accept:()=>null,error:()=>false,keepHealthy:true,...done});
+ terminal.setForeground(true);await done.fire();assert.equal(done.jobs.size,0);terminal.dispose();
+});

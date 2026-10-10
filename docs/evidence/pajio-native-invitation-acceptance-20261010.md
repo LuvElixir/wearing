@@ -94,3 +94,23 @@ The welcome and privacy captures were retained privately with SHA-256
 `4d9a2e8fd2d6524119efd722a36603d8e0bd3005450157d1e97e65ecd00f949c` and
 `51efd5f7b7eaa25cfeed2124d0b039b6521e8dd8f068f09c6f91cffca86764b9`.
 These checks do not prove an authenticated user session or device provisioning.
+
+## Build 2 distribution and first real registration
+
+Build 2 export and upload both completed successfully. Its exported IPA is
+38,423,379 bytes, SHA-256
+`4a7ffd14a6ff89a1dd061f6619da25a35cc7ca78373ec3da18857c0ed960ecf3`.
+Apple acknowledged the upload at 21:19:05 Asia/Shanghai. App Store Connect
+subsequently displayed version 0.2.0 build 2 as **Ready to Submit**, expiring in
+90 days, and confirmed its association with the `Pajio 个人内测` internal group.
+The group association is not an external beta approval or a tester installation.
+No tester invitation email or external review submission was sent at this checkpoint.
+
+The first capacity-backed invitation was issued once and delivered to the owner
+privately. The owner completed native account and password creation on the
+physical iPhone. The control database then confirmed one member, one private
+ownership record, one bundle, and one activation for the intended tenant.
+Device Hub showed the authenticated native provisioning screen: Core ready,
+Linux preparing, Android pending. This verifies real invitation redemption and
+entry into the activation flow; device readiness and remote control are separate
+acceptance stages.

@@ -37,7 +37,7 @@ export function NativeProvisioningPanel({connection,isCurrent,onReady,account}: 
         if(!current())return true;
         const error=cause instanceof ProvisioningError?cause:new ProvisioningError('unconfirmed');
         setError(error.message);setExpired(error.code==='expired');return error.code==='expired';
-      },change:state=>{if(current())setPollState(state);},limit:20,
+      },change:state=>{if(current())setPollState(state);},keepHealthy:true,
     });
     pollRef.current=poll;
     const stop=registerAccountWork(connection,async()=>{poll.dispose();});

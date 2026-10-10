@@ -1,6 +1,10 @@
 import importlib.util
 from pathlib import Path
 import pytest
+import sys
+
+sys.path.insert(0, str(Path(__file__).parents[1] / 'deploy/on-prem'))
+from operations_scope import config_fingerprint
 
 spec = importlib.util.spec_from_file_location('backup_space', Path(__file__).parents[1] / 'deploy/on-prem/check-backup-space.py')
 guard = importlib.util.module_from_spec(spec)
@@ -26,8 +30,14 @@ def test_new_execution_guests_require_matching_provisioning_owner():
              'resource_id': 'computer_example', 'request_id': 'a'*32, 'nonce': 'b'*64,
              'request_sha256': 'c'*64}
     config = {'description': json.dumps({'pajio_provisioning': owner})}
-    assert guard.approved_owner('1211', config)
-    assert not guard.approved_owner('1212', config)
-    assert not guard.approved_owner('9999', config)
-    assert not guard.approved_owner('1211', {'tags': 'pajio'})
-    assert not guard.approved_owner('1211', {'description': '{corrupt'})
+    scope = {'version': 1, 'guests': {'1411': {'config_sha256': config_fingerprint(config), 'services': ['nginx']}}}
+    assert guard.approved_owner('1411', config, scope)
+    assert guard.approved_owner('1411', {**config, 'lock': 'backup', 'digest': 'provider-token'}, scope)
+    assert not guard.approved_owner('1412', config, scope)
+    assert not guard.approved_owner('9999', config, scope)
+    assert not guard.approved_owner('1411', {'tags': 'pajio'}, scope)
+    assert not guard.approved_owner('1411', {'description': '{corrupt'}, scope)
+    owner['tenant_id'] = 'different-user'
+    assert not guard.approved_owner('1411', {'description': json.dumps({'pajio_provisioning': owner})}, scope)
+    assert not guard.approved_owner('1411', {**config, 'lock': 'clone'}, scope)
+    assert not guard.approved_owner('1411', {**config, 'scsi0': 'replacement-disk'}, scope)
